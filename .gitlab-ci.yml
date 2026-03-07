@@ -41,8 +41,9 @@ build:
 
 .deploy_base:
   stage: deploy
+  needs: [build]
   image:
-    name: bitnami/kubectl:latest
+    name: bitnami/kubectl:1.32
     entrypoint: [""]
   before_script:
     - mkdir -p ~/.kube

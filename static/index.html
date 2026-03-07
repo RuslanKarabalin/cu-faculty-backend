@@ -81,6 +81,7 @@
       letter-spacing: -0.02em;
       margin-bottom: 10px;
       background: linear-gradient(135deg, var(--text) 0%, var(--muted) 100%);
+      background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -150,25 +151,6 @@
     <h1>cu-faculty-backend</h1>
     <p class="subtitle">Backend service is running.<br/>API is ready to accept requests.</p>
 
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-label">Status</div>
-        <div class="stat-value" id="status">OK</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Uptime</div>
-        <div class="stat-value" id="uptime">0s</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Environment</div>
-        <div class="stat-value" style="font-size:14px;padding-top:3px;" id="env">—</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Time</div>
-        <div class="stat-value" style="font-size:14px;padding-top:3px;" id="clock">—</div>
-      </div>
-    </div>
-
     <div class="stack">
       <span class="tag">Go</span>
       <span class="tag">Kubernetes</span>
@@ -233,34 +215,6 @@
       requestAnimationFrame(draw);
     }
     draw();
-
-    // Clock
-    function tick() {
-      const now = new Date();
-      document.getElementById('clock').textContent =
-        now.toLocaleTimeString('en-GB');
-    }
-    tick();
-    setInterval(tick, 1000);
-
-    // Uptime counter
-    const start = Date.now();
-    function updateUptime() {
-      const s = Math.floor((Date.now() - start) / 1000);
-      const h = Math.floor(s / 3600);
-      const m = Math.floor((s % 3600) / 60);
-      const sec = s % 60;
-      document.getElementById('uptime').textContent =
-        h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-    }
-    updateUptime();
-    setInterval(updateUptime, 1000);
-
-    // Env detection
-    const host = location.hostname;
-    document.getElementById('env').textContent =
-      host.includes('staging') ? 'staging' :
-      host === 'localhost' || host === '127.0.0.1' ? 'local' : 'production';
   </script>
 </body>
 </html>
