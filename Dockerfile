@@ -6,8 +6,9 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o main ./cmd/api
 
 FROM alpine:3.23
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/main main
 EXPOSE 8080
-USER nonroot:nonroot
+USER appuser:appgroup
 ENTRYPOINT ["./main"]
