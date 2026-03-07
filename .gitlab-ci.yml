@@ -46,7 +46,7 @@ build:
     entrypoint: [""]
   before_script:
     - mkdir -p ~/.kube
-    - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config || (echo "ERROR: KUBE_CONFIG is missing or not valid base64"; exit 1)
+    - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
     - chmod 600 ~/.kube/config
   script:
     - kubectl set image deployment/$K8S_DEPLOYMENT_NAME
