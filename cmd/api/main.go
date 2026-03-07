@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -13,7 +12,7 @@ func main() {
 
 	mux.Handle("GET /", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slog.Info("Received request", slog.String("method", r.Method), slog.String("path", r.URL.Path))
-		fmt.Fprintf(w, "WORK?")
+		http.ServeFile(w, r, "static/index.html")
 	}))
 
 	srv := &http.Server{

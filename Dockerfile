@@ -9,6 +9,7 @@ FROM alpine:3.23
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/main main
+COPY --from=builder /app/static static
 EXPOSE 8080
 USER appuser:appgroup
 ENTRYPOINT ["./main"]
