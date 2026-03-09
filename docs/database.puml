@@ -1,0 +1,200 @@
+@startuml DB Schema
+
+entity "Roles" <<prepared>> {
+  * Id : int <<PK>>
+  --
+  * Name : varchar(31)
+}
+
+entity "Statuses" <<prepared>> {
+  * Id : int <<PK>>
+  --
+  * Name : varchar(127)
+}
+
+entity "SocialTypes" <<prepared>> {
+  * Id : int <<PK>>
+  --
+  * Name : varchar(31)
+}
+
+entity "EduGradeTypes" <<prepared>> {
+  * Id : int <<PK>>
+  --
+  * Name : varchar(31)
+}
+
+entity "KeySkills" <<prepared>> {
+  * Id : int <<PK>>
+  --
+  * Name : varchar(31)
+}
+
+entity "SoftSkills" <<prepared>> {
+  * Id : int <<PK>>
+  --
+  * Name : varchar(31)
+}
+
+
+entity "Users" {
+  * Id : uuid <<PK>>
+  --
+  * PhotoOnS3Id : varchar(255)
+  * FirstName : varchar(31)
+  * LastName : varchar(31)
+  * AboutMe : varchar(255)
+  * StatusId : int <<FK>>
+  * RoleId : int <<FK>>
+}
+
+entity "Socials" {
+  * Id : int <<PK>>
+  --
+  * UserId : uuid <<FK>>
+  * SocialTypeId : int <<FK>>
+  * Link : varchar(127)
+  * IsPreferred : bool
+}
+
+entity "WorkPlaces" {
+  * Id : int <<PK>>
+  --
+  * UserId : uuid <<FK>>
+  * CompanyName : varchar(31)
+  * Grade : varchar(31)
+  * Position : varchar(31)
+  * StartYear : smallint
+  EndYear : smallint
+  * WorkingNow : bool
+}
+
+entity "EduPlaces" {
+  * Id : int <<PK>>
+  --
+  * UserId : uuid <<FK>>
+  * EduName : varchar(31)
+  * GradeId : int <<FK>>
+  Level : varchar(31)
+  * Specialization : varchar(31)
+  * StartYear : smallint
+  EndYear : smallint
+  * StudyNow : bool
+}
+
+entity "FAQ" {
+  * Id : int <<PK>>
+  --
+  * Question : varchar(255)
+  * Answer : varchar(255)
+}
+
+entity "Announcements" {
+  * Id : uuid <<PK>>
+  --
+  * CreatorId : uuid <<FK>>
+  * Title : varchar(31)
+  * Content : varchar(255)
+  * CreatedAt : timestamptz
+  * IsArchived : bool
+}
+
+entity "News" {
+  * Id : uuid <<PK>>
+  --
+  * UserId : uuid <<FK>>
+  * PhotoOnS3Id : varchar(255)
+  * Title : varchar(31)
+  * Content : varchar(255)
+  * CreatedAt : timestamptz
+}
+
+entity "Events" {
+  * Id : uuid <<PK>>
+  --
+  * UserId : uuid <<FK>>
+  * PhotoOnS3Id : varchar(255)
+  * Title : varchar(31)
+  * Content : varchar(255)
+  * Place : varchar(63)
+  * Time : timestamptz
+  RegistrationLink : varchar(255)
+  * CreatedAt : timestamptz
+}
+
+
+entity "UserKeySkills" {
+  * UserId : uuid <<FK>>
+  * KeySkillId : int <<FK>>
+}
+
+entity "UserSoftSkills" {
+  * UserId : uuid <<FK>>
+  * SoftSkillId : int <<FK>>
+}
+
+entity "Contacts" {
+  * UserId1 : uuid <<FK>>
+  * UserId2 : uuid <<FK>>
+}
+
+entity "ContactNotes" {
+  * UserId1 : uuid <<FK>>
+  * UserId2 : uuid <<FK>>
+  --
+  * Note : varchar(255)
+}
+
+entity "SavedUsers" {
+  * UserId1 : uuid <<FK>>
+  * UserId2 : uuid <<FK>>
+}
+
+entity "AnnouncementResponds" {
+  * UserId : uuid <<FK>>
+  * AnnouncementId : uuid <<FK>>
+}
+
+entity "EventResponds" {
+  * UserId : uuid <<FK>>
+  * EventId : uuid <<FK>>
+}
+
+
+Roles           ||--o{ Users                : "RoleId"
+Statuses        ||--o{ Users                : "StatusId"
+
+Users           ||--o{ Socials              : "UserId"
+SocialTypes     ||--o{ Socials              : "SocialTypeId"
+
+Users           ||--o{ WorkPlaces           : "UserId"
+
+Users           ||--o{ EduPlaces            : "UserId"
+EduGradeTypes   ||--o{ EduPlaces            : "GradeId"
+
+Users           ||--o{ UserKeySkills        : "UserId"
+KeySkills       ||--o{ UserKeySkills        : "KeySkillId"
+
+Users           ||--o{ UserSoftSkills       : "UserId"
+SoftSkills      ||--o{ UserSoftSkills       : "SoftSkillId"
+
+Users           ||--o{ Contacts             : "UserId1"
+Users           ||--o{ Contacts             : "UserId2"
+
+Users           ||--o{ ContactNotes         : "UserId1"
+Users           ||--o{ ContactNotes         : "UserId2"
+
+Users           ||--o{ SavedUsers           : "UserId1"
+Users           ||--o{ SavedUsers           : "UserId2"
+
+Users           ||--o{ Announcements        : "CreatorId"
+Announcements   ||--o{ AnnouncementResponds : "AnnouncementId"
+Users           ||--o{ AnnouncementResponds : "UserId"
+
+Users           ||--o{ News                 : "UserId"
+
+Users           ||--o{ Events               : "UserId"
+Events          ||--o{ EventResponds      : "EventId"
+Users           ||--o{ EventResponds      : "UserId"
+
+@enduml
