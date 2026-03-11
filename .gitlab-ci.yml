@@ -9,6 +9,17 @@ variables:
 
 # Test
 
+generate-check:
+  image: golang:1.26-alpine
+  stage: test
+  script:
+    - go mod download
+    - go generate ./...
+    - git diff --exit-code
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
 test:
   stage: test
   image: golang:1.26-alpine

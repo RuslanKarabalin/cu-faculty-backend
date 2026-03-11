@@ -29,6 +29,9 @@ lint:
 
 ffl: fmt fix lint
 
+genapi:
+	$(DBIN)/oapi-codegen -config api/cfg.yaml docs/openapi.yaml
+
 build:
 	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(DBIN)/main ./cmd/api
 

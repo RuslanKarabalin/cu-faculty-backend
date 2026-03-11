@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cufb/api"
 	"fmt"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
@@ -26,6 +27,9 @@ func main() {
 	app.Use(fiberzap.New(fiberzap.Config{
 		Logger: logger,
 	}))
+
+	server := api.NewServer()
+	api.RegisterHandlers(app, server)
 
 	app.Get("/hello", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World!")

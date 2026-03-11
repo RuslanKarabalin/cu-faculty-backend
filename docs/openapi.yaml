@@ -1,0 +1,1550 @@
+openapi: 3.0.3
+info:
+  title: CU Faculty API
+  version: 1.0.0
+
+tags:
+  - name: Reference
+    description: Prepared/reference data
+  - name: Users
+    description: User management
+  - name: Socials
+    description: User social links
+  - name: WorkPlaces
+    description: User work history
+  - name: EduPlaces
+    description: User education history
+  - name: Skills
+    description: User key and soft skills
+  - name: Contacts
+    description: User contacts and notes
+  - name: SavedUsers
+    description: User saved/bookmarked profiles
+  - name: FAQ
+    description: Frequently asked questions
+  - name: Announcements
+    description: Announcements and responses
+  - name: News
+    description: News articles
+  - name: Events
+    description: Events and registrations
+
+paths:
+
+  # ─── Reference Data ───────────────────────────────────────────────────────────
+
+  /roles:
+    get:
+      tags: [Reference]
+      summary: List all roles
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+
+  /statuses:
+    get:
+      tags: [Reference]
+      summary: List all statuses
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Status'
+
+  /social-types:
+    get:
+      tags: [Reference]
+      summary: List all social types
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SocialType'
+
+  /edu-grade-types:
+    get:
+      tags: [Reference]
+      summary: List all education grade types
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EduGradeType'
+
+  /key-skills:
+    get:
+      tags: [Reference]
+      summary: List all key skills
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KeySkill'
+
+  /soft-skills:
+    get:
+      tags: [Reference]
+      summary: List all soft skills
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SoftSkill'
+
+  # ─── Users ────────────────────────────────────────────────────────────────────
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users
+      parameters:
+        - name: roleId
+          in: query
+          schema:
+            type: integer
+        - name: statusId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+    post:
+      tags: [Users]
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [Users]
+      summary: Get a user by ID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      summary: Update a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Users]
+      summary: Delete a user
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Socials ──────────────────────────────────────────────────────────────────
+
+  /users/{userId}/socials:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [Socials]
+      summary: List user socials
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Social'
+    post:
+      tags: [Socials]
+      summary: Add a social link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Social'
+
+  /users/{userId}/socials/{socialId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/socialId'
+    put:
+      tags: [Socials]
+      summary: Update a social link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Social'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Socials]
+      summary: Remove a social link
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── WorkPlaces ───────────────────────────────────────────────────────────────
+
+  /users/{userId}/work-places:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [WorkPlaces]
+      summary: List user work places
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkPlace'
+    post:
+      tags: [WorkPlaces]
+      summary: Add a work place
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkPlaceCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkPlace'
+
+  /users/{userId}/work-places/{workPlaceId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/workPlaceId'
+    put:
+      tags: [WorkPlaces]
+      summary: Update a work place
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkPlaceCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkPlace'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [WorkPlaces]
+      summary: Delete a work place
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── EduPlaces ────────────────────────────────────────────────────────────────
+
+  /users/{userId}/edu-places:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [EduPlaces]
+      summary: List user education places
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EduPlace'
+    post:
+      tags: [EduPlaces]
+      summary: Add an education place
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EduPlaceCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EduPlace'
+
+  /users/{userId}/edu-places/{eduPlaceId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/eduPlaceId'
+    put:
+      tags: [EduPlaces]
+      summary: Update an education place
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EduPlaceCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EduPlace'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [EduPlaces]
+      summary: Delete an education place
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Key Skills ───────────────────────────────────────────────────────────────
+
+  /users/{userId}/key-skills:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [Skills]
+      summary: List user key skills
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KeySkill'
+    post:
+      tags: [Skills]
+      summary: Add a key skill to user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keySkillId]
+              properties:
+                keySkillId:
+                  type: integer
+      responses:
+        '201':
+          description: Created
+
+  /users/{userId}/key-skills/{keySkillId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/keySkillId'
+    delete:
+      tags: [Skills]
+      summary: Remove a key skill from user
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Soft Skills ──────────────────────────────────────────────────────────────
+
+  /users/{userId}/soft-skills:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [Skills]
+      summary: List user soft skills
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SoftSkill'
+    post:
+      tags: [Skills]
+      summary: Add a soft skill to user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [softSkillId]
+              properties:
+                softSkillId:
+                  type: integer
+      responses:
+        '201':
+          description: Created
+
+  /users/{userId}/soft-skills/{softSkillId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/softSkillId'
+    delete:
+      tags: [Skills]
+      summary: Remove a soft skill from user
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Contacts ─────────────────────────────────────────────────────────────────
+
+  /users/{userId}/contacts:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [Contacts]
+      summary: List user contacts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+    post:
+      tags: [Contacts]
+      summary: Add a contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contactUserId]
+              properties:
+                contactUserId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Created
+
+  /users/{userId}/contacts/{contactUserId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/contactUserId'
+    delete:
+      tags: [Contacts]
+      summary: Remove a contact
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/contacts/{contactUserId}/note:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/contactUserId'
+    get:
+      tags: [Contacts]
+      summary: Get note for a contact
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactNote'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Contacts]
+      summary: Create or update note for a contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note:
+                  type: string
+                  maxLength: 255
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactNote'
+
+  # ─── Saved Users ──────────────────────────────────────────────────────────────
+
+  /users/{userId}/saved-users:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      tags: [SavedUsers]
+      summary: List saved/bookmarked users
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+    post:
+      tags: [SavedUsers]
+      summary: Save a user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [savedUserId]
+              properties:
+                savedUserId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Created
+
+  /users/{userId}/saved-users/{savedUserId}:
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/savedUserId'
+    delete:
+      tags: [SavedUsers]
+      summary: Remove a saved user
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── FAQ ──────────────────────────────────────────────────────────────────────
+
+  /faq:
+    get:
+      tags: [FAQ]
+      summary: List all FAQ entries
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FAQ'
+    post:
+      tags: [FAQ]
+      summary: Create a FAQ entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FAQCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FAQ'
+
+  /faq/{faqId}:
+    parameters:
+      - $ref: '#/components/parameters/faqId'
+    get:
+      tags: [FAQ]
+      summary: Get a FAQ entry
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FAQ'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [FAQ]
+      summary: Update a FAQ entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FAQCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FAQ'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [FAQ]
+      summary: Delete a FAQ entry
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Announcements ────────────────────────────────────────────────────────────
+
+  /announcements:
+    get:
+      tags: [Announcements]
+      summary: List announcements
+      parameters:
+        - name: isArchived
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Announcement'
+    post:
+      tags: [Announcements]
+      summary: Create an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnouncementCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+
+  /announcements/{announcementId}:
+    parameters:
+      - $ref: '#/components/parameters/announcementId'
+    get:
+      tags: [Announcements]
+      summary: Get an announcement
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Announcements]
+      summary: Update an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnouncementCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Announcements]
+      summary: Delete an announcement
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /announcements/{announcementId}/responds:
+    parameters:
+      - $ref: '#/components/parameters/announcementId'
+    get:
+      tags: [Announcements]
+      summary: List users who responded to announcement
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+    post:
+      tags: [Announcements]
+      summary: Respond to an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Created
+
+  /announcements/{announcementId}/responds/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/announcementId'
+      - $ref: '#/components/parameters/userId'
+    delete:
+      tags: [Announcements]
+      summary: Withdraw response from announcement
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── News ─────────────────────────────────────────────────────────────────────
+
+  /news:
+    get:
+      tags: [News]
+      summary: List news articles
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NewsArticle'
+    post:
+      tags: [News]
+      summary: Create a news article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsArticle'
+
+  /news/{newsId}:
+    parameters:
+      - $ref: '#/components/parameters/newsId'
+    get:
+      tags: [News]
+      summary: Get a news article
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsArticle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [News]
+      summary: Update a news article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsArticle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [News]
+      summary: Delete a news article
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Events ───────────────────────────────────────────────────────────────────
+
+  /events:
+    get:
+      tags: [Events]
+      summary: List events
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+    post:
+      tags: [Events]
+      summary: Create an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+
+  /events/{eventId}:
+    parameters:
+      - $ref: '#/components/parameters/eventId'
+    get:
+      tags: [Events]
+      summary: Get an event
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Events]
+      summary: Update an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Events]
+      summary: Delete an event
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /events/{eventId}/responds:
+    parameters:
+      - $ref: '#/components/parameters/eventId'
+    get:
+      tags: [Events]
+      summary: List users registered for event
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+    post:
+      tags: [Events]
+      summary: Register for an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Created
+
+  /events/{eventId}/responds/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/eventId'
+      - $ref: '#/components/parameters/userId'
+    delete:
+      tags: [Events]
+      summary: Withdraw registration from event
+      responses:
+        '204':
+          description: No Content
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+# ─── Components ───────────────────────────────────────────────────────────────
+
+components:
+
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    contactUserId:
+      name: contactUserId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    savedUserId:
+      name: savedUserId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    socialId:
+      name: socialId
+      in: path
+      required: true
+      schema:
+        type: integer
+    workPlaceId:
+      name: workPlaceId
+      in: path
+      required: true
+      schema:
+        type: integer
+    eduPlaceId:
+      name: eduPlaceId
+      in: path
+      required: true
+      schema:
+        type: integer
+    keySkillId:
+      name: keySkillId
+      in: path
+      required: true
+      schema:
+        type: integer
+    softSkillId:
+      name: softSkillId
+      in: path
+      required: true
+      schema:
+        type: integer
+    faqId:
+      name: faqId
+      in: path
+      required: true
+      schema:
+        type: integer
+    announcementId:
+      name: announcementId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    newsId:
+      name: newsId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    eventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    # Reference schemas
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 31
+
+    Status:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 127
+
+    SocialType:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 31
+
+    EduGradeType:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 31
+
+    KeySkill:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 31
+
+    SoftSkill:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 31
+
+    # User schemas
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+          maxLength: 31
+        lastName:
+          type: string
+          maxLength: 31
+        photoOnS3Id:
+          type: string
+          maxLength: 255
+        statusId:
+          type: integer
+        roleId:
+          type: integer
+
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            aboutMe:
+              type: string
+              maxLength: 255
+
+    UserCreate:
+      type: object
+      required: [firstName, lastName, photoOnS3Id, statusId, roleId]
+      properties:
+        firstName:
+          type: string
+          maxLength: 31
+        lastName:
+          type: string
+          maxLength: 31
+        photoOnS3Id:
+          type: string
+          maxLength: 255
+        aboutMe:
+          type: string
+          maxLength: 255
+        statusId:
+          type: integer
+        roleId:
+          type: integer
+
+    UserUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 31
+        lastName:
+          type: string
+          maxLength: 31
+        photoOnS3Id:
+          type: string
+          maxLength: 255
+        aboutMe:
+          type: string
+          maxLength: 255
+        statusId:
+          type: integer
+        roleId:
+          type: integer
+
+    # Social schemas
+    Social:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+          format: uuid
+        socialTypeId:
+          type: integer
+        link:
+          type: string
+          maxLength: 127
+        isPreferred:
+          type: boolean
+
+    SocialCreate:
+      type: object
+      required: [socialTypeId, link, isPreferred]
+      properties:
+        socialTypeId:
+          type: integer
+        link:
+          type: string
+          maxLength: 127
+        isPreferred:
+          type: boolean
+
+    # WorkPlace schemas
+    WorkPlace:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+          format: uuid
+        companyName:
+          type: string
+          maxLength: 31
+        grade:
+          type: string
+          maxLength: 31
+        position:
+          type: string
+          maxLength: 31
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+          nullable: true
+        workingNow:
+          type: boolean
+
+    WorkPlaceCreate:
+      type: object
+      required: [companyName, grade, position, startYear, workingNow]
+      properties:
+        companyName:
+          type: string
+          maxLength: 31
+        grade:
+          type: string
+          maxLength: 31
+        position:
+          type: string
+          maxLength: 31
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+          nullable: true
+        workingNow:
+          type: boolean
+
+    # EduPlace schemas
+    EduPlace:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+          format: uuid
+        eduName:
+          type: string
+          maxLength: 31
+        gradeId:
+          type: integer
+        level:
+          type: string
+          maxLength: 31
+          nullable: true
+        specialization:
+          type: string
+          maxLength: 31
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+          nullable: true
+        studyNow:
+          type: boolean
+
+    EduPlaceCreate:
+      type: object
+      required: [eduName, gradeId, specialization, startYear, studyNow]
+      properties:
+        eduName:
+          type: string
+          maxLength: 31
+        gradeId:
+          type: integer
+        level:
+          type: string
+          maxLength: 31
+          nullable: true
+        specialization:
+          type: string
+          maxLength: 31
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+          nullable: true
+        studyNow:
+          type: boolean
+
+    # Contact schemas
+    ContactNote:
+      type: object
+      properties:
+        userId1:
+          type: string
+          format: uuid
+        userId2:
+          type: string
+          format: uuid
+        note:
+          type: string
+          maxLength: 255
+
+    # FAQ schemas
+    FAQ:
+      type: object
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+          maxLength: 255
+        answer:
+          type: string
+          maxLength: 255
+
+    FAQCreate:
+      type: object
+      required: [question, answer]
+      properties:
+        question:
+          type: string
+          maxLength: 255
+        answer:
+          type: string
+          maxLength: 255
+
+    # Announcement schemas
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        creatorId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+        createdAt:
+          type: string
+          format: date-time
+        isArchived:
+          type: boolean
+
+    AnnouncementCreate:
+      type: object
+      required: [creatorId, title, content]
+      properties:
+        creatorId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+        isArchived:
+          type: boolean
+          default: false
+
+    # News schemas
+    NewsArticle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        photoOnS3Id:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+        createdAt:
+          type: string
+          format: date-time
+
+    NewsCreate:
+      type: object
+      required: [userId, photoOnS3Id, title, content]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        photoOnS3Id:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+
+    # Event schemas
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        photoOnS3Id:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+        place:
+          type: string
+          maxLength: 63
+        time:
+          type: string
+          format: date-time
+        registrationLink:
+          type: string
+          maxLength: 255
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    EventCreate:
+      type: object
+      required: [userId, photoOnS3Id, title, content, place, time]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        photoOnS3Id:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+        place:
+          type: string
+          maxLength: 63
+        time:
+          type: string
+          format: date-time
+        registrationLink:
+          type: string
+          maxLength: 255
+          nullable: true
