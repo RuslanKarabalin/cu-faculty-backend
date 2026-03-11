@@ -7,6 +7,8 @@ GOOSE = $(DBIN)/goose
 
 export GOBIN
 
+all: ffl brun
+
 install-lint:
 	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(GOBIN)
 
@@ -26,3 +28,11 @@ lint:
 	$(LINT) run
 
 ffl: fmt fix lint
+
+build:
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(DBIN)/main ./cmd/api
+
+run:
+	$(DBIN)/main
+
+brun: build run
