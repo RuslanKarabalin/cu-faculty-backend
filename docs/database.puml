@@ -1,200 +1,192 @@
-@startuml DB Schema
+@startuml database
 
-entity "Roles" <<prepared>> {
-  * Id : int <<PK>>
+entity "roles" <<prepared>> {
+  * id : int <<PK>>
   --
-  * Name : varchar(31)
+  * name : varchar(31)
 }
 
-entity "Statuses" <<prepared>> {
-  * Id : int <<PK>>
+entity "statuses" <<prepared>> {
+  * id : int <<PK>>
   --
-  * Name : varchar(127)
+  * name : varchar(127)
 }
 
-entity "SocialTypes" <<prepared>> {
-  * Id : int <<PK>>
+entity "social_types" <<prepared>> {
+  * id : int <<PK>>
   --
-  * Name : varchar(31)
+  * name : varchar(31)
 }
 
-entity "EduGradeTypes" <<prepared>> {
-  * Id : int <<PK>>
+entity "edu_grade_types" <<prepared>> {
+  * id : int <<PK>>
   --
-  * Name : varchar(31)
+  * name : varchar(31)
 }
 
-entity "KeySkills" <<prepared>> {
-  * Id : int <<PK>>
+entity "key_skills" <<prepared>> {
+  * id : int <<PK>>
   --
-  * Name : varchar(31)
+  * name : varchar(31)
 }
 
-entity "SoftSkills" <<prepared>> {
-  * Id : int <<PK>>
+entity "soft_skills" <<prepared>> {
+  * id : int <<PK>>
   --
-  * Name : varchar(31)
+  * name : varchar(31)
 }
 
 
-entity "Users" {
-  * Id : uuid <<PK>>
+entity "users" {
+  * id : uuid <<PK>>
   --
-  * PhotoOnS3Id : varchar(255)
-  * FirstName : varchar(31)
-  * LastName : varchar(31)
-  * AboutMe : varchar(255)
-  * StatusId : int <<FK>>
-  * RoleId : int <<FK>>
+  * photo_s3_id : varchar(255)
+  * first_name : varchar(31)
+  * last_name : varchar(31)
+  * about_me : varchar(255)
+  * status_id : int <<FK>>
+  * role_id : int <<FK>>
 }
 
-entity "Socials" {
-  * Id : int <<PK>>
+entity "socials" {
+  * id : int <<PK>>
   --
-  * UserId : uuid <<FK>>
-  * SocialTypeId : int <<FK>>
-  * Link : varchar(127)
-  * IsPreferred : bool
+  * user_id : uuid <<FK>>
+  * social_type_id : int <<FK>>
+  * link : varchar(127)
+  * is_preferred : bool
 }
 
-entity "WorkPlaces" {
-  * Id : int <<PK>>
+entity "work_places" {
+  * id : int <<PK>>
   --
-  * UserId : uuid <<FK>>
-  * CompanyName : varchar(31)
-  * Grade : varchar(31)
-  * Position : varchar(31)
-  * StartYear : smallint
-  EndYear : smallint
-  * WorkingNow : bool
+  * user_id : uuid <<FK>>
+  * company_name : varchar(31)
+  * grade : varchar(31)
+  * position : varchar(31)
+  * start_year : smallint
+  end_year : smallint
+  * is_working_now : bool
 }
 
-entity "EduPlaces" {
-  * Id : int <<PK>>
+entity "edu_places" {
+  * id : int <<PK>>
   --
-  * UserId : uuid <<FK>>
-  * EduName : varchar(31)
-  * GradeId : int <<FK>>
-  Level : varchar(31)
-  * Specialization : varchar(31)
-  * StartYear : smallint
-  EndYear : smallint
-  * StudyNow : bool
+  * user_id : uuid <<FK>>
+  * edu_name : varchar(31)
+  * grade_id : int <<FK>>
+  level : varchar(31)
+  * specialization : varchar(31)
+  * start_year : smallint
+  end_year : smallint
+  * is_studying_now : bool
 }
 
-entity "FAQ" {
-  * Id : int <<PK>>
+entity "faq" {
+  * id : int <<PK>>
   --
-  * Question : varchar(255)
-  * Answer : varchar(255)
+  * question : varchar(255)
+  * answer : varchar(255)
 }
 
-entity "Announcements" {
-  * Id : uuid <<PK>>
+entity "announcements" {
+  * id : uuid <<PK>>
   --
-  * CreatorId : uuid <<FK>>
-  * Title : varchar(31)
-  * Content : varchar(255)
-  * CreatedAt : timestamptz
-  * IsArchived : bool
+  * author_id : uuid <<FK>>
+  * title : varchar(31)
+  * content : varchar(255)
+  * created_at : timestamptz
+  * is_archived : bool
 }
 
-entity "News" {
-  * Id : uuid <<PK>>
+entity "news" {
+  * id : uuid <<PK>>
   --
-  * UserId : uuid <<FK>>
-  * PhotoOnS3Id : varchar(255)
-  * Title : varchar(31)
-  * Content : varchar(255)
-  * CreatedAt : timestamptz
+  * author_id : uuid <<FK>>
+  * photo_s3_id : varchar(255)
+  * title : varchar(31)
+  * content : varchar(255)
+  * created_at : timestamptz
 }
 
-entity "Events" {
-  * Id : uuid <<PK>>
+entity "events" {
+  * id : uuid <<PK>>
   --
-  * UserId : uuid <<FK>>
-  * PhotoOnS3Id : varchar(255)
-  * Title : varchar(31)
-  * Content : varchar(255)
-  * Place : varchar(63)
-  * Time : timestamptz
-  RegistrationLink : varchar(255)
-  * CreatedAt : timestamptz
+  * author_id : uuid <<FK>>
+  * photo_s3_id : varchar(255)
+  * title : varchar(31)
+  * content : varchar(255)
+  * place : varchar(63)
+  * starts_at : timestamptz
+  registration_link : varchar(255)
+  * created_at : timestamptz
 }
 
 
-entity "UserKeySkills" {
-  * UserId : uuid <<FK>>
-  * KeySkillId : int <<FK>>
+entity "user_key_skills" {
+  * user_id : uuid <<FK>>
+  * key_skill_id : int <<FK>>
 }
 
-entity "UserSoftSkills" {
-  * UserId : uuid <<FK>>
-  * SoftSkillId : int <<FK>>
+entity "user_soft_skills" {
+  * user_id : uuid <<FK>>
+  * soft_skill_id : int <<FK>>
 }
 
-entity "Contacts" {
-  * UserId1 : uuid <<FK>>
-  * UserId2 : uuid <<FK>>
-}
-
-entity "ContactNotes" {
-  * UserId1 : uuid <<FK>>
-  * UserId2 : uuid <<FK>>
+entity "contact_notes" {
+  * user_id : uuid <<FK>>
+  * friend_id : uuid <<FK>>
   --
-  * Note : varchar(255)
+  * note : varchar(255)
 }
 
-entity "SavedUsers" {
-  * UserId1 : uuid <<FK>>
-  * UserId2 : uuid <<FK>>
+entity "saved_users" {
+  * user_id : uuid <<FK>>
+  * saved_user_id : uuid <<FK>>
 }
 
-entity "AnnouncementResponds" {
-  * UserId : uuid <<FK>>
-  * AnnouncementId : uuid <<FK>>
+entity "announcement_responds" {
+  * user_id : uuid <<FK>>
+  * announcement_id : uuid <<FK>>
 }
 
-entity "EventResponds" {
-  * UserId : uuid <<FK>>
-  * EventId : uuid <<FK>>
+entity "event_responds" {
+  * user_id : uuid <<FK>>
+  * event_id : uuid <<FK>>
 }
 
 
-Roles           ||--o{ Users                : "RoleId"
-Statuses        ||--o{ Users                : "StatusId"
+roles           ||--o{ users                : "role_id"
+statuses        ||--o{ users                : "status_id"
 
-Users           ||--o{ Socials              : "UserId"
-SocialTypes     ||--o{ Socials              : "SocialTypeId"
+users           ||--o{ socials              : "user_id"
+social_types    ||--o{ socials              : "social_type_id"
 
-Users           ||--o{ WorkPlaces           : "UserId"
+users           ||--o{ work_places          : "user_id"
 
-Users           ||--o{ EduPlaces            : "UserId"
-EduGradeTypes   ||--o{ EduPlaces            : "GradeId"
+users           ||--o{ edu_places           : "user_id"
+edu_grade_types ||--o{ edu_places           : "grade_id"
 
-Users           ||--o{ UserKeySkills        : "UserId"
-KeySkills       ||--o{ UserKeySkills        : "KeySkillId"
+users           ||--o{ user_key_skills      : "user_id"
+key_skills      ||--o{ user_key_skills      : "key_skill_id"
 
-Users           ||--o{ UserSoftSkills       : "UserId"
-SoftSkills      ||--o{ UserSoftSkills       : "SoftSkillId"
+users           ||--o{ user_soft_skills     : "user_id"
+soft_skills     ||--o{ user_soft_skills     : "soft_skill_id"
 
-Users           ||--o{ Contacts             : "UserId1"
-Users           ||--o{ Contacts             : "UserId2"
+users           ||--o{ contact_notes        : "user_id"
+users           ||--o{ contact_notes        : "friend_id"
 
-Users           ||--o{ ContactNotes         : "UserId1"
-Users           ||--o{ ContactNotes         : "UserId2"
+users           ||--o{ saved_users          : "user_id"
+users           ||--o{ saved_users          : "saved_user_id"
 
-Users           ||--o{ SavedUsers           : "UserId1"
-Users           ||--o{ SavedUsers           : "UserId2"
+users           ||--o{ announcements        : "author_id"
+announcements   ||--o{ announcement_responds : "announcement_id"
+users           ||--o{ announcement_responds : "user_id"
 
-Users           ||--o{ Announcements        : "CreatorId"
-Announcements   ||--o{ AnnouncementResponds : "AnnouncementId"
-Users           ||--o{ AnnouncementResponds : "UserId"
+users           ||--o{ news                 : "author_id"
 
-Users           ||--o{ News                 : "UserId"
-
-Users           ||--o{ Events               : "UserId"
-Events          ||--o{ EventResponds      : "EventId"
-Users           ||--o{ EventResponds      : "UserId"
+users           ||--o{ events               : "author_id"
+events          ||--o{ event_responds       : "event_id"
+users           ||--o{ event_responds       : "user_id"
 
 @enduml
