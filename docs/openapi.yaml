@@ -124,10 +124,10 @@ paths:
       tags: [Users]
       summary: List all users
       parameters:
-        - name: roleId
+        - name: role
           in: query
           schema:
-            type: integer
+            $ref: '#/components/schemas/Role'
         - name: statusId
           in: query
           schema:
@@ -1119,13 +1119,8 @@ components:
 
     # Reference schemas
     Role:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-          maxLength: 31
+      type: string
+      enum: [user, admin]
 
     Status:
       type: object
@@ -1137,22 +1132,12 @@ components:
           maxLength: 127
 
     SocialType:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-          maxLength: 31
+      type: string
+      enum: [vk, telegram, linkedin, github]
 
     EduGradeType:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-          maxLength: 31
+      type: string
+      enum: [bachelor, master, specialist, postgraduate]
 
     KeySkill:
       type: object
@@ -1188,10 +1173,13 @@ components:
         photoOnS3Id:
           type: string
           maxLength: 255
+        birthDate:
+          type: string
+          format: date
         statusId:
           type: integer
-        roleId:
-          type: integer
+        role:
+          $ref: '#/components/schemas/Role'
 
     User:
       allOf:
@@ -1204,7 +1192,7 @@ components:
 
     UserCreate:
       type: object
-      required: [firstName, lastName, photoOnS3Id, statusId, roleId]
+      required: [firstName, lastName, photoOnS3Id, birthDate, statusId, role]
       properties:
         firstName:
           type: string
@@ -1218,10 +1206,13 @@ components:
         aboutMe:
           type: string
           maxLength: 255
+        birthDate:
+          type: string
+          format: date
         statusId:
           type: integer
-        roleId:
-          type: integer
+        role:
+          $ref: '#/components/schemas/Role'
 
     UserUpdate:
       type: object
@@ -1238,10 +1229,13 @@ components:
         aboutMe:
           type: string
           maxLength: 255
+        birthDate:
+          type: string
+          format: date
         statusId:
           type: integer
-        roleId:
-          type: integer
+        role:
+          $ref: '#/components/schemas/Role'
 
     # Social schemas
     Social:
@@ -1252,8 +1246,8 @@ components:
         userId:
           type: string
           format: uuid
-        socialTypeId:
-          type: integer
+        socialType:
+          $ref: '#/components/schemas/SocialType'
         link:
           type: string
           maxLength: 127
@@ -1262,10 +1256,10 @@ components:
 
     SocialCreate:
       type: object
-      required: [socialTypeId, link, isPreferred]
+      required: [socialType, link, isPreferred]
       properties:
-        socialTypeId:
-          type: integer
+        socialType:
+          $ref: '#/components/schemas/SocialType'
         link:
           type: string
           maxLength: 127
@@ -1331,8 +1325,8 @@ components:
         eduName:
           type: string
           maxLength: 31
-        gradeId:
-          type: integer
+        grade:
+          $ref: '#/components/schemas/EduGradeType'
         level:
           type: string
           maxLength: 31
@@ -1350,13 +1344,13 @@ components:
 
     EduPlaceCreate:
       type: object
-      required: [eduName, gradeId, specialization, startYear, studyNow]
+      required: [eduName, grade, specialization, startYear, studyNow]
       properties:
         eduName:
           type: string
           maxLength: 31
-        gradeId:
-          type: integer
+        grade:
+          $ref: '#/components/schemas/EduGradeType'
         level:
           type: string
           maxLength: 31

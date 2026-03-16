@@ -1,27 +1,27 @@
 @startuml database
 
-entity "roles" <<prepared>> {
-  * id : int <<PK>>
-  --
-  * name : varchar(31)
+enum "role_type" {
+  user
+  admin
+}
+
+enum "social_type" {
+  vk
+  telegram
+  github
+}
+
+enum "edu_grade_type" {
+  bachelor
+  master
+  specialist
+  postgraduate
 }
 
 entity "statuses" <<prepared>> {
   * id : int <<PK>>
   --
   * name : varchar(127)
-}
-
-entity "social_types" <<prepared>> {
-  * id : int <<PK>>
-  --
-  * name : varchar(31)
-}
-
-entity "edu_grade_types" <<prepared>> {
-  * id : int <<PK>>
-  --
-  * name : varchar(31)
 }
 
 entity "key_skills" <<prepared>> {
@@ -44,15 +44,16 @@ entity "users" {
   * first_name : varchar(31)
   * last_name : varchar(31)
   * about_me : varchar(255)
+  * birth_date : date
   * status_id : int <<FK>>
-  * role_id : int <<FK>>
+  * role : role_type <<enum>>
 }
 
 entity "socials" {
   * id : int <<PK>>
   --
   * user_id : uuid <<FK>>
-  * social_type_id : int <<FK>>
+  * social_type : social_type <<enum>>
   * link : varchar(127)
   * is_preferred : bool
 }
@@ -74,7 +75,7 @@ entity "edu_places" {
   --
   * user_id : uuid <<FK>>
   * edu_name : varchar(31)
-  * grade_id : int <<FK>>
+  * grade : edu_grade_type <<enum>>
   level : varchar(31)
   * specialization : varchar(31)
   * start_year : smallint
@@ -156,16 +157,13 @@ entity "event_responds" {
 }
 
 
-roles           ||--o{ users                  : "role_id"
 statuses        ||--o{ users                  : "status_id"
 
 users           ||--o{ socials                : "user_id"
-social_types    ||--o{ socials                : "social_type_id"
 
 users           ||--o{ work_places            : "user_id"
 
 users           ||--o{ edu_places             : "user_id"
-edu_grade_types ||--o{ edu_places             : "grade_id"
 
 users           ||--o{ user_key_skills        : "user_id"
 key_skills      ||--o{ user_key_skills        : "key_skill_id"
