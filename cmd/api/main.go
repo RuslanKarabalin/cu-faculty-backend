@@ -1,15 +1,21 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"cufb/internal/config"
+	"cufb/internal/db"
+	"os"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
-	"github.com/spf13/viper"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
 
 func main() {
+	ctx := context.Background()
+
 	logger, _ := zap.NewProduction()
 	defer func() {
 		if err := logger.Sync(); err != nil {
@@ -19,22 +25,41 @@ func main() {
 
 	sugar := logger.Sugar()
 
-	viper.SetDefault("APP_PORT", "8080")
+	cfg := config.ReadConfig(sugar)
 
-	app := fiber.New()
+	conn, err := pgxpool.New(ctx, cfg.GetPostgresUrl())
+	if err != nil {
+		sugar.Error("Cannot connect to PostgreSQL", zap.Any("error", err))
+		os.Exit(1)
+	}
+	defer conn.Close()
+
+	goose.SetLogger(zap.NewStdLog(logger))
+
+	db.RunMigrations(conn)
+
+	app := fiber.New(
+		fiber.Config{
+			DisableStartupMessage: true,
+		},
+	)
 
 	app.Use(fiberzap.New(fiberzap.Config{
 		Logger: logger,
 	}))
 
-	// server := api.NewServer()
-	// api.RegisterHandlers(app, server)
-
-	app.Get("/hello", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
+	app.Get("/health", func(c *fiber.Ctx) error {
+		if err := conn.Ping(c.Context()); err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"status": "unhealthy",
+				"db":     "unreachable",
+			})
+		}
+		return c.JSON(fiber.Map{
+			"status": "ok",
+			"db":     "reachable",
+		})
 	})
 
-	addr := fmt.Sprintf(":%s", viper.GetString("APP_PORT"))
-
-	sugar.Fatal(app.Listen(addr))
+	sugar.Fatal(app.Listen(cfg.Addr))
 }
