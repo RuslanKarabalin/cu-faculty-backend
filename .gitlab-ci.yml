@@ -26,13 +26,21 @@ test:
   stage: test
   image: golang:1.26-alpine
   script:
-    - go test ./...
+    - go install github.com/boumenot/gocover-cobertura@latest
+    - go test -coverprofile=coverage.out ./...
+    - gocover-cobertura < coverage.out > coverage.xml
   cache:
     key: go-mod-$CI_COMMIT_REF_SLUG
     paths:
       - .go/pkg/mod/
   variables:
     GOPATH: $CI_PROJECT_DIR/.go
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  coverage: '/coverage: \d+\.\d+% of statements/'
 
 # Build & push image
 
