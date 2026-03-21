@@ -80,23 +80,24 @@ build:
         --namespace=$K8S_NAMESPACE
         --timeout=120s
 
-deploy:staging:
+deploy:test:
   extends: .deploy_base
   environment:
-    name: staging
+    name: test
   variables:
-    K8S_NAMESPACE: staging
+    K8S_NAMESPACE: test
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
 
-deploy:production:
+deploy:prod:
   extends: .deploy_base
   environment:
-    name: production
+    name: prod
   variables:
-    K8S_NAMESPACE: production
+    K8S_NAMESPACE: prod
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
