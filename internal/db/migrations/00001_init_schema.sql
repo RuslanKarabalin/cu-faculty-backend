@@ -44,7 +44,7 @@ create table "users" (
 );
 
 create table "socials" (
-    id int primary key default gen_random_uuid(),
+    id int primary key generated always as identity,
     user_id uuid references users(id),
     social social_network not null,
     link varchar(127) not null,
