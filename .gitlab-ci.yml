@@ -1,3 +1,8 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS == null
+
 stages:
   - test
   - build
@@ -18,9 +23,6 @@ generate-check:
     - go mod download
     - go generate ./...
     - git diff --exit-code
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH
 
 test:
   stage: test
