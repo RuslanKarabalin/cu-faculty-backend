@@ -57,8 +57,6 @@ build:
     - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .
     - docker push $IMAGE_NAME:$IMAGE_TAG
     - docker push $IMAGE_NAME:latest
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 # Deploy
 
@@ -89,7 +87,6 @@ deploy:test:
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
 
 deploy:prod:
@@ -101,5 +98,4 @@ deploy:prod:
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
