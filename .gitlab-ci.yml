@@ -87,7 +87,7 @@ deploy:test:
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
-      when: manual
+    - when: manual
 
 deploy:prod:
   extends: .deploy_base
@@ -98,4 +98,4 @@ deploy:prod:
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
-      when: manual
+    - when: manual
