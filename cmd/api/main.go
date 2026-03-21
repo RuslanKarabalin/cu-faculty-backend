@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"cufb/internal/config"
-	"cufb/internal/db"
+	"faculty/internal/config"
+	"faculty/internal/db"
 	"os"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
