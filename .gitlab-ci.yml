@@ -30,7 +30,7 @@ test:
   script:
     - go install github.com/boumenot/gocover-cobertura@latest
     - go test -coverprofile=coverage.out ./...
-    - gocover-cobertura < coverage.out > coverage.xml
+    - $GOPATH/bin/gocover-cobertura < coverage.out > coverage.xml
   cache:
     key: go-mod-$CI_COMMIT_REF_SLUG
     paths:
