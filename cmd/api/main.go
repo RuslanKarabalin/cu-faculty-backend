@@ -4,6 +4,7 @@ import (
 	"context"
 	"faculty/internal/config"
 	"faculty/internal/db"
+	"log"
 	"os"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
@@ -16,7 +17,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("can't create zap logger %s", err)
+		os.Exit(1)
+	}
 	defer func() {
 		if err := logger.Sync(); err != nil {
 			logger.Fatal("Can't sync logger after shutdown", zap.Error(err))
@@ -25,7 +30,7 @@ func main() {
 
 	sugar := logger.Sugar()
 
-	cfg := config.ReadConfig(sugar)
+	cfg := config.ReadConfig()
 
 	conn, err := pgxpool.New(ctx, cfg.GetPostgresUrl())
 	if err != nil {
@@ -52,12 +57,10 @@ func main() {
 		if err := conn.Ping(c.Context()); err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 				"status": "unhealthy",
-				"db":     "unreachable",
 			})
 		}
 		return c.JSON(fiber.Map{
 			"status": "ok",
-			"db":     "reachable",
 		})
 	})
 

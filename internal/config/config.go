@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -16,7 +15,7 @@ type Config struct {
 	pgBasename string
 }
 
-func ReadConfig(s *zap.SugaredLogger) *Config {
+func ReadConfig() *Config {
 	cfg := &Config{}
 
 	viper.AutomaticEnv()
