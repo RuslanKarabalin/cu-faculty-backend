@@ -165,8 +165,8 @@ users           ||--o{ work_places              : "user_id"
 
 users           ||--o{ edu_places               : "user_id"
 
-users           ||--o{ user_hard_skills         : "user_id"
-hard_skills     ||--o{ user_hard_skills         : "hard_skill_id"
+users           ||--o{ user_key_skills          : "user_id"
+key_skills      ||--o{ user_key_skills          : "key_skill_id"
 
 users           ||--o{ user_soft_skills         : "user_id"
 soft_skills     ||--o{ user_soft_skills         : "soft_skill_id"
