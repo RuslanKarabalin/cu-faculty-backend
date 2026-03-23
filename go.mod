@@ -1,4 +1,4 @@
-module cufb
+module faculty
 
 go 1.26.0
 

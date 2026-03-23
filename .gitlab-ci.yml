@@ -1,3 +1,8 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS == null
+
 stages:
   - test
   - build
@@ -18,21 +23,26 @@ generate-check:
     - go mod download
     - go generate ./...
     - git diff --exit-code
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH
 
 test:
   stage: test
   image: golang:1.26-alpine
   script:
-    - go test ./...
+    - go install github.com/boumenot/gocover-cobertura@latest
+    - go test -coverprofile=coverage.out ./...
+    - $GOPATH/bin/gocover-cobertura < coverage.out > coverage.xml
   cache:
     key: go-mod-$CI_COMMIT_REF_SLUG
     paths:
       - .go/pkg/mod/
   variables:
     GOPATH: $CI_PROJECT_DIR/.go
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  coverage: '/coverage: \d+\.\d+% of statements/'
 
 # Build & push image
 
@@ -47,8 +57,6 @@ build:
     - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .
     - docker push $IMAGE_NAME:$IMAGE_TAG
     - docker push $IMAGE_NAME:latest
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 # Deploy
 
@@ -70,25 +78,24 @@ build:
         --namespace=$K8S_NAMESPACE
         --timeout=120s
 
-deploy:staging:
+deploy:test:
   extends: .deploy_base
   environment:
-    name: staging
+    name: test
   variables:
-    K8S_NAMESPACE: staging
+    K8S_NAMESPACE: test
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual
 
-deploy:production:
+deploy:prod:
   extends: .deploy_base
   environment:
-    name: production
+    name: prod
   variables:
-    K8S_NAMESPACE: production
+    K8S_NAMESPACE: prod
     K8S_DEPLOYMENT_NAME: cu-faculty-backend
     K8S_CONTAINER_NAME: cu-faculty-backend
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+    - when: manual

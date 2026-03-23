@@ -1,17 +1,17 @@
 @startuml database
 
-enum "role_type" {
+enum "user_role" {
   user
   admin
 }
 
-enum "social_type" {
+enum "social_network" {
   vk
   telegram
   github
 }
 
-enum "edu_grade_type" {
+enum "edu_grade" {
   bachelor
   master
   specialist
@@ -21,7 +21,7 @@ enum "edu_grade_type" {
 entity "statuses" <<prepared>> {
   * id : int <<PK>>
   --
-  * name : varchar(127)
+  * content : varchar(127)
 }
 
 entity "key_skills" <<prepared>> {
@@ -40,20 +40,20 @@ entity "soft_skills" <<prepared>> {
 entity "users" {
   * id : uuid <<PK>>
   --
-  * photo_s3_id : varchar(255)
+  * photo_s3_key : varchar(255)
   * first_name : varchar(31)
   * last_name : varchar(31)
-  * about_me : varchar(255)
+  * bio : varchar(255)
   * birth_date : date
   * status_id : int <<FK>>
-  * role : role_type <<enum>>
+  * role : user_role <<enum>>
 }
 
 entity "socials" {
   * id : int <<PK>>
   --
   * user_id : uuid <<FK>>
-  * social_type : social_type <<enum>>
+  * social : social_network <<enum>>
   * link : varchar(127)
   * is_preferred : bool
 }
@@ -63,7 +63,7 @@ entity "work_places" {
   --
   * user_id : uuid <<FK>>
   * company_name : varchar(31)
-  * grade : varchar(31)
+  * seniority : varchar(31)
   * position : varchar(31)
   * start_year : smallint
   end_year : smallint
@@ -74,8 +74,8 @@ entity "edu_places" {
   * id : int <<PK>>
   --
   * user_id : uuid <<FK>>
-  * edu_name : varchar(31)
-  * grade : edu_grade_type <<enum>>
+  * institution_name : varchar(31)
+  * grade : edu_grade <<enum>>
   level : varchar(31)
   * specialization : varchar(31)
   * start_year : smallint
@@ -83,7 +83,7 @@ entity "edu_places" {
   * is_studying_now : bool
 }
 
-entity "faq" {
+entity "faqs" {
   * id : int <<PK>>
   --
   * question : varchar(255)
@@ -104,7 +104,7 @@ entity "news" {
   * id : uuid <<PK>>
   --
   * author_id : uuid <<FK>>
-  * photo_s3_id : varchar(255)
+  * photo_s3_key : varchar(255)
   * title : varchar(31)
   * content : varchar(255)
   * created_at : timestamptz
@@ -114,7 +114,7 @@ entity "events" {
   * id : uuid <<PK>>
   --
   * author_id : uuid <<FK>>
-  * photo_s3_id : varchar(255)
+  * photo_s3_key : varchar(255)
   * title : varchar(31)
   * content : varchar(255)
   * place : varchar(63)
@@ -136,9 +136,9 @@ entity "user_soft_skills" {
 
 entity "contacts" {
   * user_id : uuid <<FK>>
-  * friend_id : uuid <<FK>>
+  * contact_id : uuid <<FK>>
   --
-  * note : varchar(255)
+  note : varchar(255)
 }
 
 entity "saved_users" {
@@ -146,45 +146,45 @@ entity "saved_users" {
   * saved_user_id : uuid <<FK>>
 }
 
-entity "announcement_responds" {
+entity "announcement_responses" {
   * user_id : uuid <<FK>>
   * announcement_id : uuid <<FK>>
 }
 
-entity "event_responds" {
+entity "event_responses" {
   * user_id : uuid <<FK>>
   * event_id : uuid <<FK>>
 }
 
 
-statuses        ||--o{ users                  : "status_id"
+statuses        ||--o{ users                    : "status_id"
 
-users           ||--o{ socials                : "user_id"
+users           ||--o{ socials                  : "user_id"
 
-users           ||--o{ work_places            : "user_id"
+users           ||--o{ work_places              : "user_id"
 
-users           ||--o{ edu_places             : "user_id"
+users           ||--o{ edu_places               : "user_id"
 
-users           ||--o{ user_key_skills        : "user_id"
-key_skills      ||--o{ user_key_skills        : "key_skill_id"
+users           ||--o{ user_hard_skills         : "user_id"
+hard_skills     ||--o{ user_hard_skills         : "hard_skill_id"
 
-users           ||--o{ user_soft_skills       : "user_id"
-soft_skills     ||--o{ user_soft_skills       : "soft_skill_id"
+users           ||--o{ user_soft_skills         : "user_id"
+soft_skills     ||--o{ user_soft_skills         : "soft_skill_id"
 
-users           ||--o{ contacts               : "user_id"
-users           ||--o{ contacts               : "friend_id"
+users           ||--o{ contacts                 : "user_id"
+users           ||--o{ contacts                 : "contact_id"
 
-users           ||--o{ saved_users            : "user_id"
-users           ||--o{ saved_users            : "saved_user_id"
+users           ||--o{ saved_users              : "user_id"
+users           ||--o{ saved_users              : "saved_user_id"
 
-users           ||--o{ announcements          : "author_id"
-announcements   ||--o{ announcement_responds  : "announcement_id"
-users           ||--o{ announcement_responds  : "user_id"
+users           ||--o{ announcements            : "author_id"
+announcements   ||--o{ announcement_responses   : "announcement_id"
+users           ||--o{ announcement_responses   : "user_id"
 
-users           ||--o{ news                   : "author_id"
+users           ||--o{ news                     : "author_id"
 
-users           ||--o{ events                 : "author_id"
-events          ||--o{ event_responds         : "event_id"
-users           ||--o{ event_responds         : "user_id"
+users           ||--o{ events                   : "author_id"
+events          ||--o{ event_responses          : "event_id"
+users           ||--o{ event_responses          : "user_id"
 
 @enduml
