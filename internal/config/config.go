@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Addr       string
+	CuBaseUrl  string
 	pgUsername string
 	pgPassword string
 	pgHost     string
@@ -22,6 +23,7 @@ func ReadConfig() *Config {
 	viper.SetConfigType("env")
 
 	cfg.Addr = viper.GetString("APP_PORT")
+	cfg.CuBaseUrl = viper.GetString("CU_BASE_URL")
 	cfg.pgUsername = viper.GetString("POSTGRES_USER")
 	cfg.pgPassword = viper.GetString("POSTGRES_PASSWORD")
 	cfg.pgHost = viper.GetString("POSTGRES_HOST")
