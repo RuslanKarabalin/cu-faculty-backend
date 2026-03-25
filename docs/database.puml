@@ -40,12 +40,12 @@ entity "soft_skills" <<prepared>> {
 entity "users" {
   * id : uuid <<PK>>
   --
-  * photo_s3_key : varchar(255)
+  photo_s3_key : varchar(255)
   * first_name : varchar(31)
   * last_name : varchar(31)
-  * bio : varchar(255)
+  bio : varchar(255)
   * birth_date : date
-  * status_id : int <<FK>>
+  status_id : int <<FK>>
   * role : user_role <<enum>>
 }
 

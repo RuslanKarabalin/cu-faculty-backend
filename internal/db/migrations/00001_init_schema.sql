@@ -34,10 +34,10 @@ create table "soft_skills" (
 
 create table "users" (
     id uuid primary key default gen_random_uuid()
-    , photo_s3_key varchar(255) not null
+    , photo_s3_key varchar(255)
     , first_name varchar(31) not null
     , last_name varchar(31) not null
-    , bio varchar(255) not null
+    , bio varchar(255)
     , birth_date date not null
     , status_id int references statuses(id)
     , role user_role not null
