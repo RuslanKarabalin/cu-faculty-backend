@@ -33,7 +33,10 @@ func New() (*App, error) {
 	}
 
 	goose.SetLogger(zap.NewStdLog(logger))
-	db.RunMigrations(dbPool)
+	err = db.RunMigrations(dbPool)
+	if err != nil {
+		return nil, err
+	}
 
 	f := fiber.New(fiber.Config{
 		DisableStartupMessage: true,

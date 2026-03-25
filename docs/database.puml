@@ -36,6 +36,19 @@ entity "soft_skills" <<prepared>> {
   * name : varchar(31)
 }
 
+entity "universities" {
+  * id : int <<PK>>
+  --
+  * name : varchar(31)
+}
+
+entity "faqs" {
+  * id : int <<PK>>
+  --
+  * question : varchar(255)
+  * answer : varchar(255)
+}
+
 
 entity "users" {
   * id : uuid <<PK>>
@@ -81,13 +94,6 @@ entity "edu_places" {
   * start_year : smallint
   end_year : smallint
   * is_studying_now : bool
-}
-
-entity "faqs" {
-  * id : int <<PK>>
-  --
-  * question : varchar(255)
-  * answer : varchar(255)
 }
 
 entity "announcements" {

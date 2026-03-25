@@ -32,6 +32,17 @@ create table "soft_skills" (
     , name varchar (31) not null
 );
 
+create table "universities" (
+    id int primary key generated always as identity
+    , name varchar (31) not null
+);
+
+create table "faqs" (
+    id int primary key generated always as identity
+    , question varchar(255) not null
+    , answer varchar(255) not null
+);
+
 create table "users" (
     id uuid primary key default gen_random_uuid()
     , photo_s3_key varchar(255)
@@ -72,12 +83,6 @@ create table "edu_places" (
     , start_year smallint not null
     , end_year smallint
     , is_studying_now boolean not null
-);
-
-create table "faqs" (
-    id int primary key generated always as identity
-    , question varchar(255) not null
-    , answer varchar(255) not null
 );
 
 create table "announcements" (
@@ -157,14 +162,16 @@ drop table if exists "user_key_skills";
 drop table if exists "events";
 drop table if exists "news";
 drop table if exists "announcements";
-drop table if exists "faqs";
 drop table if exists "edu_places";
 drop table if exists "work_places";
 drop table if exists "socials";
 drop table if exists "users";
+drop table if exists "faqs";
+drop table if exists "universities";
 drop table if exists "soft_skills";
 drop table if exists "key_skills";
 drop table if exists "statuses";
+
 drop type if exists "edu_grade";
 drop type if exists "social_network";
 drop type if exists "user_role";

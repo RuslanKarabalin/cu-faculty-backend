@@ -2,7 +2,7 @@ package db
 
 import (
 	"embed"
-	"log"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -12,16 +12,17 @@ import (
 //go:embed migrations/*.sql
 var migrationsFs embed.FS
 
-func RunMigrations(conn *pgxpool.Pool) {
+func RunMigrations(conn *pgxpool.Pool) error {
 	goose.SetBaseFS(migrationsFs)
 	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
-		log.Fatalf("failed to set goose dialect: %v", err)
+		return fmt.Errorf("failed to set goose dialect: %v", err)
 	}
 	db := stdlib.OpenDBFromPool(conn)
 	if err := goose.Up(db, "migrations"); err != nil {
-		log.Fatalf("failed to run migrations: %v", err)
+		return fmt.Errorf("failed to run migrations: %v", err)
 	}
 	if err := db.Close(); err != nil {
-		log.Fatalf("failed to close database connection while migrations running: %v", err)
+		return fmt.Errorf("failed to close database connection while migrations running: %v", err)
 	}
+	return nil
 }
