@@ -17,6 +17,19 @@ create type "edu_grade" as enum (
     , 'postgraduate'
 );
 
+create type "work_grade" as enum (
+    'intern'
+    , 'junior'
+    , 'junior_plus'
+    , 'middle'
+    , 'middle_plus'
+    , 'senior'
+    , 'staff'
+    , 'principal'
+    , 'lead'
+    , 'head'
+);
+
 create table "statuses" (
     id int primary key generated always as identity
     , content varchar (127) not null
@@ -24,17 +37,27 @@ create table "statuses" (
 
 create table "key_skills" (
     id int primary key generated always as identity
-    , name varchar (31) not null
+    , name varchar (63) not null
 );
 
 create table "soft_skills" (
     id int primary key generated always as identity
-    , name varchar (31) not null
+    , name varchar (63) not null
+);
+
+create table "companies" (
+    id int primary key generated always as identity
+    , name varchar (63) not null
+);
+
+create table "work_positions" (
+    id int primary key generated always as identity
+    , name varchar (63) not null
 );
 
 create table "universities" (
     id int primary key generated always as identity
-    , name varchar (31) not null
+    , name varchar (63) not null
 );
 
 create table "faqs" (
@@ -65,9 +88,9 @@ create table "socials" (
 create table "work_places" (
     id int primary key generated always as identity
     , user_id uuid references users(id)
-    , company_name varchar(31) not null
-    , seniority varchar(31) not null
-    , position varchar(31) not null
+    , company_name varchar(63) not null
+    , grade work_grade not null
+    , position varchar(63) not null
     , start_year smallint not null
     , end_year smallint
     , is_working_now boolean not null
@@ -76,7 +99,7 @@ create table "work_places" (
 create table "edu_places" (
     id int primary key generated always as identity
     , user_id uuid references users(id)
-    , institution_name varchar(31) not null
+    , institution_name varchar(63) not null
     , grade edu_grade not null
     , level varchar(31)
     , specialization varchar(31) not null
