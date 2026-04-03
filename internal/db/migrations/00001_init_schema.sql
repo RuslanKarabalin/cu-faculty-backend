@@ -32,32 +32,33 @@ create type "work_grade" as enum (
 
 create table "statuses" (
     id int primary key generated always as identity
-    , content varchar (127) not null
+    , content varchar(127) not null
 );
 
 create table "key_skills" (
     id int primary key generated always as identity
-    , name varchar (63) not null
+    , name varchar(63) not null
 );
 
 create table "soft_skills" (
     id int primary key generated always as identity
-    , name varchar (63) not null
+    , name varchar(63) not null
 );
 
 create table "companies" (
     id int primary key generated always as identity
-    , name varchar (63) not null
+    , name varchar(63) not null
 );
 
 create table "work_positions" (
     id int primary key generated always as identity
-    , name varchar (63) not null
+    , name varchar(63) not null
 );
 
 create table "universities" (
     id int primary key generated always as identity
-    , name varchar (63) not null
+    , name varchar(63) not null
+    , short_name varchar(31) not null
 );
 
 create table "faqs" (
