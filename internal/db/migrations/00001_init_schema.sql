@@ -57,7 +57,7 @@ create table "work_positions" (
 
 create table "universities" (
     id int primary key generated always as identity
-    , name varchar(63) not null
+    , name varchar(127) not null
     , short_name varchar(31) not null
 );
 
