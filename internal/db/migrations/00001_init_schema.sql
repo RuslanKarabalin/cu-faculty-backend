@@ -113,7 +113,7 @@ create table "announcements" (
     , author_id uuid references users(id)
     , title varchar(31) not null
     , content varchar(255) not null
-    , created_at timestamptz not null
+    , created_at timestamptz not null default now()
     , is_archived boolean not null
 );
 
@@ -123,7 +123,7 @@ create table "news" (
     , photo_s3_key varchar(255) not null
     , title varchar(31) not null
     , content varchar(255) not null
-    , created_at timestamptz not null
+    , created_at timestamptz not null default now()
 );
 
 create table "events" (
@@ -135,7 +135,7 @@ create table "events" (
     , place varchar(63) not null
     , starts_at timestamptz not null
     , registration_link varchar(255)
-    , created_at timestamptz not null
+    , created_at timestamptz not null default now()
 );
 
 create table "user_key_skills" (
@@ -191,10 +191,13 @@ drop table if exists "socials";
 drop table if exists "users";
 drop table if exists "faqs";
 drop table if exists "universities";
+drop table if exists "work_positions";
+drop table if exists "companies";
 drop table if exists "soft_skills";
 drop table if exists "key_skills";
 drop table if exists "statuses";
 
+drop type if exists "work_grade";
 drop type if exists "edu_grade";
 drop type if exists "social_network";
 drop type if exists "user_role";

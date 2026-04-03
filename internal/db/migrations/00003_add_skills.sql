@@ -226,7 +226,6 @@ insert into "soft_skills" (name) values ('Обучаемость');
 insert into "soft_skills" (name) values ('Менторство');
 insert into "soft_skills" (name) values ('Лидерство');
 
-
 -- +goose Down
-truncate table "soft_skills";
-truncate table "key_skills";
+truncate table "soft_skills" cascade;
+truncate table "key_skills" cascade;
