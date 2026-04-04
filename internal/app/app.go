@@ -3,7 +3,11 @@ package app
 import (
 	"context"
 	"faculty/internal/config"
+	"faculty/internal/cuclient"
 	"faculty/internal/db"
+	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
@@ -13,21 +17,32 @@ import (
 )
 
 type App struct {
-	Fiber  *fiber.App
-	Config *config.Config
-	DB     *pgxpool.Pool
-	Logger *zap.Logger
+	Fiber    *fiber.App
+	Config   *config.Config
+	DB       *pgxpool.Pool
+	Logger   *zap.Logger
+	CuClient *cuclient.Client
 }
 
 func New() (*App, error) {
-	cfg := config.ReadConfig()
+	cfg, err := config.ReadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
+	}
 
 	logger, err := zap.NewProduction()
 	if err != nil {
 		return nil, err
 	}
 
-	dbPool, err := pgxpool.New(context.Background(), cfg.GetPostgresUrl())
+	poolConfig, err := pgxpool.ParseConfig(cfg.GetPostgresUrl())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse postgres config: %w", err)
+	}
+	poolConfig.MaxConns = 25
+	poolConfig.MinConns = 5
+
+	dbPool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +61,14 @@ func New() (*App, error) {
 		Logger: logger,
 	}))
 
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+
 	a := &App{
-		Fiber:  f,
-		Config: cfg,
-		DB:     dbPool,
-		Logger: logger,
+		Fiber:    f,
+		Config:   cfg,
+		DB:       dbPool,
+		Logger:   logger,
+		CuClient: cuclient.New(httpClient, cfg.CuBaseUrl),
 	}
 
 	if err := a.registerRoutes(); err != nil {

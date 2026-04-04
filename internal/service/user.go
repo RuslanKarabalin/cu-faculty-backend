@@ -18,6 +18,6 @@ func (s *UserService) CreateUser(ctx context.Context, user model.CuUserResp) err
 	return s.repo.CreateUser(ctx, user)
 }
 
-func (s *UserService) GetAllUsers(ctx context.Context) ([]*model.User, error) {
-	return s.repo.GetAllUsers(ctx)
+func (s *UserService) GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error) {
+	return s.repo.GetAllUsers(ctx, limit, offset)
 }

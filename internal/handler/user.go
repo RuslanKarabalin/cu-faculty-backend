@@ -1,62 +1,89 @@
 package handler
 
 import (
-	"encoding/json"
-	"net/url"
+	"errors"
 
+	"faculty/internal/cuclient"
 	"faculty/internal/model"
+	"faculty/internal/repository"
 	"faculty/internal/service"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v3/client"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type UserHandler struct {
 	userService *service.UserService
-	restClient  *client.Client
-	cuBaseURL   string
+	cuClient    *cuclient.Client
+	logger      *zap.Logger
 }
 
-func NewUserHandler(userService *service.UserService, restClient *client.Client, cuBaseURL string) *UserHandler {
+func NewUserHandler(userService *service.UserService, cuClient *cuclient.Client, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
-		restClient:  restClient,
-		cuBaseURL:   cuBaseURL,
+		cuClient:    cuClient,
+		logger:      logger,
 	}
 }
 
 func (h *UserHandler) Me(c *fiber.Ctx) error {
 	cookie := c.Cookies("bff.cookie")
 	if cookie == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"err": "cookie is empty"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 
-	u, err := url.JoinPath(h.cuBaseURL, "api", "student-hub", "students", "me")
+	cuUserResp, err := h.cuClient.GetMe(c.Context(), cookie)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"err": err.Error()})
+		if errors.Is(err, cuclient.ErrUnauthorized) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+		}
+		h.logger.Error("failed to call CU API", zap.Error(err))
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream service unavailable"})
 	}
 
-	resp, err := h.restClient.SetCookie("bff.cookie", cookie).Get(u)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"err": err.Error()})
+	if cuUserResp.Id == (uuid.UUID{}) || cuUserResp.FirstName == "" || cuUserResp.LastName == "" || cuUserResp.BirthDate == "" {
+		h.logger.Error("incomplete user data from CU API", zap.Any("user", cuUserResp))
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "incomplete user data from upstream"})
 	}
 
-	var cuUserResp model.CuUserResp
-	if err := json.Unmarshal(resp.Body(), &cuUserResp); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"err": err.Error()})
-	}
-
-	if err := h.userService.CreateUser(c.Context(), cuUserResp); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"err": err.Error()})
+	if err := h.userService.CreateUser(c.Context(), *cuUserResp); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			return c.JSON(cuUserResp)
+		}
+		if errors.Is(err, repository.ErrInvalidDate) {
+			h.logger.Error("invalid birth_date from CU API", zap.String("birth_date", cuUserResp.BirthDate))
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
+		}
+		h.logger.Error("failed to create user", zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 
 	return c.JSON(cuUserResp)
 }
 
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
-	users, err := h.userService.GetAllUsers(c.Context())
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"err": err.Error()})
+	limit := c.QueryInt("limit", 20)
+	offset := c.QueryInt("offset", 0)
+	if limit > 100 {
+		limit = 100
 	}
-	return c.JSON(users)
+	if limit < 1 {
+		limit = 1
+	}
+
+	users, total, err := h.userService.GetAllUsers(c.Context(), limit, offset)
+	if err != nil {
+		h.logger.Error("failed to get users", zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+	}
+	if users == nil {
+		users = []*model.User{}
+	}
+	return c.JSON(model.Page[*model.User]{
+		Data:   users,
+		Total:  total,
+		Limit:  limit,
+		Offset: offset,
+	})
 }

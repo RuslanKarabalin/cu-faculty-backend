@@ -1,19 +1,31 @@
 package app
 
 import (
+	"time"
+
 	"faculty/internal/handler"
 	"faculty/internal/repository"
 	"faculty/internal/service"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v3/client"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
 func (a *App) registerRoutes() error {
-	repo := repository.Init(a.DB)
+	a.Fiber.Use(cors.New(cors.Config{
+		AllowOrigins: a.Config.AllowedOrigins,
+	}))
 
+	a.Fiber.Use(limiter.New(limiter.Config{
+		Max:        100,
+		Expiration: 1 * time.Minute,
+	}))
+
+	repo := repository.Init(a.DB)
 	userService := service.NewUserService(repo)
-	userHandler := handler.NewUserHandler(userService, client.New(), a.Config.CuBaseUrl)
+
+	userHandler := handler.NewUserHandler(userService, a.CuClient, a.Logger)
 
 	a.Fiber.Get("/health", func(c *fiber.Ctx) error {
 		if err := a.DB.Ping(c.Context()); err != nil {
