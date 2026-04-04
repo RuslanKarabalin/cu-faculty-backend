@@ -1,8 +1,10 @@
 package app
 
 import (
+	"errors"
 	"time"
 
+	"faculty/internal/cuclient"
 	"faculty/internal/handler"
 	"faculty/internal/repository"
 	"faculty/internal/service"
@@ -22,6 +24,21 @@ func (a *App) registerRoutes() error {
 		Expiration: 1 * time.Minute,
 	}))
 
+	a.Fiber.Use(func(c *fiber.Ctx) error {
+		if c.Path() == "/register" {
+			return c.Next()
+		}
+		cookie := c.Cookies("bff.cookie")
+		_, err := a.CuClient.Authorize(c.Context(), cookie)
+		if err != nil {
+			if errors.Is(err, cuclient.ErrUnauthorized) {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+			}
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream error"})
+		}
+		return c.Next()
+	})
+
 	repo := repository.Init(a.DB)
 	userService := service.NewUserService(repo)
 
@@ -36,7 +53,7 @@ func (a *App) registerRoutes() error {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	a.Fiber.Get("/me", userHandler.Me)
+	a.Fiber.Get("/register", userHandler.Register)
 	a.Fiber.Get("/users", userHandler.GetUsers)
 
 	return nil

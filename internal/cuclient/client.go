@@ -22,7 +22,7 @@ func New(httpClient *http.Client, baseURL string) *Client {
 	}
 }
 
-func (c *Client) GetMe(ctx context.Context, cookie string) (resp_ *model.CuUserResp, retErr error) {
+func (c *Client) Authorize(ctx context.Context, cookie string) (resp_ *model.CuUserResp, retErr error) {
 	u, err := url.JoinPath(c.baseURL, "api", "student-hub", "students", "me")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build URL: %w", err)

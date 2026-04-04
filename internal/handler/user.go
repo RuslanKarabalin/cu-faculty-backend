@@ -27,13 +27,13 @@ func NewUserHandler(userService *service.UserService, cuClient *cuclient.Client,
 	}
 }
 
-func (h *UserHandler) Me(c *fiber.Ctx) error {
+func (h *UserHandler) Register(c *fiber.Ctx) error {
 	cookie := c.Cookies("bff.cookie")
 	if cookie == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 
-	cuUserResp, err := h.cuClient.GetMe(c.Context(), cookie)
+	cuUserResp, err := h.cuClient.Authorize(c.Context(), cookie)
 	if err != nil {
 		if errors.Is(err, cuclient.ErrUnauthorized) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
