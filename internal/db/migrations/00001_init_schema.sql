@@ -74,6 +74,7 @@ create table "users" (
     , last_name varchar(31) not null
     , bio varchar(255)
     , birth_date date not null
+    , speciality varchar(63)
     , status_id int references statuses(id)
     , role user_role not null
 );

@@ -32,6 +32,7 @@ func (r *Repository) GetAllUsers(ctx context.Context) ([]*model.User, error) {
 		, u.last_name
 		, u.bio
 		, u.birth_date
+		, u.speciality
 		, st.content
 		, u.role
 	from users u
@@ -57,6 +58,7 @@ func (r *Repository) GetAllUsers(ctx context.Context) ([]*model.User, error) {
 			&t.LastName,
 			&t.Bio,
 			&t.BirthDate,
+			&t.Speciality,
 			&t.Status,
 			&t.Role,
 		)

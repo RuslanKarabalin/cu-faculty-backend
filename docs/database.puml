@@ -58,6 +58,7 @@ entity "users" {
   * last_name : varchar(31)
   bio : varchar(255)
   * birth_date : date
+  speciality : varchar(63)
   status_id : int <<FK>>
   * role : user_role <<enum>>
 }
