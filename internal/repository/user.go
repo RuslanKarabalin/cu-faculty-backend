@@ -18,9 +18,6 @@ func (r *Repository) CreateUser(ctx context.Context, cuUserResp model.CuUserResp
 
 	query := `insert into users(id, first_name, last_name, birth_date, role) values($1, $2, $3, $4, 'user')`
 
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
 	_, err = r.pgPool.Exec(
 		ctx,
 		query,
@@ -57,9 +54,6 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	where u.role = 'user'
 	limit $1 offset $2
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
 
 	rows, err := r.pgPool.Query(ctx, query, limit, offset)
 	if err != nil {

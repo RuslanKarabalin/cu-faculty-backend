@@ -71,6 +71,9 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 	if limit < 1 {
 		limit = 1
 	}
+	if offset < 0 {
+		offset = 0
+	}
 
 	users, total, err := h.userService.GetAllUsers(c.Context(), limit, offset)
 	if err != nil {
