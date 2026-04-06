@@ -20,8 +20,7 @@ components:
   schemas:
     Error:
       type: object
-      required:
-        - error
+      required: [error]
       properties:
         error:
           type: string
@@ -29,13 +28,11 @@ components:
 
     HealthStatus:
       type: object
-      required:
-        - status
+      required: [status]
       properties:
         status:
           type: string
           enum: [ok, unhealthy]
-          example: ok
 
     UserRole:
       type: string
@@ -53,69 +50,54 @@ components:
       type: string
       enum: [intern, junior, junior_plus, middle, middle_plus, senior, staff, principal, lead, head]
 
+    # --- Auth ---
+
     CuUserResp:
       type: object
-      description: Ответ от CU API с базовыми данными пользователя
-      required:
-        - id
-        - firstName
-        - lastName
-        - birthdate
+      description: Данные пользователя из CU API, возвращаются при регистрации
+      required: [id, firstName, lastName, birthdate]
       properties:
         id:
           type: string
           format: uuid
-          example: 550e8400-e29b-41d4-a716-446655440000
         firstName:
           type: string
-          example: Иван
         lastName:
           type: string
-          example: Иванов
         birthdate:
           type: string
           format: date
           example: "2000-05-15"
 
+    # --- Users ---
+
     User:
       type: object
-      required:
-        - id
-        - firstName
-        - lastName
-        - birthdate
-        - role
+      required: [id, firstName, lastName, birthdate, role]
       properties:
         id:
           type: string
           format: uuid
-          example: 550e8400-e29b-41d4-a716-446655440000
         photoS3Key:
           type: string
           nullable: true
-          example: "users/550e8400/avatar.jpg"
         firstName:
           type: string
           maxLength: 31
-          example: Иван
         lastName:
           type: string
           maxLength: 31
-          example: Иванов
         bio:
           type: string
           maxLength: 255
           nullable: true
-          example: "Разработчик, люблю Go и PostgreSQL"
         birthdate:
           type: string
           format: date-time
-          example: "2000-05-15T00:00:00Z"
         speciality:
           type: string
           maxLength: 63
           nullable: true
-          example: "Программная инженерия"
         status:
           type: string
           nullable: true
@@ -125,11 +107,7 @@ components:
 
     UserPage:
       type: object
-      required:
-        - data
-        - total
-        - limit
-        - offset
+      required: [data, total, limit, offset]
       properties:
         data:
           type: array
@@ -137,53 +115,73 @@ components:
             $ref: '#/components/schemas/User'
         total:
           type: integer
-          example: 42
         limit:
           type: integer
-          example: 20
         offset:
           type: integer
-          example: 0
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        photoS3Key:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          maxLength: 255
+          nullable: true
+        speciality:
+          type: string
+          maxLength: 63
+          nullable: true
+        statusId:
+          type: integer
+          nullable: true
+          description: ID из справочника статусов; null — снять статус
+
+    # --- Socials ---
 
     Social:
       type: object
-      required:
-        - id
-        - userId
-        - social
-        - link
-        - isPreferred
+      required: [id, social, link, isPreferred]
       properties:
         id:
           type: integer
-        userId:
-          type: string
-          format: uuid
         social:
           $ref: '#/components/schemas/SocialNetwork'
         link:
           type: string
           maxLength: 127
-          example: "https://t.me/username"
+          description: Юзернейм или полная ссылка в соцсети
         isPreferred:
           type: boolean
 
+    UpsertSocialsRequest:
+      type: object
+      required: [socials]
+      properties:
+        socials:
+          type: array
+          items:
+            type: object
+            required: [social, link, isPreferred]
+            properties:
+              social:
+                $ref: '#/components/schemas/SocialNetwork'
+              link:
+                type: string
+                maxLength: 127
+              isPreferred:
+                type: boolean
+
+    # --- Work places ---
+
     WorkPlace:
       type: object
-      required:
-        - id
-        - userId
-        - companyName
-        - grade
-        - position
-        - startYear
-        - isWorkingNow
+      required: [id, companyName, grade, position, startYear, isWorkingNow]
       properties:
         id:
           type: integer
-        userId:
-          type: string
-          format: uuid
         companyName:
           type: string
           maxLength: 63
@@ -200,26 +198,37 @@ components:
         endYear:
           type: integer
           nullable: true
-          example: 2024
         isWorkingNow:
           type: boolean
 
+    WorkPlaceRequest:
+      type: object
+      required: [companyName, grade, position, startYear, isWorkingNow]
+      properties:
+        companyName:
+          type: string
+          maxLength: 63
+        grade:
+          $ref: '#/components/schemas/WorkGrade'
+        position:
+          type: string
+          maxLength: 63
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+          nullable: true
+        isWorkingNow:
+          type: boolean
+
+    # --- Edu places ---
+
     EduPlace:
       type: object
-      required:
-        - id
-        - userId
-        - institutionName
-        - grade
-        - specialization
-        - startYear
-        - isStudyingNow
+      required: [id, institutionName, grade, specialization, startYear, isStudyingNow]
       properties:
         id:
           type: integer
-        userId:
-          type: string
-          format: uuid
         institutionName:
           type: string
           maxLength: 63
@@ -230,39 +239,59 @@ components:
           type: string
           maxLength: 31
           nullable: true
-          example: "4 курс"
+          description: Курс (для студентов)
         specialization:
           type: string
           maxLength: 31
-          example: "Прикладная математика"
         startYear:
           type: integer
-          example: 2020
         endYear:
           type: integer
           nullable: true
-          example: 2024
         isStudyingNow:
           type: boolean
 
+    EduPlaceRequest:
+      type: object
+      required: [institutionName, grade, specialization, startYear, isStudyingNow]
+      properties:
+        institutionName:
+          type: string
+          maxLength: 63
+        grade:
+          $ref: '#/components/schemas/EduGrade'
+        level:
+          type: string
+          maxLength: 31
+          nullable: true
+        specialization:
+          type: string
+          maxLength: 31
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+          nullable: true
+        isStudyingNow:
+          type: boolean
+
+    # --- Skills ---
+
     Skill:
       type: object
-      required:
-        - id
-        - name
+      required: [id, name]
       properties:
         id:
           type: integer
         name:
           type: string
           maxLength: 63
-          example: "Go"
+
+    # --- Status ---
 
     Status:
       type: object
-      required:
-        - id
-        - content
+      required: [id, content]
       properties:
         id:
           type: integer
@@ -271,15 +300,54 @@ components:
           maxLength: 127
           example: "Собираю команду"
 
+    # --- Contacts / Saved ---
+
+    Contact:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        note:
+          type: string
+          maxLength: 255
+          nullable: true
+
+    ContactPage:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contact'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    SavedUserPage:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    # --- Announcements ---
+
     Announcement:
       type: object
-      required:
-        - id
-        - authorId
-        - title
-        - content
-        - createdAt
-        - isArchived
+      required: [id, authorId, title, content, createdAt, isArchived]
       properties:
         id:
           type: string
@@ -289,59 +357,53 @@ components:
           format: uuid
         title:
           type: string
-          maxLength: 31
+          maxLength: 40
           example: "Ищу iOS разработчика в стартап"
         content:
           type: string
-          maxLength: 255
-          example: "Описание проекта и требования..."
+          maxLength: 150
         createdAt:
           type: string
           format: date-time
         isArchived:
           type: boolean
+        respondents:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+          description: Только для автора объявления
 
-    News:
+    AnnouncementPage:
       type: object
-      required:
-        - id
-        - authorId
-        - photoS3Key
-        - title
-        - content
-        - createdAt
+      required: [data, total, limit, offset]
       properties:
-        id:
-          type: string
-          format: uuid
-        authorId:
-          type: string
-          format: uuid
-        photoS3Key:
-          type: string
-          maxLength: 255
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Announcement'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    AnnouncementRequest:
+      type: object
+      required: [title, content]
+      properties:
         title:
           type: string
-          maxLength: 31
-          example: "Итоги хакатона 2026"
+          maxLength: 40
         content:
           type: string
-          maxLength: 255
-        createdAt:
-          type: string
-          format: date-time
+          maxLength: 150
+
+    # --- Events ---
 
     Event:
       type: object
-      required:
-        - id
-        - authorId
-        - photoS3Key
-        - title
-        - content
-        - place
-        - startsAt
-        - createdAt
+      required: [id, authorId, photoS3Key, title, content, place, startsAt, createdAt]
       properties:
         id:
           type: string
@@ -370,17 +432,109 @@ components:
           type: string
           maxLength: 255
           nullable: true
-          example: "https://forms.yandex.ru/..."
         createdAt:
           type: string
           format: date-time
 
+    EventPage:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    EventRequest:
+      type: object
+      required: [photoS3Key, title, content, place, startsAt]
+      properties:
+        photoS3Key:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+        place:
+          type: string
+          maxLength: 63
+        startsAt:
+          type: string
+          format: date-time
+        registrationLink:
+          type: string
+          maxLength: 255
+          nullable: true
+
+    # --- News ---
+
+    News:
+      type: object
+      required: [id, authorId, photoS3Key, title, content, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        photoS3Key:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+          example: "Итоги хакатона 2026"
+        content:
+          type: string
+          maxLength: 255
+        createdAt:
+          type: string
+          format: date-time
+
+    NewsPage:
+      type: object
+      required: [data, total, limit, offset]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/News'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    NewsRequest:
+      type: object
+      required: [photoS3Key, title, content]
+      properties:
+        photoS3Key:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+        content:
+          type: string
+          maxLength: 255
+
+    # --- FAQs ---
+
     FAQ:
       type: object
-      required:
-        - id
-        - question
-        - answer
+      required: [id, question, answer]
       properties:
         id:
           type: integer
@@ -391,9 +545,34 @@ components:
           type: string
           maxLength: 255
 
+    # --- Reference catalogs ---
+
+    Company:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 63
+
+    University:
+      type: object
+      required: [id, name, shortName]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 127
+        shortName:
+          type: string
+          maxLength: 31
+
   responses:
     Unauthorized:
-      description: Не авторизован — отсутствует или истёк cookie `bff.cookie`
+      description: Не авторизован
       content:
         application/json:
           schema:
@@ -401,8 +580,26 @@ components:
           example:
             error: unauthorized
 
+    Forbidden:
+      description: Доступ запрещён (недостаточно прав)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: forbidden
+
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: not found
+
     BadGateway:
-      description: Ошибка при обращении к CU API
+      description: Ошибка обращения к CU API
       content:
         application/json:
           schema:
@@ -423,7 +620,6 @@ components:
     LimitParam:
       name: limit
       in: query
-      description: Количество элементов на странице (1–100)
       schema:
         type: integer
         minimum: 1
@@ -433,20 +629,52 @@ components:
     OffsetParam:
       name: offset
       in: query
-      description: Смещение от начала выборки
       schema:
         type: integer
         minimum: 0
         default: 0
 
+    UserIdParam:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    AnnouncementIdParam:
+      name: announcementId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    EventIdParam:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    NewsIdParam:
+      name: newsId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
 paths:
+
+  # ─── System ───────────────────────────────────────────────────────────────
+
   /health:
     get:
       summary: Проверка состояния сервиса
-      description: Возвращает статус сервиса и проверяет соединение с базой данных. Не требует аутентификации.
       security: []
-      tags:
-        - System
+      tags: [System]
       operationId: healthCheck
       responses:
         '200':
@@ -458,7 +686,7 @@ paths:
               example:
                 status: ok
         '503':
-          description: Сервис недоступен (нет соединения с БД)
+          description: Нет соединения с БД
           content:
             application/json:
               schema:
@@ -466,29 +694,27 @@ paths:
               example:
                 status: unhealthy
 
+  # ─── Auth ─────────────────────────────────────────────────────────────────
+
   /register:
     get:
-      summary: Регистрация пользователя
+      summary: Регистрация через CU сессию
       description: |
-        Регистрирует нового пользователя через сессию CU API.
-        Считывает cookie `bff.cookie`, проверяет его через CU API
-        и создаёт запись пользователя в базе данных.
+        Проверяет cookie `bff.cookie` через CU API и создаёт пользователя.
         Если пользователь уже существует — возвращает его данные без ошибки.
-        Единственный маршрут, не требующий предварительной аутентификации через middleware.
+        Единственный маршрут без middleware-аутентификации.
       security: []
-      tags:
-        - Users
+      tags: [Auth]
       operationId: registerUser
       parameters:
         - name: bff.cookie
           in: cookie
           required: true
-          description: Сессионный cookie CU BFF
           schema:
             type: string
       responses:
         '200':
-          description: Пользователь успешно зарегистрирован или уже существует
+          description: Пользователь зарегистрирован или уже существует
           content:
             application/json:
               schema:
@@ -500,18 +726,59 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  # ─── Users ────────────────────────────────────────────────────────────────
+
   /users:
     get:
       summary: Список пользователей
-      description: |
-        Возвращает постраничный список пользователей с ролью `user`.
-        Требует валидного cookie `bff.cookie`.
-      tags:
-        - Users
+      description: Постраничный список пользователей с ролью `user`. Поддерживает поиск по имени/фамилии, специализации, компании и навыкам, а также фильтрацию.
+      tags: [Users]
       operationId: getUsers
       parameters:
         - $ref: '#/components/parameters/LimitParam'
         - $ref: '#/components/parameters/OffsetParam'
+        - name: query
+          in: query
+          description: Полнотекстовый поиск по имени, фамилии, специализации, компании и навыкам
+          schema:
+            type: string
+        - name: statusId
+          in: query
+          description: Фильтр по статусу
+          schema:
+            type: integer
+        - name: speciality
+          in: query
+          description: Фильтр по специализации
+          schema:
+            type: string
+        - name: companyName
+          in: query
+          description: Фильтр по месту работы (можно несколько)
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: keySkillId
+          in: query
+          description: Фильтр по ключевым навыкам (можно несколько)
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: softSkillId
+          in: query
+          description: Фильтр по soft-навыкам (можно несколько)
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
       responses:
         '200':
           description: Постраничный список пользователей
@@ -519,29 +786,1149 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserPage'
-              example:
-                data:
-                  - id: "550e8400-e29b-41d4-a716-446655440000"
-                    photoS3Key: null
-                    firstName: "Иван"
-                    lastName: "Иванов"
-                    bio: null
-                    birthdate: "2000-05-15T00:00:00Z"
-                    speciality: null
-                    status: "Собираю команду"
-                    role: "user"
-                total: 1
-                limit: 20
-                offset: 0
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '502':
-          $ref: '#/components/responses/BadGateway'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me:
+    get:
+      summary: Профиль текущего пользователя
+      tags: [Users]
+      operationId: getMe
+      responses:
+        '200':
+          description: Данные профиля
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      summary: Обновление профиля текущего пользователя
+      description: Обновляет фото, bio, специализацию и статус. Имя, фамилия и дата рождения синхронизируются из CU API и не редактируются здесь.
+      tags: [Users]
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Обновлённые данные профиля
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/socials:
+    put:
+      summary: Заменить соцсети текущего пользователя
+      description: Полностью заменяет список соцсетей. Ровно одна запись должна иметь `isPreferred: true`.
+      tags: [Users]
+      operationId: updateMySocials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertSocialsRequest'
+      responses:
+        '200':
+          description: Актуальный список соцсетей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Social'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/work-places:
+    post:
+      summary: Добавить место работы
+      tags: [Users]
+      operationId: addWorkPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkPlaceRequest'
+      responses:
+        '201':
+          description: Созданная запись
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkPlace'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/work-places/{workPlaceId}:
+    parameters:
+      - name: workPlaceId
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Обновить место работы
+      tags: [Users]
+      operationId: updateWorkPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkPlaceRequest'
+      responses:
+        '200':
+          description: Обновлённая запись
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkPlace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Удалить место работы
+      tags: [Users]
+      operationId: deleteWorkPlace
+      responses:
+        '204':
+          description: Удалено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/edu-places:
+    post:
+      summary: Добавить место учёбы
+      tags: [Users]
+      operationId: addEduPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EduPlaceRequest'
+      responses:
+        '201':
+          description: Созданная запись
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EduPlace'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/edu-places/{eduPlaceId}:
+    parameters:
+      - name: eduPlaceId
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Обновить место учёбы
+      tags: [Users]
+      operationId: updateEduPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EduPlaceRequest'
+      responses:
+        '200':
+          description: Обновлённая запись
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EduPlace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Удалить место учёбы
+      tags: [Users]
+      operationId: deleteEduPlace
+      responses:
+        '204':
+          description: Удалено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/key-skills:
+    put:
+      summary: Заменить ключевые навыки текущего пользователя
+      description: Максимум 20 навыков. Полностью заменяет текущий список.
+      tags: [Users]
+      operationId: updateMyKeySkills
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [skillIds]
+              properties:
+                skillIds:
+                  type: array
+                  items:
+                    type: integer
+                  maxItems: 20
+      responses:
+        '200':
+          description: Актуальный список навыков
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skill'
+        '400':
+          description: Превышен лимит навыков или невалидные ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/soft-skills:
+    put:
+      summary: Заменить soft-навыки текущего пользователя
+      description: Максимум 20 навыков. Полностью заменяет текущий список.
+      tags: [Users]
+      operationId: updateMySoftSkills
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [skillIds]
+              properties:
+                skillIds:
+                  type: array
+                  items:
+                    type: integer
+                  maxItems: 20
+      responses:
+        '200':
+          description: Актуальный список навыков
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skill'
+        '400':
+          description: Превышен лимит навыков или невалидные ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{userId}:
+    get:
+      summary: Профиль пользователя по ID
+      tags: [Users]
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Данные профиля
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Contacts (QR + записная книжка) ─────────────────────────────────────
+
+  /contacts:
+    get:
+      summary: Список контактов текущего пользователя
+      description: Пользователи, добавленные через QR-сканирование. Сортировка по алфавиту.
+      tags: [Contacts]
+      operationId: getContacts
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список контактов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /contacts/{userId}:
+    post:
+      summary: Добавить контакт (QR-сканирование)
+      description: Добавляет пользователя в контакты обеих сторон взаимно.
+      tags: [Contacts]
+      operationId: addContact
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Контакт добавлен (или уже существовал)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Удалить контакт
+      tags: [Contacts]
+      operationId: deleteContact
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: Контакт удалён
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /contacts/{userId}/note:
+    put:
+      summary: Создать или обновить заметку о контакте
+      tags: [Contacts]
+      operationId: upsertContactNote
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note:
+                  type: string
+                  maxLength: 255
+                  nullable: true
+                  description: null — удалить заметку
+      responses:
+        '200':
+          description: Заметка сохранена
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Saved users ──────────────────────────────────────────────────────────
+
+  /saved-users:
+    get:
+      summary: Сохранённые профили текущего пользователя
+      tags: [Contacts]
+      operationId: getSavedUsers
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список сохранённых профилей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedUserPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /saved-users/{userId}:
+    post:
+      summary: Сохранить профиль пользователя
+      tags: [Contacts]
+      operationId: saveUser
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Профиль сохранён (или уже был сохранён)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Убрать профиль из сохранённых
+      tags: [Contacts]
+      operationId: unsaveUser
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: Удалено из сохранённых
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Announcements ────────────────────────────────────────────────────────
+
+  /announcements:
+    get:
+      summary: Доска объявлений (активные)
+      tags: [Announcements]
+      operationId: getAnnouncements
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список активных объявлений
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Создать объявление
+      tags: [Announcements]
+      operationId: createAnnouncement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnouncementRequest'
+      responses:
+        '201':
+          description: Созданное объявление
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /announcements/my:
+    get:
+      summary: Мои объявления (активные + архив)
+      tags: [Announcements]
+      operationId: getMyAnnouncements
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список объявлений текущего пользователя с откликами
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /announcements/my/responses:
+    get:
+      summary: Мои отклики на объявления
+      tags: [Announcements]
+      operationId: getMyAnnouncementResponses
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Объявления, на которые откликнулся текущий пользователь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /announcements/{announcementId}:
+    get:
+      summary: Карточка объявления
+      tags: [Announcements]
+      operationId: getAnnouncement
+      parameters:
+        - $ref: '#/components/parameters/AnnouncementIdParam'
+      responses:
+        '200':
+          description: Объявление
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Редактировать объявление
+      description: Только автор объявления может его редактировать.
+      tags: [Announcements]
+      operationId: updateAnnouncement
+      parameters:
+        - $ref: '#/components/parameters/AnnouncementIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnouncementRequest'
+      responses:
+        '200':
+          description: Обновлённое объявление
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Архивировать / удалить объявление
+      description: Перемещает объявление в архив. Только автор.
+      tags: [Announcements]
+      operationId: archiveAnnouncement
+      parameters:
+        - $ref: '#/components/parameters/AnnouncementIdParam'
+      responses:
+        '204':
+          description: Объявление архивировано
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /announcements/{announcementId}/republish:
+    post:
+      summary: Повторно опубликовать объявление из архива
+      description: Возвращает объявление в активные, сохраняя накопленные отклики. Продлевает срок на +7 дней.
+      tags: [Announcements]
+      operationId: republishAnnouncement
+      parameters:
+        - $ref: '#/components/parameters/AnnouncementIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnouncementRequest'
+      responses:
+        '200':
+          description: Опубликованное объявление
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /announcements/{announcementId}/respond:
+    post:
+      summary: Откликнуться на объявление
+      tags: [Announcements]
+      operationId: respondToAnnouncement
+      parameters:
+        - $ref: '#/components/parameters/AnnouncementIdParam'
+      responses:
+        '200':
+          description: Отклик зафиксирован (или уже существовал)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Отозвать отклик на объявление
+      tags: [Announcements]
+      operationId: cancelAnnouncementResponse
+      parameters:
+        - $ref: '#/components/parameters/AnnouncementIdParam'
+      responses:
+        '204':
+          description: Отклик отозван
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Events ───────────────────────────────────────────────────────────────
+
+  /events:
+    get:
+      summary: Список мероприятий (актуальные)
+      tags: [Events]
+      operationId: getEvents
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список мероприятий
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Создать мероприятие
+      description: Только администраторы.
+      tags: [Events]
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+      responses:
+        '201':
+          description: Созданное мероприятие
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /events/my:
+    get:
+      summary: Мероприятия, на которые я иду
+      tags: [Events]
+      operationId: getMyEvents
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список сохранённых мероприятий
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /events/{eventId}:
+    get:
+      summary: Карточка мероприятия
+      tags: [Events]
+      operationId: getEvent
+      parameters:
+        - $ref: '#/components/parameters/EventIdParam'
+      responses:
+        '200':
+          description: Мероприятие
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Обновить мероприятие
+      description: Только администраторы.
+      tags: [Events]
+      operationId: updateEvent
+      parameters:
+        - $ref: '#/components/parameters/EventIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+      responses:
+        '200':
+          description: Обновлённое мероприятие
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Удалить мероприятие
+      description: Только администраторы.
+      tags: [Events]
+      operationId: deleteEvent
+      parameters:
+        - $ref: '#/components/parameters/EventIdParam'
+      responses:
+        '204':
+          description: Удалено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /events/{eventId}/attend:
+    post:
+      summary: Отметить "Я иду"
+      tags: [Events]
+      operationId: attendEvent
+      parameters:
+        - $ref: '#/components/parameters/EventIdParam'
+      responses:
+        '200':
+          description: Мероприятие добавлено в "Я иду"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Отменить участие в мероприятии
+      tags: [Events]
+      operationId: cancelEventAttendance
+      parameters:
+        - $ref: '#/components/parameters/EventIdParam'
+      responses:
+        '204':
+          description: Участие отменено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── News ─────────────────────────────────────────────────────────────────
+
+  /news:
+    get:
+      summary: Лента новостей (активные)
+      description: Новости, отсортированные по дате публикации, сначала самые свежие.
+      tags: [News]
+      operationId: getNews
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список новостей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Создать новость
+      description: Только администраторы.
+      tags: [News]
+      operationId: createNews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsRequest'
+      responses:
+        '201':
+          description: Созданная новость
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/News'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /news/{newsId}:
+    get:
+      summary: Карточка новости
+      tags: [News]
+      operationId: getNewsItem
+      parameters:
+        - $ref: '#/components/parameters/NewsIdParam'
+      responses:
+        '200':
+          description: Новость
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/News'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Обновить новость
+      description: Только администраторы.
+      tags: [News]
+      operationId: updateNews
+      parameters:
+        - $ref: '#/components/parameters/NewsIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsRequest'
+      responses:
+        '200':
+          description: Обновлённая новость
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/News'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Удалить новость
+      description: Только администраторы.
+      tags: [News]
+      operationId: deleteNews
+      parameters:
+        - $ref: '#/components/parameters/NewsIdParam'
+      responses:
+        '204':
+          description: Удалено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Reference catalogs ───────────────────────────────────────────────────
+
+  /statuses:
+    get:
+      summary: Справочник статусов
+      tags: [Reference]
+      operationId: getStatuses
+      security: []
+      responses:
+        '200':
+          description: Список статусов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Status'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /key-skills:
+    get:
+      summary: Справочник ключевых навыков
+      tags: [Reference]
+      operationId: getKeySkills
+      parameters:
+        - name: query
+          in: query
+          description: Поиск по названию навыка
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список навыков
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skill'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /soft-skills:
+    get:
+      summary: Справочник soft-навыков
+      tags: [Reference]
+      operationId: getSoftSkills
+      parameters:
+        - name: query
+          in: query
+          description: Поиск по названию навыка
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список навыков
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skill'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /companies:
+    get:
+      summary: Справочник компаний
+      tags: [Reference]
+      operationId: getCompanies
+      parameters:
+        - name: query
+          in: query
+          description: Поиск по названию компании
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список компаний
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Company'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /universities:
+    get:
+      summary: Справочник университетов
+      tags: [Reference]
+      operationId: getUniversities
+      parameters:
+        - name: query
+          in: query
+          description: Поиск по названию вуза
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список университетов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/University'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /faqs:
+    get:
+      summary: Список FAQ
+      tags: [Reference]
+      operationId: getFAQs
+      responses:
+        '200':
+          description: Список вопросов и ответов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FAQ'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
 tags:
   - name: System
     description: Системные эндпоинты
+  - name: Auth
+    description: Аутентификация и регистрация
   - name: Users
-    description: Управление пользователями
+    description: Профили пользователей
+  - name: Contacts
+    description: Записная книжка — контакты и сохранённые профили
+  - name: Announcements
+    description: Объявления — доска, отклики, архив
+  - name: Events
+    description: Мероприятия и участие
+  - name: News
+    description: Новости
+  - name: Reference
+    description: Справочники (статусы, навыки, компании, вузы, FAQ)
