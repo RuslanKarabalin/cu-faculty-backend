@@ -840,7 +840,7 @@ paths:
   /users/me/socials:
     put:
       summary: Заменить соцсети текущего пользователя
-      description: Полностью заменяет список соцсетей. Ровно одна запись должна иметь `isPreferred: true`.
+      description: "Полностью заменяет список соцсетей. Ровно одна запись должна иметь `isPreferred: true`."
       tags: [Users]
       operationId: updateMySocials
       requestBody:
