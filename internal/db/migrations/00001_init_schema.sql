@@ -75,7 +75,6 @@ create table "faqs" (
 
 create table "users" (
     id uuid primary key default gen_random_uuid()
-    , email varchar(255) not null
     , photo_s3_key varchar(255)
     , first_name varchar(31) not null
     , last_name varchar(31) not null
