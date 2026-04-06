@@ -81,3 +81,8 @@ func New() (*App, error) {
 func (a *App) Run() error {
 	return a.Fiber.Listen(a.Config.Addr)
 }
+
+func (a *App) Close() {
+	a.DB.Close()
+	_ = a.Logger.Sync()
+}

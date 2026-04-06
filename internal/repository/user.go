@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -27,8 +29,7 @@ func (r *Repository) CreateUser(ctx context.Context, cuUserResp model.CuUserResp
 		birthDate,
 	)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == pgUniqueViolation {
 			return ErrDuplicate
 		}
 		return err
@@ -86,4 +87,42 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
 	return users, total, nil
+}
+
+func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	query := `
+	select
+		u.id
+		, u.photo_s3_key
+		, u.first_name
+		, u.last_name
+		, u.bio
+		, u.birth_date
+		, u.speciality
+		, st.content
+		, u.role
+	from users u
+	left join statuses st on st.id = u.status_id
+	where u.id = $1
+	`
+
+	u := &model.User{}
+	err := r.pgPool.QueryRow(ctx, query, id).Scan(
+		&u.Id,
+		&u.PhotoS3Key,
+		&u.FirstName,
+		&u.LastName,
+		&u.Bio,
+		&u.BirthDate,
+		&u.Speciality,
+		&u.Status,
+		&u.Role,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
+	}
+	return u, nil
 }

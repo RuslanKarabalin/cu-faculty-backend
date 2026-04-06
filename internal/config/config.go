@@ -21,7 +21,6 @@ type Config struct {
 func ReadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 	viper.SetConfigType("env")
-	viper.SetDefault("ALLOWED_ORIGINS", "*")
 
 	cfg := &Config{
 		Addr:           viper.GetString("APP_PORT"),
@@ -55,6 +54,9 @@ func ReadConfig() (*Config, error) {
 	}
 	if cfg.pgBasename == "" {
 		errs = append(errs, errors.New("POSTGRES_DB is required"))
+	}
+	if cfg.AllowedOrigins == "" {
+		errs = append(errs, errors.New("ALLOWED_ORIGINS is required"))
 	}
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)

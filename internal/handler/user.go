@@ -39,18 +39,23 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 
 	if err := h.userService.CreateUser(c.Context(), *cuUserResp); err != nil {
-		if errors.Is(err, repository.ErrDuplicate) {
-			return c.JSON(cuUserResp)
-		}
 		if errors.Is(err, repository.ErrInvalidDate) {
 			h.logger.Error("invalid birth_date from CU API", zap.String("birth_date", cuUserResp.BirthDate))
 			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
 		}
-		h.logger.Error("failed to create user", zap.Error(err))
+		if !errors.Is(err, repository.ErrDuplicate) {
+			h.logger.Error("failed to create user", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+		}
+	}
+
+	user, err := h.userService.GetUserByID(c.Context(), cuUserResp.Id)
+	if err != nil {
+		h.logger.Error("failed to fetch user after register", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 
-	return c.JSON(cuUserResp)
+	return c.JSON(user)
 }
 
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
