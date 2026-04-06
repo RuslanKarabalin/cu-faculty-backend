@@ -124,7 +124,7 @@ insert into "universities" (name, short_name) values ('ОМСКИЙ ГОСУДА
 insert into "universities" (name, short_name) values ('ВОЛГОГРАДСКИЙ ГОСУДАРСТВЕННЫЙ ТЕХНИЧЕСКИЙ УНИВЕРСИТЕТ', 'ВОЛГГТУ');
 insert into "universities" (name, short_name) values ('ИВАНОВСКИЙ ГОСУДАРСТВЕННЫЙ ПОЛИТЕХНИЧЕСКИЙ УНИВЕРСИТЕТ', 'ИВГПУ');
 insert into "universities" (name, short_name) values ('КУБАНСКИЙ ГОСУДАРСТВЕННЫЙ ТЕХНОЛОГИЧЕСКИЙ УНИВЕРСИТЕТ', 'КУБГТУ');
-insert into "universities" (name, short_name) values ('«РОССИЙСКО-ТАДЖИКСКИЙ (СЛАВЯНСКИЙ) УНИВЕРСИТЕТ»', 'МОУ ВО РТСУ');
+insert into "universities" (name, short_name) values ('РОССИЙСКО-ТАДЖИКСКИЙ (СЛАВЯНСКИЙ) УНИВЕРСИТЕТ', 'МОУ ВО РТСУ');
 insert into "universities" (name, short_name) values ('МАЙКОПСКИЙ ГОСУДАРСТВЕННЫЙ ТЕХНОЛОГИЧЕСКИЙ УНИВЕРСИТЕТ', 'МГТУ');
 insert into "universities" (name, short_name) values ('СИБИРСКИЙ ГОСУДАРСТВЕННЫЙ ИНДУСТРИАЛЬНЫЙ УНИВЕРСИТЕТ', 'СИБГИУ');
 insert into "universities" (name, short_name) values ('УРАЛЬСКИЙ ГОСУДАРСТВЕННЫЙ ЛЕСОТЕХНИЧЕСКИЙ УНИВЕРСИТЕТ', 'УГЛТУ');

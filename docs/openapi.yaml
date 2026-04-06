@@ -137,7 +137,7 @@ components:
         statusId:
           type: integer
           nullable: true
-          description: ID из справочника статусов; null — снять статус
+          description: ID из справочника статусов; null - снять статус
 
     # --- Socials ---
 
@@ -668,7 +668,7 @@ components:
 
 paths:
 
-  # ─── System ───────────────────────────────────────────────────────────────
+  #  System 
 
   /health:
     get:
@@ -694,14 +694,14 @@ paths:
               example:
                 status: unhealthy
 
-  # ─── Auth ─────────────────────────────────────────────────────────────────
+  #  Auth 
 
   /register:
     get:
       summary: Регистрация через CU сессию
       description: |
         Проверяет cookie `bff.cookie` через CU API и создаёт пользователя.
-        Если пользователь уже существует — возвращает его данные без ошибки.
+        Если пользователь уже существует - возвращает его данные без ошибки.
         Единственный маршрут без middleware-аутентификации.
       security: []
       tags: [Auth]
@@ -726,7 +726,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  # ─── Users ────────────────────────────────────────────────────────────────
+  #  Users 
 
   /users:
     get:
@@ -1122,7 +1122,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  # ─── Contacts (QR + записная книжка) ─────────────────────────────────────
+  #  Contacts (QR + записная книжка) 
 
   /contacts:
     get:
@@ -1202,7 +1202,7 @@ paths:
                   type: string
                   maxLength: 255
                   nullable: true
-                  description: null — удалить заметку
+                  description: null - удалить заметку
       responses:
         '200':
           description: Заметка сохранена
@@ -1213,7 +1213,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  # ─── Saved users ──────────────────────────────────────────────────────────
+  #  Saved users 
 
   /saved-users:
     get:
@@ -1268,7 +1268,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  # ─── Announcements ────────────────────────────────────────────────────────
+  #  Announcements 
 
   /announcements:
     get:
@@ -1490,7 +1490,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  # ─── Events ───────────────────────────────────────────────────────────────
+  #  Events 
 
   /events:
     get:
@@ -1659,7 +1659,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  # ─── News ─────────────────────────────────────────────────────────────────
+  #  News 
 
   /news:
     get:
@@ -1776,7 +1776,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  # ─── Reference catalogs ───────────────────────────────────────────────────
+  #  Reference catalogs 
 
   /statuses:
     get:
@@ -1923,9 +1923,9 @@ tags:
   - name: Users
     description: Профили пользователей
   - name: Contacts
-    description: Записная книжка — контакты и сохранённые профили
+    description: Записная книжка - контакты и сохранённые профили
   - name: Announcements
-    description: Объявления — доска, отклики, архив
+    description: Объявления - доска, отклики, архив
   - name: Events
     description: Мероприятия и участие
   - name: News

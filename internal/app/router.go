@@ -24,8 +24,13 @@ func (a *App) registerRoutes() error {
 		Expiration: 1 * time.Minute,
 	}))
 
+	publicPaths := map[string]struct{}{
+		"/register": {},
+		"/health":   {},
+	}
+
 	a.Fiber.Use(func(c *fiber.Ctx) error {
-		if c.Path() == "/register" {
+		if _, ok := publicPaths[c.Path()]; ok {
 			return c.Next()
 		}
 		cookie := c.Cookies("bff.cookie")
