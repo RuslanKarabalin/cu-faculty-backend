@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
-func (a *App) registerRoutes() error {
+func (a *App) registerRoutes() {
 	a.Fiber.Use(cors.New(cors.Config{
 		AllowOrigins: a.Config.AllowedOrigins,
 	}))
@@ -44,9 +44,8 @@ func (a *App) registerRoutes() error {
 		return c.Next()
 	})
 
-	repo := repository.Init(a.DB)
+	repo := repository.New(a.DB)
 	userService := service.NewUserService(repo)
-
 	userHandler := handler.NewUserHandler(userService, a.Logger)
 
 	a.Fiber.Get("/health", func(c *fiber.Ctx) error {
@@ -60,6 +59,4 @@ func (a *App) registerRoutes() error {
 
 	a.Fiber.Post("/register", userHandler.Register)
 	a.Fiber.Get("/users", userHandler.GetUsers)
-
-	return nil
 }

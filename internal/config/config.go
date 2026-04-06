@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/spf13/viper"
 )
@@ -11,11 +10,11 @@ type Config struct {
 	Addr           string
 	CuBaseUrl      string
 	AllowedOrigins string
-	pgUsername     string
-	pgPassword     string
-	pgHost         string
-	pgPort         string
-	pgBasename     string
+	PgUsername     string
+	PgPassword     string
+	PgHost         string
+	PgPort         string
+	PgDatabase     string
 }
 
 func ReadConfig() (*Config, error) {
@@ -26,11 +25,11 @@ func ReadConfig() (*Config, error) {
 		Addr:           viper.GetString("APP_PORT"),
 		CuBaseUrl:      viper.GetString("CU_BASE_URL"),
 		AllowedOrigins: viper.GetString("ALLOWED_ORIGINS"),
-		pgUsername:     viper.GetString("POSTGRES_USER"),
-		pgPassword:     viper.GetString("POSTGRES_PASSWORD"),
-		pgHost:         viper.GetString("POSTGRES_HOST"),
-		pgPort:         viper.GetString("POSTGRES_PORT"),
-		pgBasename:     viper.GetString("POSTGRES_DB"),
+		PgUsername:     viper.GetString("POSTGRES_USER"),
+		PgPassword:     viper.GetString("POSTGRES_PASSWORD"),
+		PgHost:         viper.GetString("POSTGRES_HOST"),
+		PgPort:         viper.GetString("POSTGRES_PORT"),
+		PgDatabase:     viper.GetString("POSTGRES_DB"),
 	}
 
 	var errs []error
@@ -40,19 +39,19 @@ func ReadConfig() (*Config, error) {
 	if cfg.CuBaseUrl == "" {
 		errs = append(errs, errors.New("CU_BASE_URL is required"))
 	}
-	if cfg.pgUsername == "" {
+	if cfg.PgUsername == "" {
 		errs = append(errs, errors.New("POSTGRES_USER is required"))
 	}
-	if cfg.pgPassword == "" {
+	if cfg.PgPassword == "" {
 		errs = append(errs, errors.New("POSTGRES_PASSWORD is required"))
 	}
-	if cfg.pgHost == "" {
+	if cfg.PgHost == "" {
 		errs = append(errs, errors.New("POSTGRES_HOST is required"))
 	}
-	if cfg.pgPort == "" {
+	if cfg.PgPort == "" {
 		errs = append(errs, errors.New("POSTGRES_PORT is required"))
 	}
-	if cfg.pgBasename == "" {
+	if cfg.PgDatabase == "" {
 		errs = append(errs, errors.New("POSTGRES_DB is required"))
 	}
 	if cfg.AllowedOrigins == "" {
@@ -63,14 +62,4 @@ func ReadConfig() (*Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func (c *Config) GetPostgresUrl() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-		c.pgUsername,
-		c.pgPassword,
-		c.pgHost,
-		c.pgPort,
-		c.pgBasename,
-	)
 }

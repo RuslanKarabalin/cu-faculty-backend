@@ -22,7 +22,7 @@ func New(httpClient *http.Client, baseURL string) *Client {
 	}
 }
 
-func (c *Client) Authorize(ctx context.Context, cookie string) (resp_ *model.CuUserResp, retErr error) {
+func (c *Client) Authorize(ctx context.Context, cookie string) (*model.CuUserResp, error) {
 	u, err := url.JoinPath(c.baseURL, "api", "student-hub", "students", "me")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build URL: %w", err)
@@ -34,24 +34,24 @@ func (c *Client) Authorize(ctx context.Context, cookie string) (resp_ *model.CuU
 	}
 	req.AddCookie(&http.Cookie{Name: "bff.cookie", Value: cookie})
 
-	resp, err := c.httpClient.Do(req)
+	httpResp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer func() {
-		if err := resp.Body.Close(); err != nil && retErr == nil {
-			retErr = fmt.Errorf("failed to close response body: %w", err)
+		if closeErr := httpResp.Body.Close(); closeErr != nil {
+			err = fmt.Errorf("failed to close response body: %w", closeErr)
 		}
 	}()
 
-	if resp.StatusCode == http.StatusUnauthorized {
+	if httpResp.StatusCode == http.StatusUnauthorized {
 		return nil, ErrUnauthorized
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: status %d", ErrUpstream, resp.StatusCode)
+	if httpResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: status %d", ErrUpstream, httpResp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(httpResp.Body, 1<<20))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}

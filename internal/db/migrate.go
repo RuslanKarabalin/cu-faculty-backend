@@ -15,14 +15,14 @@ var migrationsFs embed.FS
 func RunMigrations(conn *pgxpool.Pool) error {
 	goose.SetBaseFS(migrationsFs)
 	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {
-		return fmt.Errorf("failed to set goose dialect: %v", err)
+		return fmt.Errorf("failed to set goose dialect: %w", err)
 	}
 	db := stdlib.OpenDBFromPool(conn)
 	if err := goose.Up(db, "migrations"); err != nil {
-		return fmt.Errorf("failed to run migrations: %v", err)
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 	if err := db.Close(); err != nil {
-		return fmt.Errorf("failed to close database connection while migrations running: %v", err)
+		return fmt.Errorf("failed to close database connection while migrations running: %w", err)
 	}
 	return nil
 }

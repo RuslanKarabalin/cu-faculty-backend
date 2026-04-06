@@ -5,6 +5,7 @@ import (
 	"errors"
 	"faculty/internal/model"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -45,6 +46,7 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	from users u
 	left join statuses st on st.id = u.status_id
 	where u.role = 'user'
+	order by u.last_name, u.first_name, u.id
 	limit $1 offset $2
 	`
 
@@ -54,16 +56,17 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	}
 	defer rows.Close()
 
-	var users []*model.User
+	users := make([]*model.User, 0)
 	for rows.Next() {
 		t := &model.User{}
+		var birthDate time.Time
 		err := rows.Scan(
 			&t.Id,
 			&t.PhotoS3Key,
 			&t.FirstName,
 			&t.LastName,
 			&t.Bio,
-			&t.BirthDate,
+			&birthDate,
 			&t.Speciality,
 			&t.Status,
 			&t.Role,
@@ -71,6 +74,7 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan users: %w", err)
 		}
+		t.BirthDate = model.Date{Time: birthDate}
 		users = append(users, t)
 	}
 	if err := rows.Err(); err != nil {
@@ -97,13 +101,14 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 	`
 
 	u := &model.User{}
+	var birthDate time.Time
 	err := r.pgPool.QueryRow(ctx, query, id).Scan(
 		&u.Id,
 		&u.PhotoS3Key,
 		&u.FirstName,
 		&u.LastName,
 		&u.Bio,
-		&u.BirthDate,
+		&birthDate,
 		&u.Speciality,
 		&u.Status,
 		&u.Role,
@@ -114,5 +119,6 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 		}
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
+	u.BirthDate = model.Date{Time: birthDate}
 	return u, nil
 }

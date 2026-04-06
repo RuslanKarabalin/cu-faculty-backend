@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 
 	"faculty/internal/model"
@@ -11,12 +12,18 @@ import (
 	"go.uber.org/zap"
 )
 
+type userService interface {
+	CreateUser(ctx context.Context, cuUser model.CuUserResp) error
+	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
+	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
+}
+
 type UserHandler struct {
-	userService *service.UserService
+	userService userService
 	logger      *zap.Logger
 }
 
-func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserHandler {
+func NewUserHandler(userService userService, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 		logger:      logger,
@@ -34,12 +41,15 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "incomplete user data from upstream"})
 	}
 
+	statusCode := fiber.StatusCreated
 	if err := h.userService.CreateUser(c.Context(), *cuUserResp); err != nil {
 		if errors.Is(err, service.ErrInvalidBirthDate) {
 			h.logger.Error("invalid birth_date from CU API", zap.String("birth_date", cuUserResp.BirthDate))
 			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
 		}
-		if !errors.Is(err, service.ErrAlreadyRegistered) {
+		if errors.Is(err, service.ErrAlreadyRegistered) {
+			statusCode = fiber.StatusOK
+		} else {
 			h.logger.Error("failed to create user", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 		}
@@ -51,7 +61,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 
-	return c.JSON(user)
+	return c.Status(statusCode).JSON(user)
 }
 
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
@@ -71,9 +81,6 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 	if err != nil {
 		h.logger.Error("failed to get users", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-	}
-	if users == nil {
-		users = []*model.User{}
 	}
 	return c.JSON(model.Page[*model.User]{
 		Data:   users,

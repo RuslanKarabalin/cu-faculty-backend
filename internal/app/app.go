@@ -2,15 +2,16 @@ package app
 
 import (
 	"context"
-	"faculty/internal/config"
-	"faculty/internal/cuclient"
-	"faculty/internal/db"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"faculty/internal/config"
+	"faculty/internal/cuclient"
+	"faculty/internal/db"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
@@ -38,7 +39,10 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	poolConfig, err := pgxpool.ParseConfig(cfg.GetPostgresUrl())
+	connString := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s",
+		cfg.PgHost, cfg.PgPort, cfg.PgDatabase, cfg.PgUsername, cfg.PgPassword)
+
+	poolConfig, err := pgxpool.ParseConfig(connString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse postgres config: %w", err)
 	}
@@ -57,8 +61,7 @@ func New() (*App, error) {
 	}
 
 	goose.SetLogger(zap.NewStdLog(logger))
-	err = db.RunMigrations(dbPool)
-	if err != nil {
+	if err := db.RunMigrations(dbPool); err != nil {
 		return nil, err
 	}
 
@@ -80,9 +83,7 @@ func New() (*App, error) {
 		CuClient: cuclient.New(httpClient, cfg.CuBaseUrl),
 	}
 
-	if err := a.registerRoutes(); err != nil {
-		return nil, err
-	}
+	a.registerRoutes()
 
 	return a, nil
 }

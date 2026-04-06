@@ -74,7 +74,7 @@ create table "faqs" (
 );
 
 create table "users" (
-    id uuid primary key default gen_random_uuid()
+    id uuid primary key
     , photo_s3_key varchar(255)
     , first_name varchar(31) not null
     , last_name varchar(31) not null
@@ -122,14 +122,14 @@ create table "announcements" (
     , title varchar(63) not null
     , content varchar(255) not null
     , created_at timestamptz not null default now()
-    , is_archived boolean not null
+    , is_archived boolean not null default false
 );
 
 create table "news" (
     id uuid primary key default gen_random_uuid()
     , author_id uuid references users(id) on delete cascade
     , photo_s3_key varchar(255) not null
-    , title varchar(31) not null
+    , title varchar(127) not null
     , content varchar(255) not null
     , publish_days smallint not null default 7
     , is_draft boolean not null default false
@@ -140,7 +140,7 @@ create table "events" (
     id uuid primary key default gen_random_uuid()
     , author_id uuid references users(id) on delete cascade
     , photo_s3_key varchar(255) not null
-    , title varchar(31) not null
+    , title varchar(127) not null
     , content varchar(255) not null
     , place varchar(63) not null
     , category event_category not null
@@ -167,12 +167,14 @@ create table "contacts" (
     , contact_id uuid references users(id) on delete cascade
     , note varchar(255)
     , primary key (user_id, contact_id)
+    , check (user_id <> contact_id)
 );
 
 create table "saved_users" (
     user_id uuid references users(id) on delete cascade
     , saved_user_id uuid references users(id) on delete cascade
     , primary key (user_id, saved_user_id)
+    , check (user_id <> saved_user_id)
 );
 
 create table "announcement_responses" (
