@@ -30,6 +30,12 @@ create type "work_grade" as enum (
     , 'head'
 );
 
+create type "event_category" as enum (
+    'networking'
+    , 'professional'
+    , 'partner'
+);
+
 create table "statuses" (
     id int primary key generated always as identity
     , content varchar(127) not null
@@ -69,6 +75,7 @@ create table "faqs" (
 
 create table "users" (
     id uuid primary key default gen_random_uuid()
+    , email varchar(255) not null
     , photo_s3_key varchar(255)
     , first_name varchar(31) not null
     , last_name varchar(31) not null
@@ -101,10 +108,10 @@ create table "work_places" (
 create table "edu_places" (
     id int primary key generated always as identity
     , user_id uuid references users(id)
-    , institution_name varchar(63) not null
+    , university_id int not null references universities(id)
     , grade edu_grade not null
     , level varchar(31)
-    , specialization varchar(31) not null
+    , specialization varchar(63) not null
     , start_year smallint not null
     , end_year smallint
     , is_studying_now boolean not null
@@ -113,7 +120,7 @@ create table "edu_places" (
 create table "announcements" (
     id uuid primary key default gen_random_uuid()
     , author_id uuid references users(id)
-    , title varchar(31) not null
+    , title varchar(63) not null
     , content varchar(255) not null
     , created_at timestamptz not null default now()
     , is_archived boolean not null
@@ -125,6 +132,8 @@ create table "news" (
     , photo_s3_key varchar(255) not null
     , title varchar(31) not null
     , content varchar(255) not null
+    , publish_days smallint not null default 7
+    , is_draft boolean not null default false
     , created_at timestamptz not null default now()
 );
 
@@ -135,8 +144,10 @@ create table "events" (
     , title varchar(31) not null
     , content varchar(255) not null
     , place varchar(63) not null
+    , category event_category not null
     , starts_at timestamptz not null
     , registration_link varchar(255)
+    , is_draft boolean not null default false
     , created_at timestamptz not null default now()
 );
 
@@ -199,6 +210,7 @@ drop table if exists "soft_skills";
 drop table if exists "key_skills";
 drop table if exists "statuses";
 
+drop type if exists "event_category";
 drop type if exists "work_grade";
 drop type if exists "edu_grade";
 drop type if exists "social_network";

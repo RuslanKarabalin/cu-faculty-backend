@@ -50,6 +50,10 @@ components:
       type: string
       enum: [intern, junior, junior_plus, middle, middle_plus, senior, staff, principal, lead, head]
 
+    EventCategory:
+      type: string
+      enum: [networking, professional, partner]
+
     # --- Auth ---
 
     CuUserResp:
@@ -93,7 +97,7 @@ components:
           nullable: true
         birthdate:
           type: string
-          format: date-time
+          format: date
         speciality:
           type: string
           maxLength: 63
@@ -104,6 +108,34 @@ components:
           example: "Собираю команду"
         role:
           $ref: '#/components/schemas/UserRole'
+
+    UserProfile:
+      description: Полный профиль пользователя со всеми под-ресурсами
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          required: [socials, workPlaces, eduPlaces, keySkills, softSkills]
+          properties:
+            socials:
+              type: array
+              items:
+                $ref: '#/components/schemas/Social'
+            workPlaces:
+              type: array
+              items:
+                $ref: '#/components/schemas/WorkPlace'
+            eduPlaces:
+              type: array
+              items:
+                $ref: '#/components/schemas/EduPlace'
+            keySkills:
+              type: array
+              items:
+                $ref: '#/components/schemas/Skill'
+            softSkills:
+              type: array
+              items:
+                $ref: '#/components/schemas/Skill'
 
     UserPage:
       type: object
@@ -231,8 +263,8 @@ components:
           type: integer
         institutionName:
           type: string
-          maxLength: 63
-          example: "МГУ"
+          maxLength: 127
+          example: "Московский государственный университет"
         grade:
           $ref: '#/components/schemas/EduGrade'
         level:
@@ -242,7 +274,7 @@ components:
           description: Курс (для студентов)
         specialization:
           type: string
-          maxLength: 31
+          maxLength: 63
         startYear:
           type: integer
         endYear:
@@ -253,11 +285,11 @@ components:
 
     EduPlaceRequest:
       type: object
-      required: [institutionName, grade, specialization, startYear, isStudyingNow]
+      required: [universityId, grade, specialization, startYear, isStudyingNow]
       properties:
-        institutionName:
-          type: string
-          maxLength: 63
+        universityId:
+          type: integer
+          description: ID из справочника университетов
         grade:
           $ref: '#/components/schemas/EduGrade'
         level:
@@ -266,7 +298,7 @@ components:
           nullable: true
         specialization:
           type: string
-          maxLength: 31
+          maxLength: 63
         startYear:
           type: integer
         endYear:
@@ -357,21 +389,16 @@ components:
           format: uuid
         title:
           type: string
-          maxLength: 40
+          maxLength: 63
           example: "Ищу iOS разработчика в стартап"
         content:
           type: string
-          maxLength: 150
+          maxLength: 255
         createdAt:
           type: string
           format: date-time
         isArchived:
           type: boolean
-        respondents:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
-          description: Только для автора объявления
 
     AnnouncementPage:
       type: object
@@ -394,16 +421,16 @@ components:
       properties:
         title:
           type: string
-          maxLength: 40
+          maxLength: 63
         content:
           type: string
-          maxLength: 150
+          maxLength: 255
 
     # --- Events ---
 
     Event:
       type: object
-      required: [id, authorId, photoS3Key, title, content, place, startsAt, createdAt]
+      required: [id, authorId, photoS3Key, title, content, place, category, startsAt, isDraft, createdAt]
       properties:
         id:
           type: string
@@ -425,6 +452,8 @@ components:
           type: string
           maxLength: 63
           example: "Главный корпус, ауд. 101"
+        category:
+          $ref: '#/components/schemas/EventCategory'
         startsAt:
           type: string
           format: date-time
@@ -432,6 +461,8 @@ components:
           type: string
           maxLength: 255
           nullable: true
+        isDraft:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -453,7 +484,7 @@ components:
 
     EventRequest:
       type: object
-      required: [photoS3Key, title, content, place, startsAt]
+      required: [photoS3Key, title, content, place, category, startsAt]
       properties:
         photoS3Key:
           type: string
@@ -467,6 +498,8 @@ components:
         place:
           type: string
           maxLength: 63
+        category:
+          $ref: '#/components/schemas/EventCategory'
         startsAt:
           type: string
           format: date-time
@@ -474,12 +507,16 @@ components:
           type: string
           maxLength: 255
           nullable: true
+        isDraft:
+          type: boolean
+          default: false
+          description: true — сохранить как черновик, не публиковать
 
     # --- News ---
 
     News:
       type: object
-      required: [id, authorId, photoS3Key, title, content, createdAt]
+      required: [id, authorId, photoS3Key, title, content, publishDays, isDraft, createdAt]
       properties:
         id:
           type: string
@@ -497,6 +534,13 @@ components:
         content:
           type: string
           maxLength: 255
+        publishDays:
+          type: integer
+          enum: [3, 7, 10]
+          default: 7
+          description: Срок публикации в днях
+        isDraft:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -529,6 +573,15 @@ components:
         content:
           type: string
           maxLength: 255
+        publishDays:
+          type: integer
+          enum: [3, 7, 10]
+          default: 7
+          description: Срок публикации в днях; по умолчанию 7
+        isDraft:
+          type: boolean
+          default: false
+          description: true — сохранить как черновик, не публиковать
 
     # --- FAQs ---
 
@@ -798,11 +851,11 @@ paths:
       operationId: getMe
       responses:
         '200':
-          description: Данные профиля
+          description: Полный профиль со всеми под-ресурсами
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserProfile'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -821,11 +874,11 @@ paths:
               $ref: '#/components/schemas/UpdateProfileRequest'
       responses:
         '200':
-          description: Обновлённые данные профиля
+          description: Обновлённый полный профиль
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserProfile'
         '400':
           description: Ошибка валидации
           content:
@@ -922,6 +975,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkPlace'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -999,6 +1058,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EduPlace'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1110,11 +1175,11 @@ paths:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
         '200':
-          description: Данные профиля
+          description: Полный профиль со всеми под-ресурсами
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserProfile'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1154,8 +1219,14 @@ paths:
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
+        '201':
+          description: Контакт добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '200':
-          description: Контакт добавлен (или уже существовал)
+          description: Контакт уже существовал
           content:
             application/json:
               schema:
@@ -1243,8 +1314,10 @@ paths:
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
+        '201':
+          description: Профиль сохранён
         '200':
-          description: Профиль сохранён (или уже был сохранён)
+          description: Профиль уже был сохранён
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1408,16 +1481,47 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-    delete:
-      summary: Архивировать / удалить объявление
-      description: Перемещает объявление в архив. Только автор.
+  /announcements/{announcementId}/archive:
+    post:
+      summary: Архивировать объявление
+      description: Перемещает объявление в архив, скрывая с доски. Только автор.
       tags: [Announcements]
       operationId: archiveAnnouncement
       parameters:
         - $ref: '#/components/parameters/AnnouncementIdParam'
       responses:
-        '204':
+        '200':
           description: Объявление архивировано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /announcements/{announcementId}/respondents:
+    get:
+      summary: Откликнувшиеся на объявление
+      description: Только автор объявления видит список.
+      tags: [Announcements]
+      operationId: getAnnouncementRespondents
+      parameters:
+        - $ref: '#/components/parameters/AnnouncementIdParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Список откликнувшихся пользователей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1430,13 +1534,15 @@ paths:
   /announcements/{announcementId}/republish:
     post:
       summary: Повторно опубликовать объявление из архива
-      description: Возвращает объявление в активные, сохраняя накопленные отклики. Продлевает срок на +7 дней.
+      description: |
+        Возвращает объявление в активные, сохраняя накопленные отклики. Продлевает срок на +7 дней.
+        Тело запроса опционально — если не передано, объявление переиздаётся с текущим содержимым.
       tags: [Announcements]
       operationId: republishAnnouncement
       parameters:
         - $ref: '#/components/parameters/AnnouncementIdParam'
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -1495,11 +1601,22 @@ paths:
   /events:
     get:
       summary: Список мероприятий (актуальные)
+      description: Без параметра `draft` возвращает только опубликованные. `draft=true` — только черновики (только администраторы).
       tags: [Events]
       operationId: getEvents
       parameters:
         - $ref: '#/components/parameters/LimitParam'
         - $ref: '#/components/parameters/OffsetParam'
+        - name: category
+          in: query
+          description: Фильтр по категории мероприятия
+          schema:
+            $ref: '#/components/schemas/EventCategory'
+        - name: draft
+          in: query
+          description: true — вернуть черновики (только для администраторов)
+          schema:
+            type: boolean
       responses:
         '200':
           description: Список мероприятий
@@ -1626,6 +1743,30 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /events/{eventId}/publish:
+    post:
+      summary: Опубликовать черновик мероприятия
+      description: Переводит мероприятие из черновика в опубликованное. Только администраторы.
+      tags: [Events]
+      operationId: publishEvent
+      parameters:
+        - $ref: '#/components/parameters/EventIdParam'
+      responses:
+        '200':
+          description: Мероприятие опубликовано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /events/{eventId}/attend:
     post:
       summary: Отметить "Я иду"
@@ -1664,12 +1805,19 @@ paths:
   /news:
     get:
       summary: Лента новостей (активные)
-      description: Новости, отсортированные по дате публикации, сначала самые свежие.
+      description: |
+        Новости, отсортированные по дате публикации, сначала самые свежие.
+        `draft=true` — только черновики (только для администраторов).
       tags: [News]
       operationId: getNews
       parameters:
         - $ref: '#/components/parameters/LimitParam'
         - $ref: '#/components/parameters/OffsetParam'
+        - name: draft
+          in: query
+          description: true — вернуть черновики (только для администраторов)
+          schema:
+            type: boolean
       responses:
         '200':
           description: Список новостей
@@ -1776,7 +1924,31 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  #  Reference catalogs 
+  /news/{newsId}/publish:
+    post:
+      summary: Опубликовать черновик новости
+      description: Переводит новость из черновика в опубликованную. Только администраторы.
+      tags: [News]
+      operationId: publishNews
+      parameters:
+        - $ref: '#/components/parameters/NewsIdParam'
+      responses:
+        '200':
+          description: Новость опубликована
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/News'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  #  Reference catalogs
 
   /statuses:
     get:
@@ -1901,6 +2073,7 @@ paths:
       summary: Список FAQ
       tags: [Reference]
       operationId: getFAQs
+      security: []
       responses:
         '200':
           description: Список вопросов и ответов

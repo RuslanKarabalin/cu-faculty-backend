@@ -18,6 +18,12 @@ enum "edu_grade" {
   postgraduate
 }
 
+enum "event_category" {
+  networking
+  professional
+  partner
+}
+
 entity "statuses" <<prepared>> {
   * id : int <<PK>>
   --
@@ -39,7 +45,14 @@ entity "soft_skills" <<prepared>> {
 entity "universities" {
   * id : int <<PK>>
   --
-  * name : varchar(31)
+  * name : varchar(127)
+  * short_name : varchar(31)
+}
+
+entity "companies" {
+  * id : int <<PK>>
+  --
+  * name : varchar(63)
 }
 
 entity "faqs" {
@@ -53,6 +66,7 @@ entity "faqs" {
 entity "users" {
   * id : uuid <<PK>>
   --
+  * email : varchar(255)
   photo_s3_key : varchar(255)
   * first_name : varchar(31)
   * last_name : varchar(31)
@@ -76,9 +90,9 @@ entity "work_places" {
   * id : int <<PK>>
   --
   * user_id : uuid <<FK>>
-  * company_name : varchar(31)
-  * seniority : varchar(31)
-  * position : varchar(31)
+  * company_name : varchar(63)
+  * grade : varchar(31)
+  * position : varchar(63)
   * start_year : smallint
   end_year : smallint
   * is_working_now : bool
@@ -88,10 +102,10 @@ entity "edu_places" {
   * id : int <<PK>>
   --
   * user_id : uuid <<FK>>
-  * institution_name : varchar(31)
+  * university_id : int <<FK>>
   * grade : edu_grade <<enum>>
   level : varchar(31)
-  * specialization : varchar(31)
+  * specialization : varchar(63)
   * start_year : smallint
   end_year : smallint
   * is_studying_now : bool
@@ -101,7 +115,7 @@ entity "announcements" {
   * id : uuid <<PK>>
   --
   * author_id : uuid <<FK>>
-  * title : varchar(31)
+  * title : varchar(63)
   * content : varchar(255)
   * created_at : timestamptz
   * is_archived : bool
@@ -114,6 +128,8 @@ entity "news" {
   * photo_s3_key : varchar(255)
   * title : varchar(31)
   * content : varchar(255)
+  * publish_days : smallint
+  * is_draft : bool
   * created_at : timestamptz
 }
 
@@ -125,8 +141,10 @@ entity "events" {
   * title : varchar(31)
   * content : varchar(255)
   * place : varchar(63)
+  * category : event_category <<enum>>
   * starts_at : timestamptz
   registration_link : varchar(255)
+  * is_draft : bool
   * created_at : timestamptz
 }
 
@@ -171,6 +189,7 @@ users           ||--o{ socials                  : "user_id"
 users           ||--o{ work_places              : "user_id"
 
 users           ||--o{ edu_places               : "user_id"
+universities    ||--o{ edu_places               : "university_id"
 
 users           ||--o{ user_key_skills          : "user_id"
 key_skills      ||--o{ user_key_skills          : "key_skill_id"
