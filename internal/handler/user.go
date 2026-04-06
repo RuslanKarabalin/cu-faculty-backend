@@ -28,18 +28,9 @@ func NewUserHandler(userService *service.UserService, cuClient *cuclient.Client,
 }
 
 func (h *UserHandler) Register(c *fiber.Ctx) error {
-	cookie := c.Cookies("bff.cookie")
-	if cookie == "" {
+	cuUserResp, ok := c.Locals("cuUser").(*model.CuUserResp)
+	if !ok || cuUserResp == nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
-	}
-
-	cuUserResp, err := h.cuClient.Authorize(c.Context(), cookie)
-	if err != nil {
-		if errors.Is(err, cuclient.ErrUnauthorized) {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
-		}
-		h.logger.Error("failed to call CU API", zap.Error(err))
-		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream service unavailable"})
 	}
 
 	if cuUserResp.Id == (uuid.UUID{}) || cuUserResp.FirstName == "" || cuUserResp.LastName == "" || cuUserResp.BirthDate == "" {

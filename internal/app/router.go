@@ -25,8 +25,7 @@ func (a *App) registerRoutes() error {
 	}))
 
 	publicPaths := map[string]struct{}{
-		"/register": {},
-		"/health":   {},
+		"/health": {},
 	}
 
 	a.Fiber.Use(func(c *fiber.Ctx) error {
@@ -34,13 +33,14 @@ func (a *App) registerRoutes() error {
 			return c.Next()
 		}
 		cookie := c.Cookies("bff.cookie")
-		_, err := a.CuClient.Authorize(c.Context(), cookie)
+		cuUser, err := a.CuClient.Authorize(c.Context(), cookie)
 		if err != nil {
 			if errors.Is(err, cuclient.ErrUnauthorized) {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 			}
 			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream error"})
 		}
+		c.Locals("cuUser", cuUser)
 		return c.Next()
 	})
 
