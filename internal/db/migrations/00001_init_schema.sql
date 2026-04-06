@@ -87,7 +87,7 @@ create table "users" (
 
 create table "socials" (
     id int primary key generated always as identity
-    , user_id uuid references users(id)
+    , user_id uuid references users(id) on delete cascade
     , social social_network not null
     , link varchar(127) not null
     , is_preferred boolean not null
@@ -95,7 +95,7 @@ create table "socials" (
 
 create table "work_places" (
     id int primary key generated always as identity
-    , user_id uuid references users(id)
+    , user_id uuid references users(id) on delete cascade
     , company_name varchar(63) not null
     , grade work_grade not null
     , position varchar(63) not null
@@ -106,7 +106,7 @@ create table "work_places" (
 
 create table "edu_places" (
     id int primary key generated always as identity
-    , user_id uuid references users(id)
+    , user_id uuid references users(id) on delete cascade
     , university_id int not null references universities(id)
     , grade edu_grade not null
     , level varchar(31)
@@ -118,7 +118,7 @@ create table "edu_places" (
 
 create table "announcements" (
     id uuid primary key default gen_random_uuid()
-    , author_id uuid references users(id)
+    , author_id uuid references users(id) on delete cascade
     , title varchar(63) not null
     , content varchar(255) not null
     , created_at timestamptz not null default now()
@@ -127,7 +127,7 @@ create table "announcements" (
 
 create table "news" (
     id uuid primary key default gen_random_uuid()
-    , author_id uuid references users(id)
+    , author_id uuid references users(id) on delete cascade
     , photo_s3_key varchar(255) not null
     , title varchar(31) not null
     , content varchar(255) not null
@@ -138,7 +138,7 @@ create table "news" (
 
 create table "events" (
     id uuid primary key default gen_random_uuid()
-    , author_id uuid references users(id)
+    , author_id uuid references users(id) on delete cascade
     , photo_s3_key varchar(255) not null
     , title varchar(31) not null
     , content varchar(255) not null
@@ -151,39 +151,39 @@ create table "events" (
 );
 
 create table "user_key_skills" (
-    user_id uuid references users(id)
-    , key_skill_id int references key_skills(id)
+    user_id uuid references users(id) on delete cascade
+    , key_skill_id int references key_skills(id) on delete cascade
     , primary key (user_id, key_skill_id)
 );
 
 create table "user_soft_skills" (
-    user_id uuid references users(id)
-    , soft_skill_id int references soft_skills(id)
+    user_id uuid references users(id) on delete cascade
+    , soft_skill_id int references soft_skills(id) on delete cascade
     , primary key (user_id, soft_skill_id)
 );
 
 create table "contacts" (
-    user_id uuid references users(id)
-    , contact_id uuid references users(id)
+    user_id uuid references users(id) on delete cascade
+    , contact_id uuid references users(id) on delete cascade
     , note varchar(255)
     , primary key (user_id, contact_id)
 );
 
 create table "saved_users" (
-    user_id uuid references users(id)
-    , saved_user_id uuid references users(id)
+    user_id uuid references users(id) on delete cascade
+    , saved_user_id uuid references users(id) on delete cascade
     , primary key (user_id, saved_user_id)
 );
 
 create table "announcement_responses" (
-    user_id uuid references users(id)
-    , announcement_id uuid references announcements(id)
+    user_id uuid references users(id) on delete cascade
+    , announcement_id uuid references announcements(id) on delete cascade
     , primary key (user_id, announcement_id)
 );
 
 create table "event_responses" (
-    user_id uuid references users(id)
-    , event_id uuid references events(id)
+    user_id uuid references users(id) on delete cascade
+    , event_id uuid references events(id) on delete cascade
     , primary key (user_id, event_id)
 );
 

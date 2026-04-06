@@ -24,3 +24,10 @@ type CuUserResp struct {
 	LastName  string    `json:"lastName"`
 	BirthDate string    `json:"birthdate"`
 }
+
+type CreateUserParams struct {
+	ID        uuid.UUID
+	FirstName string
+	LastName  string
+	BirthDate time.Time
+}

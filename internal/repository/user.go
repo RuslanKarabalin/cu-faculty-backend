@@ -5,29 +5,16 @@ import (
 	"errors"
 	"faculty/internal/model"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func (r *Repository) CreateUser(ctx context.Context, cuUserResp model.CuUserResp) error {
-	birthDate, err := time.Parse("2006-01-02", cuUserResp.BirthDate)
-	if err != nil {
-		return ErrInvalidDate
-	}
-
+func (r *Repository) CreateUser(ctx context.Context, params model.CreateUserParams) error {
 	query := `insert into users(id, first_name, last_name, birth_date, role) values($1, $2, $3, $4, 'user')`
 
-	_, err = r.pgPool.Exec(
-		ctx,
-		query,
-		cuUserResp.Id,
-		cuUserResp.FirstName,
-		cuUserResp.LastName,
-		birthDate,
-	)
+	_, err := r.pgPool.Exec(ctx, query, params.ID, params.FirstName, params.LastName, params.BirthDate)
 	if err != nil {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == pgUniqueViolation {
 			return ErrDuplicate
@@ -38,6 +25,12 @@ func (r *Repository) CreateUser(ctx context.Context, cuUserResp model.CuUserResp
 }
 
 func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error) {
+	var total int
+	err := r.pgPool.QueryRow(ctx, `select count(*) from users where role = 'user'`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count users: %w", err)
+	}
+
 	query := `
 	select
 		u.id
@@ -49,7 +42,6 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 		, u.speciality
 		, st.content
 		, u.role
-		, count(*) over() as total
 	from users u
 	left join statuses st on st.id = u.status_id
 	where u.role = 'user'
@@ -63,7 +55,6 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	defer rows.Close()
 
 	var users []*model.User
-	var total int
 	for rows.Next() {
 		t := &model.User{}
 		err := rows.Scan(
@@ -76,7 +67,6 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 			&t.Speciality,
 			&t.Status,
 			&t.Role,
-			&total,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan users: %w", err)

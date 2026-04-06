@@ -7,6 +7,9 @@ import (
 	"faculty/internal/db"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/contrib/fiberzap/v2"
@@ -47,6 +50,12 @@ func New() (*App, error) {
 		return nil, err
 	}
 
+	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := dbPool.Ping(pingCtx); err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
 	goose.SetLogger(zap.NewStdLog(logger))
 	err = db.RunMigrations(dbPool)
 	if err != nil {
@@ -79,6 +88,15 @@ func New() (*App, error) {
 }
 
 func (a *App) Run() error {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		a.Logger.Info("shutting down...")
+		_ = a.Fiber.ShutdownWithTimeout(30 * time.Second)
+	}()
+
 	return a.Fiber.Listen(a.Config.Addr)
 }
 

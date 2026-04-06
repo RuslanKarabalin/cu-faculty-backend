@@ -3,9 +3,7 @@ package handler
 import (
 	"errors"
 
-	"faculty/internal/cuclient"
 	"faculty/internal/model"
-	"faculty/internal/repository"
 	"faculty/internal/service"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,14 +13,12 @@ import (
 
 type UserHandler struct {
 	userService *service.UserService
-	cuClient    *cuclient.Client
 	logger      *zap.Logger
 }
 
-func NewUserHandler(userService *service.UserService, cuClient *cuclient.Client, logger *zap.Logger) *UserHandler {
+func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
-		cuClient:    cuClient,
 		logger:      logger,
 	}
 }
@@ -34,16 +30,16 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	}
 
 	if cuUserResp.Id == (uuid.UUID{}) || cuUserResp.FirstName == "" || cuUserResp.LastName == "" || cuUserResp.BirthDate == "" {
-		h.logger.Error("incomplete user data from CU API", zap.Any("user", cuUserResp))
+		h.logger.Error("incomplete user data from CU API")
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "incomplete user data from upstream"})
 	}
 
 	if err := h.userService.CreateUser(c.Context(), *cuUserResp); err != nil {
-		if errors.Is(err, repository.ErrInvalidDate) {
+		if errors.Is(err, service.ErrInvalidBirthDate) {
 			h.logger.Error("invalid birth_date from CU API", zap.String("birth_date", cuUserResp.BirthDate))
 			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
 		}
-		if !errors.Is(err, repository.ErrDuplicate) {
+		if !errors.Is(err, service.ErrAlreadyRegistered) {
 			h.logger.Error("failed to create user", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 		}

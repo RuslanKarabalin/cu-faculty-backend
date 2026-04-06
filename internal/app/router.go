@@ -47,7 +47,7 @@ func (a *App) registerRoutes() error {
 	repo := repository.Init(a.DB)
 	userService := service.NewUserService(repo)
 
-	userHandler := handler.NewUserHandler(userService, a.CuClient, a.Logger)
+	userHandler := handler.NewUserHandler(userService, a.Logger)
 
 	a.Fiber.Get("/health", func(c *fiber.Ctx) error {
 		if err := a.DB.Ping(c.Context()); err != nil {
@@ -58,7 +58,7 @@ func (a *App) registerRoutes() error {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	a.Fiber.Get("/register", userHandler.Register)
+	a.Fiber.Post("/register", userHandler.Register)
 	a.Fiber.Get("/users", userHandler.GetUsers)
 
 	return nil
