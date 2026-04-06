@@ -2,3 +2,546 @@ openapi: 3.0.3
 info:
   title: CU Faculty API
   version: 1.0.0
+  description: REST API для платформы факультетского сообщества Центрального Университета
+
+servers:
+  - url: /
+
+security:
+  - cookieAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: bff.cookie
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: unauthorized
+
+    HealthStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ok, unhealthy]
+          example: ok
+
+    UserRole:
+      type: string
+      enum: [user, admin]
+
+    SocialNetwork:
+      type: string
+      enum: [vk, telegram, github]
+
+    EduGrade:
+      type: string
+      enum: [bachelor, master, specialist, postgraduate]
+
+    WorkGrade:
+      type: string
+      enum: [intern, junior, junior_plus, middle, middle_plus, senior, staff, principal, lead, head]
+
+    CuUserResp:
+      type: object
+      description: Ответ от CU API с базовыми данными пользователя
+      required:
+        - id
+        - firstName
+        - lastName
+        - birthdate
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        firstName:
+          type: string
+          example: Иван
+        lastName:
+          type: string
+          example: Иванов
+        birthdate:
+          type: string
+          format: date
+          example: "2000-05-15"
+
+    User:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - birthdate
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        photoS3Key:
+          type: string
+          nullable: true
+          example: "users/550e8400/avatar.jpg"
+        firstName:
+          type: string
+          maxLength: 31
+          example: Иван
+        lastName:
+          type: string
+          maxLength: 31
+          example: Иванов
+        bio:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "Разработчик, люблю Go и PostgreSQL"
+        birthdate:
+          type: string
+          format: date-time
+          example: "2000-05-15T00:00:00Z"
+        speciality:
+          type: string
+          maxLength: 63
+          nullable: true
+          example: "Программная инженерия"
+        status:
+          type: string
+          nullable: true
+          example: "Собираю команду"
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    UserPage:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total:
+          type: integer
+          example: 42
+        limit:
+          type: integer
+          example: 20
+        offset:
+          type: integer
+          example: 0
+
+    Social:
+      type: object
+      required:
+        - id
+        - userId
+        - social
+        - link
+        - isPreferred
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+          format: uuid
+        social:
+          $ref: '#/components/schemas/SocialNetwork'
+        link:
+          type: string
+          maxLength: 127
+          example: "https://t.me/username"
+        isPreferred:
+          type: boolean
+
+    WorkPlace:
+      type: object
+      required:
+        - id
+        - userId
+        - companyName
+        - grade
+        - position
+        - startYear
+        - isWorkingNow
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+          format: uuid
+        companyName:
+          type: string
+          maxLength: 63
+          example: "Яндекс"
+        grade:
+          $ref: '#/components/schemas/WorkGrade'
+        position:
+          type: string
+          maxLength: 63
+          example: "Backend Developer"
+        startYear:
+          type: integer
+          example: 2022
+        endYear:
+          type: integer
+          nullable: true
+          example: 2024
+        isWorkingNow:
+          type: boolean
+
+    EduPlace:
+      type: object
+      required:
+        - id
+        - userId
+        - institutionName
+        - grade
+        - specialization
+        - startYear
+        - isStudyingNow
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+          format: uuid
+        institutionName:
+          type: string
+          maxLength: 63
+          example: "МГУ"
+        grade:
+          $ref: '#/components/schemas/EduGrade'
+        level:
+          type: string
+          maxLength: 31
+          nullable: true
+          example: "4 курс"
+        specialization:
+          type: string
+          maxLength: 31
+          example: "Прикладная математика"
+        startYear:
+          type: integer
+          example: 2020
+        endYear:
+          type: integer
+          nullable: true
+          example: 2024
+        isStudyingNow:
+          type: boolean
+
+    Skill:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          maxLength: 63
+          example: "Go"
+
+    Status:
+      type: object
+      required:
+        - id
+        - content
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+          maxLength: 127
+          example: "Собираю команду"
+
+    Announcement:
+      type: object
+      required:
+        - id
+        - authorId
+        - title
+        - content
+        - createdAt
+        - isArchived
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 31
+          example: "Ищу iOS разработчика в стартап"
+        content:
+          type: string
+          maxLength: 255
+          example: "Описание проекта и требования..."
+        createdAt:
+          type: string
+          format: date-time
+        isArchived:
+          type: boolean
+
+    News:
+      type: object
+      required:
+        - id
+        - authorId
+        - photoS3Key
+        - title
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        photoS3Key:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+          example: "Итоги хакатона 2026"
+        content:
+          type: string
+          maxLength: 255
+        createdAt:
+          type: string
+          format: date-time
+
+    Event:
+      type: object
+      required:
+        - id
+        - authorId
+        - photoS3Key
+        - title
+        - content
+        - place
+        - startsAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        photoS3Key:
+          type: string
+          maxLength: 255
+        title:
+          type: string
+          maxLength: 31
+          example: "Встреча выпускников 2026"
+        content:
+          type: string
+          maxLength: 255
+        place:
+          type: string
+          maxLength: 63
+          example: "Главный корпус, ауд. 101"
+        startsAt:
+          type: string
+          format: date-time
+        registrationLink:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "https://forms.yandex.ru/..."
+        createdAt:
+          type: string
+          format: date-time
+
+    FAQ:
+      type: object
+      required:
+        - id
+        - question
+        - answer
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+          maxLength: 255
+        answer:
+          type: string
+          maxLength: 255
+
+  responses:
+    Unauthorized:
+      description: Не авторизован — отсутствует или истёк cookie `bff.cookie`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: unauthorized
+
+    BadGateway:
+      description: Ошибка при обращении к CU API
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: upstream service unavailable
+
+    InternalServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: internal server error
+
+  parameters:
+    LimitParam:
+      name: limit
+      in: query
+      description: Количество элементов на странице (1–100)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    OffsetParam:
+      name: offset
+      in: query
+      description: Смещение от начала выборки
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+paths:
+  /health:
+    get:
+      summary: Проверка состояния сервиса
+      description: Возвращает статус сервиса и проверяет соединение с базой данных. Не требует аутентификации.
+      security: []
+      tags:
+        - System
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Сервис работает нормально
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                status: ok
+        '503':
+          description: Сервис недоступен (нет соединения с БД)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                status: unhealthy
+
+  /register:
+    get:
+      summary: Регистрация пользователя
+      description: |
+        Регистрирует нового пользователя через сессию CU API.
+        Считывает cookie `bff.cookie`, проверяет его через CU API
+        и создаёт запись пользователя в базе данных.
+        Если пользователь уже существует — возвращает его данные без ошибки.
+        Единственный маршрут, не требующий предварительной аутентификации через middleware.
+      security: []
+      tags:
+        - Users
+      operationId: registerUser
+      parameters:
+        - name: bff.cookie
+          in: cookie
+          required: true
+          description: Сессионный cookie CU BFF
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Пользователь успешно зарегистрирован или уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuUserResp'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users:
+    get:
+      summary: Список пользователей
+      description: |
+        Возвращает постраничный список пользователей с ролью `user`.
+        Требует валидного cookie `bff.cookie`.
+      tags:
+        - Users
+      operationId: getUsers
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Постраничный список пользователей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+              example:
+                data:
+                  - id: "550e8400-e29b-41d4-a716-446655440000"
+                    photoS3Key: null
+                    firstName: "Иван"
+                    lastName: "Иванов"
+                    bio: null
+                    birthdate: "2000-05-15T00:00:00Z"
+                    speciality: null
+                    status: "Собираю команду"
+                    role: "user"
+                total: 1
+                limit: 20
+                offset: 0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+tags:
+  - name: System
+    description: Системные эндпоинты
+  - name: Users
+    description: Управление пользователями
