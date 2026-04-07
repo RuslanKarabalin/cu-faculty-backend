@@ -38,11 +38,7 @@ func (c *Client) Authorize(ctx context.Context, cookie string) (*model.CuUserRes
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer func() {
-		if closeErr := httpResp.Body.Close(); closeErr != nil {
-			err = fmt.Errorf("failed to close response body: %w", closeErr)
-		}
-	}()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	if httpResp.StatusCode == http.StatusUnauthorized {
 		return nil, ErrUnauthorized

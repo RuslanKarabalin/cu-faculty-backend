@@ -36,7 +36,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 
-	if cuUserResp.Id == (uuid.UUID{}) || cuUserResp.FirstName == "" || cuUserResp.LastName == "" || cuUserResp.BirthDate == "" {
+	if cuUserResp.ID == (uuid.UUID{}) || cuUserResp.FirstName == "" || cuUserResp.LastName == "" || cuUserResp.BirthDate == "" {
 		h.logger.Error("incomplete user data from CU API")
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "incomplete user data from upstream"})
 	}
@@ -55,7 +55,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		}
 	}
 
-	user, err := h.userService.GetUserByID(c.Context(), cuUserResp.Id)
+	user, err := h.userService.GetUserByID(c.Context(), cuUserResp.ID)
 	if err != nil {
 		h.logger.Error("failed to fetch user after register", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})

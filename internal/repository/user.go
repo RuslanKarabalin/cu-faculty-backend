@@ -61,7 +61,7 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 		t := &model.User{}
 		var birthDate time.Time
 		err := rows.Scan(
-			&t.Id,
+			&t.ID,
 			&t.PhotoS3Key,
 			&t.FirstName,
 			&t.LastName,
@@ -103,7 +103,7 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 	u := &model.User{}
 	var birthDate time.Time
 	err := r.pgPool.QueryRow(ctx, query, id).Scan(
-		&u.Id,
+		&u.ID,
 		&u.PhotoS3Key,
 		&u.FirstName,
 		&u.LastName,

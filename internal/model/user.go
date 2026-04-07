@@ -7,7 +7,7 @@ import (
 )
 
 type User struct {
-	Id         uuid.UUID `json:"id"`
+	ID         uuid.UUID `json:"id"`
 	PhotoS3Key *string   `json:"photoS3Key"`
 	FirstName  string    `json:"firstName"`
 	LastName   string    `json:"lastName"`
@@ -19,7 +19,7 @@ type User struct {
 }
 
 type CuUserResp struct {
-	Id        uuid.UUID `json:"id"`
+	ID        uuid.UUID `json:"id"`
 	FirstName string    `json:"firstName"`
 	LastName  string    `json:"lastName"`
 	BirthDate string    `json:"birthdate"`

@@ -36,7 +36,7 @@ func (s *UserService) CreateUser(ctx context.Context, cuUser model.CuUserResp) e
 	}
 
 	err = s.repo.CreateUser(ctx, model.CreateUserParams{
-		ID:        cuUser.Id,
+		ID:        cuUser.ID,
 		FirstName: cuUser.FirstName,
 		LastName:  cuUser.LastName,
 		BirthDate: birthDate,
