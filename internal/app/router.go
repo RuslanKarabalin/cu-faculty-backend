@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"time"
 
 	"faculty/internal/cuclient"
 	"faculty/internal/handler"
@@ -12,17 +11,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
 func (a *App) registerRoutes() {
 	a.Fiber.Use(cors.New(cors.Config{
 		AllowOrigins: a.Config.AllowedOrigins,
-	}))
-
-	a.Fiber.Use(limiter.New(limiter.Config{
-		Max:        100,
-		Expiration: 1 * time.Minute,
 	}))
 
 	publicPaths := map[string]struct{}{
