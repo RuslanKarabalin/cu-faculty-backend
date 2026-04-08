@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"faculty/internal/middleware"
 	"faculty/internal/model"
 	"faculty/internal/service"
 
@@ -31,8 +32,8 @@ func NewUserHandler(userService userService, logger *zap.Logger) *UserHandler {
 }
 
 func (h *UserHandler) Register(c *fiber.Ctx) error {
-	cuUserResp, ok := c.Locals("cuUser").(*model.CuUserResp)
-	if !ok || cuUserResp == nil {
+	cuUserResp, ok := middleware.GetCuUser(c)
+	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 

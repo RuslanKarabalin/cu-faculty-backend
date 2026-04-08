@@ -6,6 +6,7 @@ import (
 
 	"faculty/internal/cuclient"
 	"faculty/internal/handler"
+	"faculty/internal/middleware"
 	"faculty/internal/repository"
 	"faculty/internal/service"
 
@@ -40,7 +41,7 @@ func (a *App) registerRoutes() {
 			}
 			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream error"})
 		}
-		c.Locals("cuUser", cuUser)
+		middleware.SetCuUser(c, cuUser)
 		return c.Next()
 	})
 
