@@ -8,7 +8,7 @@ import (
 	"faculty/internal/model"
 	"faculty/internal/service"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -31,7 +31,7 @@ func NewUserHandler(userService userService, logger *zap.Logger) *UserHandler {
 	}
 }
 
-func (h *UserHandler) Register(c *fiber.Ctx) error {
+func (h *UserHandler) Register(c fiber.Ctx) error {
 	cuUserResp, ok := middleware.GetCuUser(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
@@ -65,9 +65,24 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 	return c.Status(statusCode).JSON(user)
 }
 
-func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit", 20)
-	offset := c.QueryInt("offset", 0)
+func (h *UserHandler) GetUsers(c fiber.Ctx) error {
+	type Query struct {
+		limit  int `query:"limit"`
+		offset int `query:"offset"`
+	}
+
+	var q Query
+	if err := c.Bind().Query(&q); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	limit := q.limit
+	offset := q.offset
+
+	if limit == 0 {
+		limit = 20
+	}
+
 	if limit > 100 {
 		limit = 100
 	}

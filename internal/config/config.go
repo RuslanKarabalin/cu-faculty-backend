@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Addr           string
 	CuBaseUrl      string
-	AllowedOrigins string
+	AllowedOrigins []string
 	PgUsername     string
 	PgPassword     string
 	PgHost         string
@@ -24,7 +24,7 @@ func ReadConfig() (*Config, error) {
 	cfg := &Config{
 		Addr:           viper.GetString("APP_PORT"),
 		CuBaseUrl:      viper.GetString("CU_BASE_URL"),
-		AllowedOrigins: viper.GetString("ALLOWED_ORIGINS"),
+		AllowedOrigins: viper.GetStringSlice("ALLOWED_ORIGINS"),
 		PgUsername:     viper.GetString("POSTGRES_USER"),
 		PgPassword:     viper.GetString("POSTGRES_PASSWORD"),
 		PgHost:         viper.GetString("POSTGRES_HOST"),
@@ -54,7 +54,7 @@ func ReadConfig() (*Config, error) {
 	if cfg.PgDatabase == "" {
 		errs = append(errs, errors.New("POSTGRES_DB is required"))
 	}
-	if cfg.AllowedOrigins == "" {
+	if cfg.AllowedOrigins == nil {
 		errs = append(errs, errors.New("ALLOWED_ORIGINS is required"))
 	}
 	if len(errs) > 0 {

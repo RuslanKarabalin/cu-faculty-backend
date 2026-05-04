@@ -9,8 +9,8 @@ import (
 	"faculty/internal/repository"
 	"faculty/internal/service"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
 func (a *App) registerRoutes() {
@@ -22,7 +22,7 @@ func (a *App) registerRoutes() {
 		"/health": {},
 	}
 
-	a.Fiber.Use(func(c *fiber.Ctx) error {
+	a.Fiber.Use(func(c fiber.Ctx) error {
 		if _, ok := publicPaths[c.Path()]; ok {
 			return c.Next()
 		}
@@ -42,7 +42,7 @@ func (a *App) registerRoutes() {
 	userService := service.NewUserService(repo)
 	userHandler := handler.NewUserHandler(userService, a.Logger)
 
-	a.Fiber.Get("/health", func(c *fiber.Ctx) error {
+	a.Fiber.Get("/health", func(c fiber.Ctx) error {
 		if err := a.DB.Ping(c.Context()); err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 				"status": "unhealthy",

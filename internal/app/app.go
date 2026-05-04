@@ -13,8 +13,8 @@ import (
 	"faculty/internal/cuclient"
 	"faculty/internal/db"
 
-	"github.com/gofiber/contrib/fiberzap/v2"
-	"github.com/gofiber/fiber/v2"
+	middleware "github.com/gofiber/contrib/v3/zap"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
@@ -65,11 +65,9 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	f := fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-	})
+	f := fiber.New()
 
-	f.Use(fiberzap.New(fiberzap.Config{
+	f.Use(middleware.New(middleware.Config{
 		Logger: logger,
 	}))
 
@@ -98,7 +96,7 @@ func (a *App) Run() error {
 		_ = a.Fiber.ShutdownWithTimeout(30 * time.Second)
 	}()
 
-	return a.Fiber.Listen(a.Config.Addr)
+	return a.Fiber.Listen(a.Config.Addr, fiber.ListenConfig{DisableStartupMessage: true})
 }
 
 func (a *App) Close() {
