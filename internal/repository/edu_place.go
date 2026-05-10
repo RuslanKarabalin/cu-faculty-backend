@@ -30,7 +30,7 @@ func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID)
 	query := `
 	select
 		ep.id
-		, u.short_name
+		, u.name
 		, ep.grade
 		, ep.level
 		, ep.specialization
