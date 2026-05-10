@@ -40,7 +40,8 @@ func (a *App) registerRoutes() {
 
 	repo := repository.New(a.DB)
 	userService := service.NewUserService(repo)
-	userHandler := handler.NewUserHandler(userService, a.Logger)
+	eduPlaceService := service.NewEduPlaceService(repo)
+	userHandler := handler.NewUserHandler(userService, eduPlaceService, a.Logger, a.CuClient)
 
 	a.Fiber.Get("/health", func(c fiber.Ctx) error {
 		if err := a.DB.Ping(c.Context()); err != nil {
@@ -53,4 +54,5 @@ func (a *App) registerRoutes() {
 
 	a.Fiber.Post("/register", userHandler.Register)
 	a.Fiber.Get("/users", userHandler.GetUsers)
+	a.Fiber.Get("/users/:id/edu-places", userHandler.GetUserEduPlaces)
 }

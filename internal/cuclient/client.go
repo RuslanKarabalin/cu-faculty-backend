@@ -22,13 +22,8 @@ func New(httpClient *http.Client, baseURL string) *Client {
 	}
 }
 
-func (c *Client) Authorize(ctx context.Context, cookie string) (*model.CuUserResp, error) {
-	u, err := url.JoinPath(c.baseURL, "api", "student-hub", "students", "me")
-	if err != nil {
-		return nil, fmt.Errorf("failed to build URL: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+func (c *Client) doRequest(ctx context.Context, cookie string, path string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -48,6 +43,16 @@ func (c *Client) Authorize(ctx context.Context, cookie string) (*model.CuUserRes
 	}
 
 	body, err := io.ReadAll(io.LimitReader(httpResp.Body, 1<<20))
+	return body, err
+}
+
+func (c *Client) Authorize(ctx context.Context, cookie string) (*model.CuUserResp, error) {
+	path, err := url.JoinPath(c.baseURL, "api", "student-hub", "students", "me")
+	if err != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	body, err := c.doRequest(ctx, cookie, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
@@ -58,4 +63,23 @@ func (c *Client) Authorize(ctx context.Context, cookie string) (*model.CuUserRes
 	}
 
 	return &user, nil
+}
+
+func (c *Client) StudentEduInfo(ctx context.Context, cookie string) ([]model.CuEduPlaceResp, error) {
+	path, err := url.JoinPath(c.baseURL, "api", "student-hub", "education-info", "me")
+	if err != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	body, err := c.doRequest(ctx, cookie, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var eduInfo []model.CuEduPlaceResp
+	if err := json.Unmarshal(body, &eduInfo); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return eduInfo, nil
 }

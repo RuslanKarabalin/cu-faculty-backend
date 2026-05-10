@@ -205,6 +205,7 @@ insert into "universities" (name, short_name) values ('МУРМАНСКИЙ АР
 insert into "universities" (name, short_name) values ('ХЕРСОНСКИЙ ТЕХНИЧЕСКИЙ УНИВЕРСИТЕТ', 'ХТУ');
 insert into "universities" (name, short_name) values ('СИБИРСКИЙ ФЕДЕРАЛЬНЫЙ УНИВЕРСИТЕТ', 'СФУ');
 insert into "universities" (name, short_name) values ('ЮЖНЫЙ ФЕДЕРАЛЬНЫЙ УНИВЕРСИТЕТ', 'ЮФУ');
+insert into "universities" (name, short_name) values ('Центральный Университет', 'ЦУ');
 
 -- +goose Down
 truncate table "universities";

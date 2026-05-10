@@ -3,7 +3,10 @@ package handler
 import (
 	"context"
 	"errors"
+	"strings"
+	"time"
 
+	"faculty/internal/cuclient"
 	"faculty/internal/middleware"
 	"faculty/internal/model"
 	"faculty/internal/service"
@@ -19,15 +22,24 @@ type userService interface {
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
 }
 
-type UserHandler struct {
-	userService userService
-	logger      *zap.Logger
+type eduPlaceService interface {
+	CreateEduPlace(ctx context.Context, params model.CreateEduPlaceParams) error
+	GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.EduPlace, error)
 }
 
-func NewUserHandler(userService userService, logger *zap.Logger) *UserHandler {
+type UserHandler struct {
+	userService     userService
+	eduPlaceService eduPlaceService
+	logger          *zap.Logger
+	cuClient        *cuclient.Client
+}
+
+func NewUserHandler(userService userService, eduPlaceService eduPlaceService, logger *zap.Logger, cuClient *cuclient.Client) *UserHandler {
 	return &UserHandler{
-		userService: userService,
-		logger:      logger,
+		userService:     userService,
+		eduPlaceService: eduPlaceService,
+		logger:          logger,
+		cuClient:        cuClient,
 	}
 }
 
@@ -60,6 +72,35 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 	if err != nil {
 		h.logger.Error("failed to fetch user after register", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+	}
+
+	cookie := c.Cookies("bff.cookie")
+	eduPlaces, err := h.cuClient.StudentEduInfo(c.Context(), cookie)
+	if err != nil {
+		h.logger.Error("failed to fetch user edu place", zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+	}
+
+	for _, eduPlace := range eduPlaces {
+		t, err := time.Parse("2006-01-02", eduPlace.EducationProgram.StartDate)
+		if err != nil {
+			h.logger.Error("failed to parse edu place date", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+		}
+
+		params := model.CreateEduPlaceParams{
+			UserId:         cuUserResp.ID,
+			UniversityId:   207,
+			Grade:          strings.ToLower(eduPlace.EducationProgram.Level),
+			Specialization: eduPlace.EducationProgram.Name,
+			StartYear:      t.Year(),
+			IsStudyingNow:  true,
+		}
+
+		if err := h.eduPlaceService.CreateEduPlace(c.Context(), params); err != nil {
+			h.logger.Error("failed to create edu place", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+		}
 	}
 
 	return c.Status(statusCode).JSON(user)
@@ -104,4 +145,18 @@ func (h *UserHandler) GetUsers(c fiber.Ctx) error {
 		Limit:  limit,
 		Offset: offset,
 	})
+}
+
+func (h *UserHandler) GetUserEduPlaces(c fiber.Ctx) error {
+	userID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user id"})
+	}
+
+	places, err := h.eduPlaceService.GetEduPlacesByUserID(c.Context(), userID)
+	if err != nil {
+		h.logger.Error("failed to get edu places", zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+	}
+	return c.JSON(places)
 }
