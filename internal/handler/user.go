@@ -9,6 +9,7 @@ import (
 	"faculty/internal/cuclient"
 	"faculty/internal/middleware"
 	"faculty/internal/model"
+	"faculty/internal/repository"
 	"faculty/internal/service"
 
 	"github.com/gofiber/fiber/v3"
@@ -17,29 +18,39 @@ import (
 )
 
 type userService interface {
-	CreateUser(ctx context.Context, cuUser model.CuUserResp) error
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
 }
 
 type eduPlaceService interface {
-	CreateEduPlace(ctx context.Context, params model.CreateEduPlaceParams) error
 	GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.EduPlace, error)
 }
 
-type UserHandler struct {
-	userService     userService
-	eduPlaceService eduPlaceService
-	logger          *zap.Logger
-	cuClient        *cuclient.Client
+type registrationService interface {
+	Register(ctx context.Context, cuUser model.CuUserResp, eduPlaces []model.CreateEduPlaceParams) (*model.User, bool, error)
 }
 
-func NewUserHandler(userService userService, eduPlaceService eduPlaceService, logger *zap.Logger, cuClient *cuclient.Client) *UserHandler {
+type UserHandler struct {
+	userService         userService
+	eduPlaceService     eduPlaceService
+	registrationService registrationService
+	logger              *zap.Logger
+	cuClient            *cuclient.Client
+}
+
+func NewUserHandler(
+	userService userService,
+	eduPlaceService eduPlaceService,
+	registrationService registrationService,
+	logger *zap.Logger,
+	cuClient *cuclient.Client,
+) *UserHandler {
 	return &UserHandler{
-		userService:     userService,
-		eduPlaceService: eduPlaceService,
-		logger:          logger,
-		cuClient:        cuClient,
+		userService:         userService,
+		eduPlaceService:     eduPlaceService,
+		registrationService: registrationService,
+		logger:              logger,
+		cuClient:            cuClient,
 	}
 }
 
@@ -54,62 +65,59 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "incomplete user data from upstream"})
 	}
 
-	statusCode := fiber.StatusCreated
-	if err := h.userService.CreateUser(c.Context(), *cuUserResp); err != nil {
-		if errors.Is(err, service.ErrInvalidBirthDate) {
-			h.logger.Error("invalid birth_date from CU API", zap.String("birth_date", cuUserResp.BirthDate))
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
-		}
-		if errors.Is(err, service.ErrAlreadyRegistered) {
-			statusCode = fiber.StatusOK
-		} else {
-			h.logger.Error("failed to create user", zap.Error(err))
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-		}
+	existing, err := h.userService.GetUserByID(c.Context(), cuUserResp.ID)
+	if err == nil {
+		return c.Status(fiber.StatusOK).JSON(existing)
 	}
-
-	user, err := h.userService.GetUserByID(c.Context(), cuUserResp.ID)
-	if err != nil {
-		h.logger.Error("failed to fetch user after register", zap.Error(err))
+	if !errors.Is(err, repository.ErrNotFound) {
+		h.logger.Error("failed to lookup user", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 
 	cookie := c.Cookies("bff.cookie")
-	eduPlaces, err := h.cuClient.StudentEduInfo(c.Context(), cookie)
+	cuEduPlaces, err := h.cuClient.StudentEduInfo(c.Context(), cookie)
 	if err != nil {
 		h.logger.Error("failed to fetch user edu place", zap.Error(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
 	}
 
-	for _, eduPlace := range eduPlaces {
-		t, err := time.Parse("2006-01-02", eduPlace.EducationProgram.StartDate)
+	eduPlaceParams := make([]model.CreateEduPlaceParams, 0, len(cuEduPlaces))
+	for _, e := range cuEduPlaces {
+		t, err := time.Parse("2006-01-02", e.EducationProgram.StartDate)
 		if err != nil {
 			h.logger.Error("failed to parse edu place date", zap.Error(err))
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
 		}
-
-		params := model.CreateEduPlaceParams{
-			UserId:         cuUserResp.ID,
+		eduPlaceParams = append(eduPlaceParams, model.CreateEduPlaceParams{
 			UniversityId:   207,
-			Grade:          strings.ToLower(eduPlace.EducationProgram.Level),
-			Specialization: eduPlace.EducationProgram.Name,
+			Grade:          strings.ToLower(e.EducationProgram.Level),
+			Specialization: e.EducationProgram.Name,
 			StartYear:      t.Year(),
 			IsStudyingNow:  true,
-		}
-
-		if err := h.eduPlaceService.CreateEduPlace(c.Context(), params); err != nil {
-			h.logger.Error("failed to create edu place", zap.Error(err))
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-		}
+		})
 	}
 
+	user, isNewUser, err := h.registrationService.Register(c.Context(), *cuUserResp, eduPlaceParams)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidBirthDate) {
+			h.logger.Error("invalid birth_date from CU API", zap.String("birth_date", cuUserResp.BirthDate))
+			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
+		}
+		h.logger.Error("failed to register user", zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
+	}
+
+	statusCode := fiber.StatusCreated
+	if !isNewUser {
+		statusCode = fiber.StatusOK
+	}
 	return c.Status(statusCode).JSON(user)
 }
 
 func (h *UserHandler) GetUsers(c fiber.Ctx) error {
 	type Query struct {
-		limit  int `query:"limit"`
-		offset int `query:"offset"`
+		Limit  int `query:"limit"`
+		Offset int `query:"offset"`
 	}
 
 	var q Query
@@ -117,8 +125,8 @@ func (h *UserHandler) GetUsers(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	limit := q.limit
-	offset := q.offset
+	limit := q.Limit
+	offset := q.Offset
 
 	if limit == 0 {
 		limit = 20

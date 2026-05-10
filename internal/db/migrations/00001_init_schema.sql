@@ -114,6 +114,7 @@ create table "edu_places" (
     , start_year smallint not null
     , end_year smallint
     , is_studying_now boolean not null
+    , unique (user_id, university_id, start_year)
 );
 
 create table "announcements" (

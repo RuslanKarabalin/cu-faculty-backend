@@ -16,7 +16,7 @@ func (r *Repository) CreateEduPlace(ctx context.Context, params model.CreateEduP
 	values($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
-	_, err := r.pgPool.Exec(ctx, query, params.UserId, params.UniversityId, params.Grade, params.Level, params.Specialization, params.StartYear, params.EndYear, params.IsStudyingNow)
+	_, err := r.db.Exec(ctx, query, params.UserId, params.UniversityId, params.Grade, params.Level, params.Specialization, params.StartYear, params.EndYear, params.IsStudyingNow)
 	if err != nil {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == pgUniqueViolation {
 			return ErrDuplicate
@@ -43,7 +43,7 @@ func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID)
 	order by ep.start_year desc, ep.id
 	`
 
-	rows, err := r.pgPool.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select edu places: %w", err)
 	}

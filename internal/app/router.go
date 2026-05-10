@@ -15,7 +15,8 @@ import (
 
 func (a *App) registerRoutes() {
 	a.Fiber.Use(cors.New(cors.Config{
-		AllowOrigins: a.Config.AllowedOrigins,
+		AllowOrigins:     a.Config.AllowedOrigins,
+		AllowCredentials: true,
 	}))
 
 	publicPaths := map[string]struct{}{
@@ -41,7 +42,8 @@ func (a *App) registerRoutes() {
 	repo := repository.New(a.DB)
 	userService := service.NewUserService(repo)
 	eduPlaceService := service.NewEduPlaceService(repo)
-	userHandler := handler.NewUserHandler(userService, eduPlaceService, a.Logger, a.CuClient)
+	registrationService := service.NewRegistrationService(repo)
+	userHandler := handler.NewUserHandler(userService, eduPlaceService, registrationService, a.Logger, a.CuClient)
 
 	a.Fiber.Get("/health", func(c fiber.Ctx) error {
 		if err := a.DB.Ping(c.Context()); err != nil {
