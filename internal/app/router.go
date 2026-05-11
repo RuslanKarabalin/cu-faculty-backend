@@ -20,6 +20,7 @@ func (a *App) registerRoutes() {
 	}))
 
 	publicPaths := map[string]struct{}{
+		"/":       {},
 		"/health": {},
 	}
 
@@ -45,6 +46,22 @@ func (a *App) registerRoutes() {
 	registrationService := service.NewRegistrationService(repo)
 	userHandler := handler.NewUserHandler(userService, eduPlaceService, registrationService, a.Logger, a.CuClient)
 
+	a.Fiber.Get("/", func(c fiber.Ctx) error {
+		routes := a.Fiber.GetRoutes(true)
+
+		result := make([]map[string]string, 0, len(routes))
+		for _, r := range routes {
+			if r.Method != "HEAD" {
+				result = append(result, map[string]string{
+					"method": r.Method,
+					"path":   r.Path,
+				})
+			}
+		}
+
+		return c.JSON(result)
+	})
+
 	a.Fiber.Get("/health", func(c fiber.Ctx) error {
 		if err := a.DB.Ping(c.Context()); err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
@@ -54,7 +71,11 @@ func (a *App) registerRoutes() {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	a.Fiber.Post("/register", userHandler.Register)
-	a.Fiber.Get("/users", userHandler.GetUsers)
-	a.Fiber.Get("/users/:id/edu-places", userHandler.GetUserEduPlaces)
+	api := a.Fiber.Group("/api")
+
+	students := api.Group("/students")
+
+	students.Post("/register", userHandler.Register)
+	students.Get("/", userHandler.GetUsers)
+	students.Get("/:id/edu-places", userHandler.GetUserEduPlaces)
 }
