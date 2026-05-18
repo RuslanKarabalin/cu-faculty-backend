@@ -9,7 +9,7 @@ export GOBIN
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "%-15s %s\n", $$1, $$2}'
 
-all: ffl brun ## fmt + fix + lint + build + run
+all: ffvl brun ## fmt + fix + lint + build + run
 
 install-lint: ## install golangci-lint
 	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(GOBIN)
@@ -23,10 +23,13 @@ fmt: ## format
 fix: ## fix
 	go fix ./...
 
+vet: ## vet
+	go vet ./...
+
 lint: ## lint
 	$(LINT) run
 
-ffl: fmt fix lint ## fmt + fix + lint
+ffvl: fmt fix vet lint ## fmt + fix + vet + lint
 
 build: ## build
 	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(DBIN)/main ./cmd/api

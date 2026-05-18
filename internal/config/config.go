@@ -15,11 +15,15 @@ type Config struct {
 	PgHost         string
 	PgPort         string
 	PgDatabase     string
+	PgMaxConns     int32
+	PgMinConns     int32
 }
 
 func ReadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 	viper.SetConfigType("env")
+	viper.SetDefault("POSTGRES_MAX_CONNS", 25)
+	viper.SetDefault("POSTGRES_MIN_CONNS", 5)
 
 	cfg := &Config{
 		Addr:           viper.GetString("APP_PORT"),
@@ -30,6 +34,8 @@ func ReadConfig() (*Config, error) {
 		PgHost:         viper.GetString("POSTGRES_HOST"),
 		PgPort:         viper.GetString("POSTGRES_PORT"),
 		PgDatabase:     viper.GetString("POSTGRES_DB"),
+		PgMaxConns:     viper.GetInt32("POSTGRES_MAX_CONNS"),
+		PgMinConns:     viper.GetInt32("POSTGRES_MIN_CONNS"),
 	}
 
 	var errs []error

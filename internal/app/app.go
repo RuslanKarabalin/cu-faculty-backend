@@ -3,8 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
-	"os"
+	"net/url"
 	"os/signal"
 	"syscall"
 	"time"
@@ -13,11 +14,17 @@ import (
 	"faculty/internal/cuclient"
 	"faculty/internal/db"
 
-	middleware "github.com/gofiber/contrib/v3/zap"
+	fiberzap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
+)
+
+const (
+	dbPingTimeout   = 5 * time.Second
+	shutdownTimeout = 30 * time.Second
+	httpReqTimeout  = 10 * time.Second
 )
 
 type App struct {
@@ -36,28 +43,12 @@ func New() (*App, error) {
 
 	logger, err := zap.NewProduction()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init logger: %w", err)
 	}
 
-	connString := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s",
-		cfg.PgHost, cfg.PgPort, cfg.PgDatabase, cfg.PgUsername, cfg.PgPassword)
-
-	poolConfig, err := pgxpool.ParseConfig(connString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse postgres config: %w", err)
-	}
-	poolConfig.MaxConns = 25
-	poolConfig.MinConns = 5
-
-	dbPool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	dbPool, err := newDBPool(cfg)
 	if err != nil {
 		return nil, err
-	}
-
-	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := dbPool.Ping(pingCtx); err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	goose.SetLogger(zap.NewStdLog(logger))
@@ -65,35 +56,65 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	f := fiber.New()
-
-	f.Use(middleware.New(middleware.Config{
-		Logger: logger,
-	}))
-
-	httpClient := &http.Client{Timeout: 10 * time.Second}
-
 	a := &App{
-		Fiber:    f,
+		Fiber:    newFiber(logger),
 		Config:   cfg,
 		DB:       dbPool,
 		Logger:   logger,
-		CuClient: cuclient.New(httpClient, cfg.CuBaseUrl),
+		CuClient: cuclient.New(&http.Client{Timeout: httpReqTimeout}, cfg.CuBaseUrl),
 	}
-
 	a.registerRoutes()
 
 	return a, nil
 }
 
+func newDBPool(cfg *config.Config) (*pgxpool.Pool, error) {
+	dsn := buildPgDSN(cfg)
+	poolConfig, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse postgres config: %w", err)
+	}
+	poolConfig.MaxConns = cfg.PgMaxConns
+	poolConfig.MinConns = cfg.PgMinConns
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	if err != nil {
+		return nil, fmt.Errorf("create postgres pool: %w", err)
+	}
+
+	pingCtx, cancel := context.WithTimeout(context.Background(), dbPingTimeout)
+	defer cancel()
+	if err := pool.Ping(pingCtx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+	return pool, nil
+}
+
+func buildPgDSN(cfg *config.Config) string {
+	u := url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(cfg.PgUsername, cfg.PgPassword),
+		Host:   net.JoinHostPort(cfg.PgHost, cfg.PgPort),
+		Path:   cfg.PgDatabase,
+	}
+	return u.String()
+}
+
+func newFiber(logger *zap.Logger) *fiber.App {
+	f := fiber.New()
+	f.Use(fiberzap.New(fiberzap.Config{Logger: logger}))
+	return f
+}
+
 func (a *App) Run() error {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	go func() {
-		<-quit
+		<-ctx.Done()
 		a.Logger.Info("shutting down...")
-		_ = a.Fiber.ShutdownWithTimeout(30 * time.Second)
+		_ = a.Fiber.ShutdownWithTimeout(shutdownTimeout)
 	}()
 
 	return a.Fiber.Listen(a.Config.Addr, fiber.ListenConfig{DisableStartupMessage: true})

@@ -1,18 +1,22 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"faculty/internal/app"
-	"log"
 )
 
 func main() {
-	app, err := app.New()
+	a, err := app.New()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-	defer app.Close()
+	defer a.Close()
 
-	if err := app.Run(); err != nil {
-		log.Fatal(err)
+	if err := a.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

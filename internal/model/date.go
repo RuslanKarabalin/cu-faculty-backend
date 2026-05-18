@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"time"
 )
@@ -25,4 +26,21 @@ func (d *Date) UnmarshalJSON(data []byte) error {
 	}
 	d.Time = t
 	return nil
+}
+
+func (d *Date) Scan(src any) error {
+	switch v := src.(type) {
+	case time.Time:
+		d.Time = v
+		return nil
+	case nil:
+		d.Time = time.Time{}
+		return nil
+	default:
+		return fmt.Errorf("date: cannot scan %T", src)
+	}
+}
+
+func (d Date) Value() (driver.Value, error) {
+	return d.Time, nil
 }

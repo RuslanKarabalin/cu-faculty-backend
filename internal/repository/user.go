@@ -5,30 +5,23 @@ import (
 	"errors"
 	"faculty/internal/model"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func (r *Repository) CreateUser(ctx context.Context, params model.CreateUserParams) error {
 	query := `insert into users(id, first_name, last_name, birth_date, role) values($1, $2, $3, $4, 'user')`
 
-	_, err := r.db.Exec(ctx, query, params.ID, params.FirstName, params.LastName, params.BirthDate)
-	if err != nil {
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == pgUniqueViolation {
-			return ErrDuplicate
-		}
-		return err
+	if _, err := r.db.Exec(ctx, query, params.ID, params.FirstName, params.LastName, params.BirthDate); err != nil {
+		return wrapPgError(err)
 	}
 	return nil
 }
 
 func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error) {
 	var total int
-	err := r.db.QueryRow(ctx, `select count(*) from users where role = 'user'`).Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRow(ctx, `select count(*) from users where role = 'user'`).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count users: %w", err)
 	}
 
@@ -58,24 +51,21 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 
 	users := make([]*model.User, 0)
 	for rows.Next() {
-		t := &model.User{}
-		var birthDate time.Time
-		err := rows.Scan(
-			&t.ID,
-			&t.PhotoS3Key,
-			&t.FirstName,
-			&t.LastName,
-			&t.Bio,
-			&birthDate,
-			&t.Speciality,
-			&t.Status,
-			&t.Role,
-		)
-		if err != nil {
+		u := &model.User{}
+		if err := rows.Scan(
+			&u.ID,
+			&u.PhotoS3Key,
+			&u.FirstName,
+			&u.LastName,
+			&u.Bio,
+			&u.BirthDate,
+			&u.Speciality,
+			&u.Status,
+			&u.Role,
+		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan users: %w", err)
 		}
-		t.BirthDate = model.Date{Time: birthDate}
-		users = append(users, t)
+		users = append(users, u)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
@@ -101,14 +91,13 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 	`
 
 	u := &model.User{}
-	var birthDate time.Time
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&u.ID,
 		&u.PhotoS3Key,
 		&u.FirstName,
 		&u.LastName,
 		&u.Bio,
-		&birthDate,
+		&u.BirthDate,
 		&u.Speciality,
 		&u.Status,
 		&u.Role,
@@ -119,6 +108,5 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 		}
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
-	u.BirthDate = model.Date{Time: birthDate}
 	return u, nil
 }

@@ -22,8 +22,13 @@ func New(httpClient *http.Client, baseURL string) *Client {
 	}
 }
 
-func (c *Client) doRequest(ctx context.Context, cookie string, path string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+func (c *Client) get(ctx context.Context, cookie string, segments ...string) ([]byte, error) {
+	endpoint, err := url.JoinPath(c.baseURL, segments...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -42,44 +47,31 @@ func (c *Client) doRequest(ctx context.Context, cookie string, path string) ([]b
 		return nil, fmt.Errorf("%w: status %d", ErrUpstream, httpResp.StatusCode)
 	}
 
-	body, err := io.ReadAll(io.LimitReader(httpResp.Body, 1<<20))
-	return body, err
+	return io.ReadAll(io.LimitReader(httpResp.Body, 1<<20))
 }
 
 func (c *Client) Authorize(ctx context.Context, cookie string) (*model.CuUserResp, error) {
-	path, err := url.JoinPath(c.baseURL, "api", "student-hub", "students", "me")
+	body, err := c.get(ctx, cookie, "api", "student-hub", "students", "me")
 	if err != nil {
-		return nil, fmt.Errorf("failed to build URL: %w", err)
-	}
-
-	body, err := c.doRequest(ctx, cookie, path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, err
 	}
 
 	var user model.CuUserResp
 	if err := json.Unmarshal(body, &user); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-
 	return &user, nil
 }
 
 func (c *Client) StudentEduInfo(ctx context.Context, cookie string) ([]model.CuEduPlaceResp, error) {
-	path, err := url.JoinPath(c.baseURL, "api", "student-hub", "education-info", "me")
+	body, err := c.get(ctx, cookie, "api", "student-hub", "education-info", "me")
 	if err != nil {
-		return nil, fmt.Errorf("failed to build URL: %w", err)
-	}
-
-	body, err := c.doRequest(ctx, cookie, path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+		return nil, err
 	}
 
 	var eduInfo []model.CuEduPlaceResp
 	if err := json.Unmarshal(body, &eduInfo); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-
 	return eduInfo, nil
 }

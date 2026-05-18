@@ -2,12 +2,10 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"faculty/internal/model"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func (r *Repository) CreateEduPlace(ctx context.Context, params model.CreateEduPlaceParams) error {
@@ -16,12 +14,8 @@ func (r *Repository) CreateEduPlace(ctx context.Context, params model.CreateEduP
 	values($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
-	_, err := r.db.Exec(ctx, query, params.UserId, params.UniversityId, params.Grade, params.Level, params.Specialization, params.StartYear, params.EndYear, params.IsStudyingNow)
-	if err != nil {
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == pgUniqueViolation {
-			return ErrDuplicate
-		}
-		return err
+	if _, err := r.db.Exec(ctx, query, params.UserId, params.UniversityId, params.Grade, params.Level, params.Specialization, params.StartYear, params.EndYear, params.IsStudyingNow); err != nil {
+		return wrapPgError(err)
 	}
 	return nil
 }
