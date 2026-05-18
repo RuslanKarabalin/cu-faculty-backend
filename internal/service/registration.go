@@ -63,7 +63,7 @@ func (s *RegistrationService) Register(ctx context.Context, cuUser model.CuUserR
 
 		for _, p := range eduPlaceParams {
 			p.UserId = cuUser.ID
-			if err := r.CreateEduPlace(ctx, p); err != nil {
+			if _, err := r.CreateEduPlace(ctx, p); err != nil {
 				if errors.Is(err, repository.ErrDuplicate) {
 					continue
 				}
