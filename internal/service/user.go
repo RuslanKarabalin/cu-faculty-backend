@@ -9,7 +9,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrInvalidBirthDate = errors.New("invalid birth_date format, expected YYYY-MM-DD")
+var (
+	ErrInvalidBirthDate    = errors.New("invalid birth_date format, expected YYYY-MM-DD")
+	ErrInvalidUpstreamData = errors.New("invalid data from upstream")
+)
 
 type userRepository interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)

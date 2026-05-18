@@ -3,13 +3,10 @@ package handler
 import (
 	"context"
 	"errors"
-	"strings"
-	"time"
 
 	"faculty/internal/cuclient"
 	"faculty/internal/middleware"
 	"faculty/internal/model"
-	"faculty/internal/repository"
 	"faculty/internal/service"
 
 	"github.com/gofiber/fiber/v3"
@@ -18,7 +15,6 @@ import (
 )
 
 type userService interface {
-	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
 }
 
@@ -27,7 +23,7 @@ type eduPlaceService interface {
 }
 
 type registrationService interface {
-	Register(ctx context.Context, cuUser model.CuUserResp, eduPlaces []model.CreateEduPlaceParams) (*model.User, bool, error)
+	Register(ctx context.Context, cuUser model.CuUserResp, cookie string) (*model.User, bool, error)
 }
 
 type UserHandler struct {
@@ -35,7 +31,6 @@ type UserHandler struct {
 	eduPlaceService     eduPlaceService
 	registrationService registrationService
 	logger              *zap.Logger
-	cuClient            *cuclient.Client
 }
 
 func NewUserHandler(
@@ -43,14 +38,12 @@ func NewUserHandler(
 	eduPlaceService eduPlaceService,
 	registrationService registrationService,
 	logger *zap.Logger,
-	cuClient *cuclient.Client,
 ) *UserHandler {
 	return &UserHandler{
 		userService:         userService,
 		eduPlaceService:     eduPlaceService,
 		registrationService: registrationService,
 		logger:              logger,
-		cuClient:            cuClient,
 	}
 }
 
@@ -65,42 +58,11 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "incomplete user data from upstream"})
 	}
 
-	existing, err := h.userService.GetUserByID(c.Context(), cuUserResp.ID)
-	if err == nil {
-		return c.Status(fiber.StatusOK).JSON(existing)
-	}
-	if !errors.Is(err, repository.ErrNotFound) {
-		h.logger.Error("failed to lookup user", zap.Error(err))
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-	}
-
-	cookie := c.Cookies("bff.cookie")
-	cuEduPlaces, err := h.cuClient.StudentEduInfo(c.Context(), cookie)
+	cookie := c.Cookies(cuclient.CookieName)
+	user, isNewUser, err := h.registrationService.Register(c.Context(), *cuUserResp, cookie)
 	if err != nil {
-		h.logger.Error("failed to fetch user edu place", zap.Error(err))
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "internal server error"})
-	}
-
-	eduPlaceParams := make([]model.CreateEduPlaceParams, 0, len(cuEduPlaces))
-	for _, e := range cuEduPlaces {
-		t, err := time.Parse("2006-01-02", e.EducationProgram.StartDate)
-		if err != nil {
-			h.logger.Error("failed to parse edu place date", zap.Error(err))
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
-		}
-		eduPlaceParams = append(eduPlaceParams, model.CreateEduPlaceParams{
-			UniversityId:   207,
-			Grade:          strings.ToLower(e.EducationProgram.Level),
-			Specialization: e.EducationProgram.Name,
-			StartYear:      t.Year(),
-			IsStudyingNow:  true,
-		})
-	}
-
-	user, isNewUser, err := h.registrationService.Register(c.Context(), *cuUserResp, eduPlaceParams)
-	if err != nil {
-		if errors.Is(err, service.ErrInvalidBirthDate) {
-			h.logger.Error("invalid birth_date from CU API", zap.String("birth_date", cuUserResp.BirthDate))
+		if errors.Is(err, service.ErrInvalidBirthDate) || errors.Is(err, service.ErrInvalidUpstreamData) {
+			h.logger.Error("invalid data from CU API", zap.Error(err))
 			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "invalid data from upstream"})
 		}
 		h.logger.Error("failed to register user", zap.Error(err))
@@ -115,32 +77,11 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetUsers(c fiber.Ctx) error {
-	type Query struct {
-		Limit  int `query:"limit"`
-		Offset int `query:"offset"`
-	}
-
-	var q Query
+	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
-
-	limit := q.Limit
-	offset := q.Offset
-
-	if limit == 0 {
-		limit = 20
-	}
-
-	if limit > 100 {
-		limit = 100
-	}
-	if limit < 1 {
-		limit = 1
-	}
-	if offset < 0 {
-		offset = 0
-	}
+	limit, offset := q.Normalize()
 
 	users, total, err := h.userService.GetAllUsers(c.Context(), limit, offset)
 	if err != nil {

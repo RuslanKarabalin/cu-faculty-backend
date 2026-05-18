@@ -27,7 +27,7 @@ func (c *Client) doRequest(ctx context.Context, cookie string, path string) ([]b
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.AddCookie(&http.Cookie{Name: "bff.cookie", Value: cookie})
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: cookie})
 
 	httpResp, err := c.httpClient.Do(req)
 	if err != nil {

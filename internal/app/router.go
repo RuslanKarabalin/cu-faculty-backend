@@ -1,9 +1,6 @@
 package app
 
 import (
-	"errors"
-
-	"faculty/internal/cuclient"
 	"faculty/internal/handler"
 	"faculty/internal/middleware"
 	"faculty/internal/repository"
@@ -23,59 +20,43 @@ func (a *App) registerRoutes() {
 		"/":       {},
 		"/health": {},
 	}
-
-	a.Fiber.Use(func(c fiber.Ctx) error {
-		if _, ok := publicPaths[c.Path()]; ok {
-			return c.Next()
-		}
-		cookie := c.Cookies("bff.cookie")
-		cuUser, err := a.CuClient.Authorize(c.Context(), cookie)
-		if err != nil {
-			if errors.Is(err, cuclient.ErrUnauthorized) {
-				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
-			}
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream error"})
-		}
-		middleware.SetCuUser(c, cuUser)
-		return c.Next()
-	})
+	a.Fiber.Use(middleware.Auth(a.CuClient, publicPaths))
 
 	repo := repository.New(a.DB)
 	userService := service.NewUserService(repo)
 	eduPlaceService := service.NewEduPlaceService(repo)
-	registrationService := service.NewRegistrationService(repo)
-	userHandler := handler.NewUserHandler(userService, eduPlaceService, registrationService, a.Logger, a.CuClient)
+	registrationService := service.NewRegistrationService(repo, a.CuClient)
+	userHandler := handler.NewUserHandler(userService, eduPlaceService, registrationService, a.Logger)
 
-	a.Fiber.Get("/", func(c fiber.Ctx) error {
-		routes := a.Fiber.GetRoutes(true)
-
-		result := make([]map[string]string, 0, len(routes))
-		for _, r := range routes {
-			if r.Method != "HEAD" {
-				result = append(result, map[string]string{
-					"method": r.Method,
-					"path":   r.Path,
-				})
-			}
-		}
-
-		return c.JSON(result)
-	})
-
-	a.Fiber.Get("/health", func(c fiber.Ctx) error {
-		if err := a.DB.Ping(c.Context()); err != nil {
-			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
-				"status": "unhealthy",
-			})
-		}
-		return c.JSON(fiber.Map{"status": "ok"})
-	})
+	a.Fiber.Get("/", a.listRoutes)
+	a.Fiber.Get("/health", a.health)
 
 	api := a.Fiber.Group("/api")
 
 	students := api.Group("/students")
-
 	students.Post("/register", userHandler.Register)
 	students.Get("/", userHandler.GetUsers)
 	students.Get("/:id/edu-places", userHandler.GetUserEduPlaces)
+}
+
+func (a *App) listRoutes(c fiber.Ctx) error {
+	routes := a.Fiber.GetRoutes(true)
+	result := make([]map[string]string, 0, len(routes))
+	for _, r := range routes {
+		if r.Method == "HEAD" {
+			continue
+		}
+		result = append(result, map[string]string{
+			"method": r.Method,
+			"path":   r.Path,
+		})
+	}
+	return c.JSON(result)
+}
+
+func (a *App) health(c fiber.Ctx) error {
+	if err := a.DB.Ping(c.Context()); err != nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"status": "unhealthy"})
+	}
+	return c.JSON(fiber.Map{"status": "ok"})
 }
