@@ -1,6 +1,8 @@
-GOBIN = $(CURDIR)/bin
+BACKEND = backend
 
-DBIN = ./bin
+GOBIN = $(CURDIR)/$(BACKEND)/bin
+
+DBIN = ./$(BACKEND)/bin
 LINT = $(DBIN)/golangci-lint
 GOOSE = $(DBIN)/goose
 
@@ -18,21 +20,21 @@ install-goose: ## install goose
 	go install github.com/pressly/goose/v3/cmd/goose@latest
 
 fmt: ## format
-	go fmt ./...
+	cd $(BACKEND) && go fmt ./...
 
 fix: ## fix
-	go fix ./...
+	cd $(BACKEND) && go fix ./...
 
 vet: ## vet
-	go vet ./...
+	cd $(BACKEND) && go vet ./...
 
 lint: ## lint
-	$(LINT) run
+	cd $(BACKEND) && ./bin/golangci-lint run
 
 ffvl: fmt fix vet lint ## fmt + fix + vet + lint
 
 build: ## build
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(DBIN)/main ./cmd/api
+	cd $(BACKEND) && CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/main ./cmd/api
 
 run: ## run
 	$(DBIN)/main
