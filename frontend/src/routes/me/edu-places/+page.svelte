@@ -13,9 +13,11 @@
 	let error = $state<string | null>(null);
 	let loading = $state(true);
 
-	function emptyForm(): EduPlaceRequest {
+	type FormState = Omit<EduPlaceRequest, 'universityId'> & { universityId: number | null };
+
+	function emptyForm(): FormState {
 		return {
-			universityId: 0,
+			universityId: null,
 			grade: 'bachelor',
 			level: null,
 			specialization: '',
@@ -25,7 +27,7 @@
 		};
 	}
 
-	let form = $state(emptyForm());
+	let form = $state<FormState>(emptyForm());
 	let editingId = $state<number | null>(null);
 	let submitting = $state(false);
 
@@ -45,9 +47,9 @@
 
 	function startEdit(item: EduPlace) {
 		editingId = item.id;
+		// The API doesn't return universityId, so the user must re-supply it on edit.
 		form = {
-			// API doesn't return universityId — user must supply on edit.
-			universityId: form.universityId || 0,
+			universityId: null,
 			grade: item.grade,
 			level: item.level,
 			specialization: item.specialization,
@@ -62,15 +64,29 @@
 		form = emptyForm();
 	}
 
+	$effect(() => {
+		if (form.isStudyingNow) form.endYear = null;
+	});
+
 	async function save(e: Event) {
 		e.preventDefault();
+		if (form.universityId == null) return;
 		submitting = true;
 		error = null;
 		try {
+			const body: EduPlaceRequest = {
+				universityId: form.universityId,
+				grade: form.grade,
+				level: form.level,
+				specialization: form.specialization,
+				startYear: form.startYear,
+				endYear: form.isStudyingNow ? null : form.endYear,
+				isStudyingNow: form.isStudyingNow
+			};
 			if (editingId !== null) {
-				await api.me.eduPlaces.update(editingId, form);
+				await api.me.eduPlaces.update(editingId, body);
 			} else {
-				await api.me.eduPlaces.create(form);
+				await api.me.eduPlaces.create(body);
 			}
 			cancelEdit();
 			await load();
@@ -127,13 +143,13 @@
 
 	<Card title={editingId !== null ? 'Edit education place' : 'Add education place'}>
 		<form onsubmit={save} class="space-y-3">
-			<Field label="University ID" hint="Numeric ID from universities catalog">
-				<Input
-					type="number"
-					required
-					min="1"
-					bind:value={form.universityId}
-				/>
+			<Field
+				label="University ID"
+				hint={editingId !== null
+					? 'Re-enter ID — the API does not return universityId on read.'
+					: 'Numeric ID from universities catalog'}
+			>
+				<Input type="number" required min="1" bind:value={form.universityId} />
 			</Field>
 			<Field label="Grade">
 				<Select bind:value={form.grade}>

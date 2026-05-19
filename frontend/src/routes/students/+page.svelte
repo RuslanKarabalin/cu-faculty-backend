@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { api, ApiClientError } from '$lib/api/client';
 	import type { Page, User } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
@@ -23,8 +22,6 @@
 			loading = false;
 		}
 	}
-
-	onMount(load);
 
 	$effect(() => {
 		void offset;
@@ -53,7 +50,7 @@
 		{#if loading && !data}
 			<p class="text-sm text-zinc-500">Loading…</p>
 		{:else if data}
-			<div class="-mx-5 overflow-x-auto">
+			<div class="-mx-5 overflow-x-auto {loading ? 'opacity-50' : ''}">
 				<table class="w-full text-left text-sm">
 					<thead class="border-y border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
 						<tr>
@@ -85,13 +82,17 @@
 					</tbody>
 				</table>
 			</div>
-			<div class="mt-4 flex items-center justify-between text-sm text-zinc-600">
-				<span>{Math.min(offset + 1, data.total)}–{Math.min(offset + LIMIT, data.total)} of {data.total}</span>
-				<div class="flex gap-2">
-					<Button variant="secondary" size="sm" onclick={prev} disabled={offset === 0}>Previous</Button>
-					<Button variant="secondary" size="sm" onclick={next} disabled={offset + LIMIT >= data.total}>Next</Button>
+			{#if data.total > 0}
+				<div class="mt-4 flex items-center justify-between text-sm text-zinc-600">
+					<span>
+						{offset + 1}–{Math.min(offset + LIMIT, data.total)} of {data.total}
+					</span>
+					<div class="flex gap-2">
+						<Button variant="secondary" size="sm" onclick={prev} disabled={offset === 0}>Previous</Button>
+						<Button variant="secondary" size="sm" onclick={next} disabled={offset + LIMIT >= data.total}>Next</Button>
+					</div>
 				</div>
-			</div>
+			{/if}
 		{/if}
 	</Card>
 </div>

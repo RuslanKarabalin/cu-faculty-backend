@@ -6,7 +6,7 @@
 	import Button from './Button.svelte';
 	import Card from './Card.svelte';
 	import Field from './Field.svelte';
-	import Input from './Input.svelte';
+	import Select from './Select.svelte';
 
 	type Props = {
 		title: string;
@@ -15,21 +15,30 @@
 			add: (id: number) => Promise<Skill>;
 			remove: (id: number) => Promise<void>;
 		};
+		listAll: () => Promise<Skill[]>;
 	};
 
-	let { title, api }: Props = $props();
+	let { title, api, listAll }: Props = $props();
 
 	let items = $state<Skill[]>([]);
+	let all = $state<Skill[]>([]);
 	let error = $state<string | null>(null);
 	let loading = $state(true);
-	let newId = $state<number | null>(null);
+	let selectedId = $state('');
 	let submitting = $state(false);
+
+	const available = $derived.by(() => {
+		const taken = new Set(items.map((s) => s.id));
+		return all.filter((s) => !taken.has(s.id));
+	});
 
 	async function load() {
 		loading = true;
 		error = null;
 		try {
-			items = await api.list();
+			const [mine, every] = await Promise.all([api.list(), listAll()]);
+			items = mine;
+			all = every;
 		} catch (e) {
 			error = e instanceof ApiClientError ? e.message : String(e);
 		} finally {
@@ -41,12 +50,13 @@
 
 	async function add(e: Event) {
 		e.preventDefault();
-		if (!newId) return;
+		const id = Number(selectedId);
+		if (!id) return;
 		submitting = true;
 		error = null;
 		try {
-			await api.add(newId);
-			newId = null;
+			await api.add(id);
+			selectedId = '';
 			await load();
 		} catch (err) {
 			error = err instanceof ApiClientError ? err.message : String(err);
@@ -97,10 +107,17 @@
 
 	<Card title="Add skill">
 		<form onsubmit={add} class="space-y-3">
-			<Field label="Skill ID" hint="The backend has no listing endpoint yet — supply a numeric ID.">
-				<Input type="number" required min="1" bind:value={newId} />
+			<Field label="Skill">
+				<Select bind:value={selectedId} disabled={loading || available.length === 0}>
+					<option value="">
+						{available.length === 0 && !loading ? 'No more skills to add' : 'Select a skill…'}
+					</option>
+					{#each available as s (s.id)}
+						<option value={String(s.id)}>{s.name}</option>
+					{/each}
+				</Select>
 			</Field>
-			<Button type="submit" disabled={submitting || !newId}>Add</Button>
+			<Button type="submit" disabled={submitting || !selectedId}>Add</Button>
 		</form>
 	</Card>
 </div>

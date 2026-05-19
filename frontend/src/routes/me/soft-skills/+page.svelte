@@ -3,4 +3,4 @@
 	import SkillsManager from '$lib/components/SkillsManager.svelte';
 </script>
 
-<SkillsManager title="My soft skills" api={api.me.softSkills} />
+<SkillsManager title="My soft skills" api={api.me.softSkills} listAll={api.reference.softSkills} />

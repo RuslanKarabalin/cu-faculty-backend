@@ -59,15 +59,23 @@
 		form = emptyForm();
 	}
 
+	$effect(() => {
+		if (form.isWorkingNow) form.endYear = null;
+	});
+
 	async function save(e: Event) {
 		e.preventDefault();
 		submitting = true;
 		error = null;
 		try {
+			const body: WorkPlaceRequest = {
+				...form,
+				endYear: form.isWorkingNow ? null : form.endYear
+			};
 			if (editingId !== null) {
-				await api.me.workPlaces.update(editingId, form);
+				await api.me.workPlaces.update(editingId, body);
 			} else {
-				await api.me.workPlaces.create(form);
+				await api.me.workPlaces.create(body);
 			}
 			cancelEdit();
 			await load();

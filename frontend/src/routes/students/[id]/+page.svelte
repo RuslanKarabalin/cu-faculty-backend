@@ -9,6 +9,7 @@
 	const id = $derived(page.params.id ?? '');
 
 	let user = $state<User | null>(null);
+	let userResolved = $state(false);
 	let eduPlaces = $state<EduPlace[]>([]);
 	let workPlaces = $state<WorkPlace[]>([]);
 	let socials = $state<Social[]>([]);
@@ -17,26 +18,42 @@
 	let error = $state<string | null>(null);
 	let loading = $state(true);
 
+	const PAGE = 100;
+	const MAX_PAGES = 10;
+
+	async function findUser(): Promise<User | null> {
+		for (let i = 0; i < MAX_PAGES; i++) {
+			const list = await api.students.list(PAGE, i * PAGE);
+			const hit = list.data.find((u) => u.id === id);
+			if (hit) return hit;
+			if ((i + 1) * PAGE >= list.total) return null;
+		}
+		return null;
+	}
+
 	async function load() {
 		loading = true;
 		error = null;
+		userResolved = false;
 		try {
-			// No GET /students/:id in backend — find from the list.
-			// Hit the sub-resources directly; they 200 with [] for missing users.
-			const [edu, work, soc, ks, ss, list] = await Promise.all([
+			// No GET /students/:id in backend yet — page through the list.
+			// Sub-resources 200 with [] for unknown users, so the user lookup is the
+			// only way to distinguish "exists with empty data" from "does not exist".
+			const [edu, work, soc, ks, ss, found] = await Promise.all([
 				api.students.eduPlaces(id),
 				api.students.workPlaces(id),
 				api.students.socials(id),
 				api.students.keySkills(id),
 				api.students.softSkills(id),
-				api.students.list(100, 0)
+				findUser()
 			]);
 			eduPlaces = edu;
 			workPlaces = work;
 			socials = soc;
 			keySkills = ks;
 			softSkills = ss;
-			user = list.data.find((u) => u.id === id) ?? null;
+			user = found;
+			userResolved = true;
 		} catch (e) {
 			error = e instanceof ApiClientError ? e.message : String(e);
 		} finally {
@@ -63,10 +80,17 @@
 				</p>
 				{#if user.bio}<p class="mt-3 text-sm text-zinc-700">{user.bio}</p>{/if}
 			{:else}
-				<h1 class="text-2xl font-bold tracking-tight">Student</h1>
+				<h1 class="text-2xl font-bold tracking-tight">Student not found</h1>
 				<p class="mt-1 font-mono text-xs text-zinc-500">{id}</p>
 			{/if}
 		</div>
+
+		{#if !user && userResolved}
+			<Alert variant="info">
+				No student with this ID was found in the first {PAGE * MAX_PAGES} entries.
+				Sub-resources below may still load empty.
+			</Alert>
+		{/if}
 
 		<div class="grid gap-4 lg:grid-cols-2">
 			<Card title="Education places">
