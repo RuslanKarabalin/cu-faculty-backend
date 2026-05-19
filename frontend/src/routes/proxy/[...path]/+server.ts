@@ -1,3 +1,4 @@
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { API_BASE_URL } from '$lib/server/api';
 
@@ -8,15 +9,17 @@ const forward: RequestHandler = async ({ params, request, locals, fetch }) => {
 		return new Response(null, { status: 405 });
 	}
 
+	if (!locals.bffCookie) {
+		return json({ error: 'bff.cookie is not set' }, { status: 401 });
+	}
+
 	const target = new URL(request.url);
 	const upstreamUrl = `${API_BASE_URL}/api/${params.path}${target.search}`;
 
 	const headers = new Headers();
 	const contentType = request.headers.get('content-type');
 	if (contentType) headers.set('content-type', contentType);
-	if (locals.bffCookie) {
-		headers.set('cookie', `bff.cookie=${locals.bffCookie}`);
-	}
+	headers.set('cookie', `bff.cookie=${locals.bffCookie}`);
 
 	const init: RequestInit = { method: request.method, headers };
 	if (request.method !== 'GET' && request.method !== 'DELETE') {

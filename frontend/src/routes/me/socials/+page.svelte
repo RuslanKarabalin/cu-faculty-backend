@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { api, ApiClientError } from '$lib/api/client';
+	import { api, ApiError } from '$lib/api/client';
 	import { SOCIAL_NETWORKS, type Social, type SocialRequest } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
 	import Button from '$lib/components/Button.svelte';
@@ -46,7 +46,7 @@
 			cancelEdit();
 			await invalidateAll();
 		} catch (err) {
-			mutationError = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
@@ -58,7 +58,7 @@
 			await api.me.socials.remove(id);
 			await invalidateAll();
 		} catch (err) {
-			mutationError = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiError ? err.message : String(err);
 		}
 	}
 </script>

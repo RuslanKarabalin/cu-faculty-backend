@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { api, ApiClientError } from '$lib/api/client';
+	import { api, ApiError } from '$lib/api/client';
 	import type { User, UserUpdateRequest } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
 	import Button from '$lib/components/Button.svelte';
@@ -51,16 +51,16 @@
 		error = null;
 		try {
 			const body: UserUpdateRequest = {
-				photoS3Key: form.photoS3Key?.trim() ? form.photoS3Key : null,
-				bio: form.bio?.trim() ? form.bio : null,
-				speciality: form.speciality?.trim() ? form.speciality : null,
+				photoS3Key: form.photoS3Key?.trim() ? form.photoS3Key.trim() : null,
+				bio: form.bio?.trim() ? form.bio.trim() : null,
+				speciality: form.speciality?.trim() ? form.speciality.trim() : null,
 				statusId: statusIdStr ? Number(statusIdStr) : null
 			};
 			await api.me.update(body);
 			editing = false;
 			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			error = err instanceof ApiError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
@@ -68,7 +68,7 @@
 
 	function formatBirthdate(s: string): string {
 		const d = new Date(s);
-		return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString();
+		return Number.isNaN(d.getTime()) ? s : d.toISOString().slice(0, 10);
 	}
 
 	const sections = [

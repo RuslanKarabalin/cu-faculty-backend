@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { ApiClientError } from '$lib/api/client';
+	import { ApiError } from '$lib/api/client';
 	import type { Skill } from '$lib/api/types';
 	import Alert from './Alert.svelte';
 	import Button from './Button.svelte';
@@ -40,7 +40,7 @@
 			selectedId = '';
 			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			error = err instanceof ApiError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
@@ -52,7 +52,7 @@
 			await api.remove(id);
 			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			error = err instanceof ApiError ? err.message : String(err);
 		}
 	}
 </script>

@@ -10,7 +10,7 @@
 	function navigate(offset: number) {
 		const params = new URLSearchParams();
 		if (offset > 0) params.set('offset', String(offset));
-		goto(`/students${params.size ? `?${params}` : ''}`);
+		goto(`/students${params.size ? `?${params}` : ''}`, { noScroll: true, keepFocus: true });
 	}
 </script>
 

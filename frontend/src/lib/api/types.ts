@@ -110,10 +110,6 @@ export type Faq = {
 	answer: string;
 };
 
-export type ApiError = {
-	error: string;
-};
-
 export const EDU_GRADES = ['bachelor', 'master', 'specialist', 'postgraduate'] as const;
 export const WORK_GRADES = [
 	'intern',

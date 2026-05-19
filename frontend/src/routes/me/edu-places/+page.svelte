@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { api, ApiClientError } from '$lib/api/client';
+	import { api, ApiError } from '$lib/api/client';
 	import { EDU_GRADES, type EduPlace, type EduPlaceRequest } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
 	import Button from '$lib/components/Button.svelte';
@@ -65,8 +65,8 @@
 			const body: EduPlaceRequest = {
 				universityId,
 				grade: form.grade,
-				level: form.level,
-				specialization: form.specialization,
+				level: form.level?.trim() ? form.level.trim() : null,
+				specialization: form.specialization.trim(),
 				startYear: form.startYear,
 				endYear: form.isStudyingNow ? null : form.endYear,
 				isStudyingNow: form.isStudyingNow
@@ -79,7 +79,7 @@
 			cancelEdit();
 			await invalidateAll();
 		} catch (err) {
-			mutationError = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
@@ -91,7 +91,7 @@
 			await api.me.eduPlaces.remove(id);
 			await invalidateAll();
 		} catch (err) {
-			mutationError = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiError ? err.message : String(err);
 		}
 	}
 </script>

@@ -1,8 +1,9 @@
-import type { RequestHandler } from './$types';
+import { dev } from '$app/environment';
 import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { BFF_COOKIE_NAME, BFF_COOKIE_MAX_AGE } from '$lib/server/auth';
 
-export const POST: RequestHandler = async ({ request, cookies, url }) => {
+export const POST: RequestHandler = async ({ request, cookies }) => {
 	const body = (await request.json().catch(() => null)) as { value?: string } | null;
 	const value = body?.value?.trim();
 	if (!value) {
@@ -12,7 +13,7 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: url.protocol === 'https:',
+		secure: !dev,
 		maxAge: BFF_COOKIE_MAX_AGE
 	});
 	return json({ ok: true });
