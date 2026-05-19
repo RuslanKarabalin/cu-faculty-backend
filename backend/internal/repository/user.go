@@ -73,6 +73,26 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	return users, total, nil
 }
 
+func (r *Repository) UpdateUser(ctx context.Context, params model.UpdateUserParams) error {
+	query := `
+	update users
+	set photo_s3_key = $2
+		, bio = $3
+		, speciality = $4
+		, status_id = $5
+	where id = $1
+	`
+
+	tag, err := r.db.Exec(ctx, query, params.ID, params.PhotoS3Key, params.Bio, params.Speciality, params.StatusID)
+	if err != nil {
+		return wrapPgError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	query := `
 	select

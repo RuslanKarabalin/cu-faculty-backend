@@ -75,6 +75,40 @@ export type Skill = {
 	name: string;
 };
 
+export type Status = {
+	id: number;
+	content: string;
+};
+
+export type UserUpdateRequest = {
+	photoS3Key: string | null;
+	bio: string | null;
+	speciality: string | null;
+	statusId: number | null;
+};
+
+export type Company = {
+	id: number;
+	name: string;
+};
+
+export type WorkPosition = {
+	id: number;
+	name: string;
+};
+
+export type University = {
+	id: number;
+	name: string;
+	shortName: string;
+};
+
+export type Faq = {
+	id: number;
+	question: string;
+	answer: string;
+};
+
 export type ApiError = {
 	error: string;
 };

@@ -1,13 +1,19 @@
 import type {
+	Company,
 	EduPlace,
 	EduPlaceRequest,
+	Faq,
 	Page,
 	Skill,
 	Social,
 	SocialRequest,
+	Status,
+	University,
 	User,
+	UserUpdateRequest,
 	WorkPlace,
-	WorkPlaceRequest
+	WorkPlaceRequest,
+	WorkPosition
 } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
@@ -60,6 +66,9 @@ export const api = {
 		register: () => request<User>(`/api/students/register`, { method: 'POST' })
 	},
 	me: {
+		get: () => request<User>(`/api/me/`),
+		update: (body: UserUpdateRequest) =>
+			request<User>(`/api/me/`, { method: 'PUT', body: JSON.stringify(body) }),
 		eduPlaces: {
 			list: () => request<EduPlace[]>(`/api/me/edu-places`),
 			create: (body: EduPlaceRequest) =>
@@ -106,5 +115,18 @@ export const api = {
 			remove: (skillId: number) =>
 				request<void>(`/api/me/soft-skills/${skillId}`, { method: 'DELETE' })
 		}
+	},
+	reference: {
+		statuses: () => request<Status[]>(`/api/statuses`),
+		keySkills: () => request<Skill[]>(`/api/key-skills`),
+		softSkills: () => request<Skill[]>(`/api/soft-skills`),
+		companies: () => request<Company[]>(`/api/companies`),
+		workPositions: () => request<WorkPosition[]>(`/api/work-positions`),
+		universities: () => request<University[]>(`/api/universities`),
+		faqs: () => request<Faq[]>(`/api/faqs`),
+		socialNetworks: () => request<string[]>(`/api/social-networks`),
+		eduGrades: () => request<string[]>(`/api/edu-grades`),
+		workGrades: () => request<string[]>(`/api/work-grades`),
+		eventCategories: () => request<string[]>(`/api/event-categories`)
 	}
 };

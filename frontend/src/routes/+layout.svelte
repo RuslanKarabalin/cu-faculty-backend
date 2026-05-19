@@ -9,7 +9,8 @@
 	const links = [
 		{ href: '/', label: 'Dashboard' },
 		{ href: '/students', label: 'Students' },
-		{ href: '/me', label: 'My profile' }
+		{ href: '/me', label: 'My profile' },
+		{ href: '/reference', label: 'Reference' }
 	];
 
 	function isActive(href: string) {

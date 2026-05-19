@@ -1,5 +1,86 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { api, ApiClientError } from '$lib/api/client';
+	import type { Status, User, UserUpdateRequest } from '$lib/api/types';
+	import Alert from '$lib/components/Alert.svelte';
+	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
+	import Field from '$lib/components/Field.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import Select from '$lib/components/Select.svelte';
+
+	let user = $state<User | null>(null);
+	let statuses = $state<Status[]>([]);
+	let error = $state<string | null>(null);
+	let loading = $state(true);
+
+	let editing = $state(false);
+	let submitting = $state(false);
+
+	function emptyForm(): UserUpdateRequest {
+		return { photoS3Key: null, bio: null, speciality: null, statusId: null };
+	}
+
+	let form = $state(emptyForm());
+	let statusIdStr = $state('');
+
+	function fillForm(u: User) {
+		const match = statuses.find((s) => s.content === u.status);
+		form = {
+			photoS3Key: u.photoS3Key,
+			bio: u.bio,
+			speciality: u.speciality,
+			statusId: match ? match.id : null
+		};
+		statusIdStr = match ? String(match.id) : '';
+	}
+
+	async function load() {
+		loading = true;
+		error = null;
+		try {
+			const [u, st] = await Promise.all([api.me.get(), api.reference.statuses()]);
+			user = u;
+			statuses = st;
+		} catch (e) {
+			error = e instanceof ApiClientError ? e.message : String(e);
+		} finally {
+			loading = false;
+		}
+	}
+
+	onMount(load);
+
+	function startEdit() {
+		if (!user) return;
+		fillForm(user);
+		editing = true;
+	}
+
+	function cancelEdit() {
+		editing = false;
+		form = emptyForm();
+	}
+
+	async function save(e: Event) {
+		e.preventDefault();
+		submitting = true;
+		error = null;
+		try {
+			const body: UserUpdateRequest = {
+				photoS3Key: form.photoS3Key?.trim() ? form.photoS3Key : null,
+				bio: form.bio?.trim() ? form.bio : null,
+				speciality: form.speciality?.trim() ? form.speciality : null,
+				statusId: statusIdStr ? Number(statusIdStr) : null
+			};
+			user = await api.me.update(body);
+			editing = false;
+		} catch (err) {
+			error = err instanceof ApiClientError ? err.message : String(err);
+		} finally {
+			submitting = false;
+		}
+	}
 
 	const sections = [
 		{ href: '/me/edu-places', title: 'Education', desc: 'Universities, grades, specializations.' },
@@ -10,12 +91,106 @@
 	];
 </script>
 
-<div class="grid gap-4 md:grid-cols-2">
-	{#each sections as s (s.href)}
-		<a href={s.href} class="block">
-			<Card title={s.title}>
-				<p class="text-sm text-zinc-600">{s.desc}</p>
+<div class="space-y-6">
+	{#if loading}
+		<p class="text-sm text-zinc-500">Loading…</p>
+	{:else if error && !user}
+		<Alert variant="error">{error}</Alert>
+	{:else if user}
+		{#if error}<Alert variant="error">{error}</Alert>{/if}
+
+		{#if !editing}
+			<Card title="Profile">
+				{#snippet actions()}
+					<Button size="sm" variant="secondary" onclick={startEdit}>Edit</Button>
+				{/snippet}
+				<div class="space-y-3 text-sm">
+					<div>
+						<div class="text-lg font-semibold text-zinc-900">
+							{user.firstName}
+							{user.lastName}
+						</div>
+						<div class="mt-0.5 text-xs text-zinc-500">
+							<span class="font-mono">{user.id}</span> · {user.role}
+						</div>
+					</div>
+
+					{#if user.bio}
+						<p class="text-zinc-700">{user.bio}</p>
+					{/if}
+
+					<dl class="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+						<div>
+							<dt class="text-xs font-medium uppercase text-zinc-500">Birth date</dt>
+							<dd class="text-zinc-900">{user.birthdate}</dd>
+						</div>
+						<div>
+							<dt class="text-xs font-medium uppercase text-zinc-500">Speciality</dt>
+							<dd class="text-zinc-900">{user.speciality ?? '—'}</dd>
+						</div>
+						<div>
+							<dt class="text-xs font-medium uppercase text-zinc-500">Status</dt>
+							<dd class="text-zinc-900">{user.status ?? '—'}</dd>
+						</div>
+						<div>
+							<dt class="text-xs font-medium uppercase text-zinc-500">Photo</dt>
+							<dd class="text-zinc-900">
+								{user.photoS3Key ?? '—'}
+							</dd>
+						</div>
+					</dl>
+				</div>
 			</Card>
-		</a>
-	{/each}
+		{:else}
+			<Card title="Edit profile">
+				<form onsubmit={save} class="space-y-4">
+					<Field label="Bio" hint="Up to 255 characters.">
+						<Input
+							bind:value={form.bio}
+							maxlength={255}
+							placeholder="Tell something about yourself"
+						/>
+					</Field>
+
+					<Field label="Speciality" hint="Up to 63 characters.">
+						<Input
+							bind:value={form.speciality}
+							maxlength={63}
+							placeholder="e.g. Backend Engineer"
+						/>
+					</Field>
+
+					<Field label="Status">
+						<Select bind:value={statusIdStr}>
+							<option value="">—</option>
+							{#each statuses as s (s.id)}
+								<option value={String(s.id)}>{s.content}</option>
+							{/each}
+						</Select>
+					</Field>
+
+					<Field label="Photo S3 key" hint="Internal storage key.">
+						<Input bind:value={form.photoS3Key} maxlength={255} placeholder="users/abc.jpg" />
+					</Field>
+
+					<div class="flex gap-2 pt-2">
+						<Button type="submit" disabled={submitting}>
+							{submitting ? 'Saving…' : 'Save'}
+						</Button>
+						<Button type="button" variant="secondary" onclick={cancelEdit}>Cancel</Button>
+					</div>
+				</form>
+			</Card>
+		{/if}
+	{/if}
+
+	<div class="grid gap-4 md:grid-cols-2">
+		{#each sections as s (s.href)}
+			<a href={s.href} class="block">
+				<Card title={s.title}>
+					<p class="text-sm text-zinc-600">{s.desc}</p>
+				</Card>
+			</a>
+		{/each}
+	</div>
 </div>

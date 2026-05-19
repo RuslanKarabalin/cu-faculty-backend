@@ -56,6 +56,7 @@ func (a *App) registerRoutes() {
 	socialHandler := handler.NewSocialHandler(service.NewSocialService(repo), a.Logger)
 	userKeySkillHandler := handler.NewUserKeySkillHandler(service.NewUserKeySkillService(repo), a.Logger)
 	userSoftSkillHandler := handler.NewUserSoftSkillHandler(service.NewUserSoftSkillService(repo), a.Logger)
+	referenceHandler := handler.NewReferenceHandler(service.NewReferenceService(repo), a.Logger)
 
 	a.Fiber.Get("/", a.listRoutes)
 	a.Fiber.Get("/health", a.health)
@@ -73,6 +74,9 @@ func (a *App) registerRoutes() {
 	students.Get("/:id/soft-skills", userSoftSkillHandler.GetUserSoftSkills)
 
 	me := api.Group("/me")
+
+	me.Get("/", userHandler.GetMe)
+	me.Put("/", userHandler.UpdateMe)
 
 	me.Post("/edu-places", eduPlaceHandler.CreateEduPlace)
 	me.Get("/edu-places", eduPlaceHandler.GetMyEduPlaces)
@@ -96,4 +100,16 @@ func (a *App) registerRoutes() {
 	me.Get("/soft-skills", userSoftSkillHandler.GetMySoftSkills)
 	me.Post("/soft-skills/:skillId", userSoftSkillHandler.AddMySoftSkill)
 	me.Delete("/soft-skills/:skillId", userSoftSkillHandler.DeleteMySoftSkill)
+
+	api.Get("/statuses", referenceHandler.GetStatuses)
+	api.Get("/key-skills", referenceHandler.GetKeySkills)
+	api.Get("/soft-skills", referenceHandler.GetSoftSkills)
+	api.Get("/companies", referenceHandler.GetCompanies)
+	api.Get("/work-positions", referenceHandler.GetWorkPositions)
+	api.Get("/universities", referenceHandler.GetUniversities)
+	api.Get("/faqs", referenceHandler.GetFaqs)
+	api.Get("/social-networks", referenceHandler.GetSocialNetworks)
+	api.Get("/edu-grades", referenceHandler.GetEduGrades)
+	api.Get("/work-grades", referenceHandler.GetWorkGrades)
+	api.Get("/event-categories", referenceHandler.GetEventCategories)
 }

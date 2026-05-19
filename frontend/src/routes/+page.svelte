@@ -27,5 +27,13 @@
 				</p>
 			</Card>
 		</a>
+		<a href="/reference" class="block">
+			<Card title="Reference">
+				<p class="text-sm text-zinc-600">
+					Browse catalogs and enums: statuses, skills, companies, work positions, universities,
+					FAQs.
+				</p>
+			</Card>
+		</a>
 	</div>
 </div>

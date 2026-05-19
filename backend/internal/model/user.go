@@ -31,3 +31,18 @@ type CreateUserParams struct {
 	LastName  string
 	BirthDate time.Time
 }
+
+type UpdateUserRequest struct {
+	PhotoS3Key *string `json:"photoS3Key"`
+	Bio        *string `json:"bio"`
+	Speciality *string `json:"speciality"`
+	StatusID   *int    `json:"statusId"`
+}
+
+type UpdateUserParams struct {
+	ID         uuid.UUID
+	PhotoS3Key *string
+	Bio        *string
+	Speciality *string
+	StatusID   *int
+}
