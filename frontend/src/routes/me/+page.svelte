@@ -1,19 +1,18 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { api, ApiClientError } from '$lib/api/client';
-	import type { Status, User, UserUpdateRequest } from '$lib/api/types';
+	import type { User, UserUpdateRequest } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Select from '$lib/components/Select.svelte';
+	import type { PageData } from './$types';
 
-	let user = $state<User | null>(null);
-	let statuses = $state<Status[]>([]);
+	let { data }: { data: PageData } = $props();
+
 	let error = $state<string | null>(null);
-	let loading = $state(true);
-
 	let editing = $state(false);
 	let submitting = $state(false);
 
@@ -25,7 +24,7 @@
 	let statusIdStr = $state('');
 
 	function fillForm(u: User) {
-		const match = statuses.find((s) => s.content === u.status);
+		const match = data.statuses.find((s) => s.content === u.status);
 		form = {
 			photoS3Key: u.photoS3Key,
 			bio: u.bio,
@@ -35,25 +34,9 @@
 		statusIdStr = match ? String(match.id) : '';
 	}
 
-	async function load() {
-		loading = true;
-		error = null;
-		try {
-			const [u, st] = await Promise.all([api.me.get(), api.reference.statuses()]);
-			user = u;
-			statuses = st;
-		} catch (e) {
-			error = e instanceof ApiClientError ? e.message : String(e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	onMount(load);
-
 	function startEdit() {
-		if (!user) return;
-		fillForm(user);
+		if (!data.user) return;
+		fillForm(data.user);
 		editing = true;
 	}
 
@@ -73,13 +56,19 @@
 				speciality: form.speciality?.trim() ? form.speciality : null,
 				statusId: statusIdStr ? Number(statusIdStr) : null
 			};
-			user = await api.me.update(body);
+			await api.me.update(body);
 			editing = false;
+			await invalidateAll();
 		} catch (err) {
 			error = err instanceof ApiClientError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
+	}
+
+	function formatBirthdate(s: string): string {
+		const d = new Date(s);
+		return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString();
 	}
 
 	const sections = [
@@ -92,11 +81,9 @@
 </script>
 
 <div class="space-y-6">
-	{#if loading}
-		<p class="text-sm text-zinc-500">Loading…</p>
-	{:else if error && !user}
-		<Alert variant="error">{error}</Alert>
-	{:else if user}
+	{#if data.error && !data.user}
+		<Alert variant="error">{data.error}</Alert>
+	{:else if data.user}
 		{#if error}<Alert variant="error">{error}</Alert>{/if}
 
 		{#if !editing}
@@ -107,35 +94,35 @@
 				<div class="space-y-3 text-sm">
 					<div>
 						<div class="text-lg font-semibold text-zinc-900">
-							{user.firstName}
-							{user.lastName}
+							{data.user.firstName}
+							{data.user.lastName}
 						</div>
 						<div class="mt-0.5 text-xs text-zinc-500">
-							<span class="font-mono">{user.id}</span> · {user.role}
+							<span class="font-mono">{data.user.id}</span> · {data.user.role}
 						</div>
 					</div>
 
-					{#if user.bio}
-						<p class="text-zinc-700">{user.bio}</p>
+					{#if data.user.bio}
+						<p class="text-zinc-700">{data.user.bio}</p>
 					{/if}
 
 					<dl class="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
 						<div>
 							<dt class="text-xs font-medium uppercase text-zinc-500">Birth date</dt>
-							<dd class="text-zinc-900">{user.birthdate}</dd>
+							<dd class="text-zinc-900">{formatBirthdate(data.user.birthdate)}</dd>
 						</div>
 						<div>
 							<dt class="text-xs font-medium uppercase text-zinc-500">Speciality</dt>
-							<dd class="text-zinc-900">{user.speciality ?? '—'}</dd>
+							<dd class="text-zinc-900">{data.user.speciality ?? '—'}</dd>
 						</div>
 						<div>
 							<dt class="text-xs font-medium uppercase text-zinc-500">Status</dt>
-							<dd class="text-zinc-900">{user.status ?? '—'}</dd>
+							<dd class="text-zinc-900">{data.user.status ?? '—'}</dd>
 						</div>
 						<div>
 							<dt class="text-xs font-medium uppercase text-zinc-500">Photo</dt>
 							<dd class="text-zinc-900">
-								{user.photoS3Key ?? '—'}
+								{data.user.photoS3Key ?? '—'}
 							</dd>
 						</div>
 					</dl>
@@ -163,7 +150,7 @@
 					<Field label="Status">
 						<Select bind:value={statusIdStr}>
 							<option value="">—</option>
-							{#each statuses as s (s.id)}
+							{#each data.statuses as s (s.id)}
 								<option value={String(s.id)}>{s.content}</option>
 							{/each}
 						</Select>

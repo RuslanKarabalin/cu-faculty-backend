@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { api, ApiClientError } from '$lib/api/client';
 	import { SOCIAL_NETWORKS, type Social, type SocialRequest } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
@@ -8,10 +8,12 @@
 	import Field from '$lib/components/Field.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Select from '$lib/components/Select.svelte';
+	import type { PageData } from './$types';
 
-	let items = $state<Social[]>([]);
-	let error = $state<string | null>(null);
-	let loading = $state(true);
+	let { data }: { data: PageData } = $props();
+
+	let mutationError = $state<string | null>(null);
+	const error = $derived(mutationError ?? data.error);
 
 	function emptyForm(): SocialRequest {
 		return { social: 'telegram', link: '', isPreferred: false };
@@ -20,20 +22,6 @@
 	let form = $state(emptyForm());
 	let editingId = $state<number | null>(null);
 	let submitting = $state(false);
-
-	async function load() {
-		loading = true;
-		error = null;
-		try {
-			items = await api.me.socials.list();
-		} catch (e) {
-			error = e instanceof ApiClientError ? e.message : String(e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	onMount(load);
 
 	function startEdit(item: Social) {
 		editingId = item.id;
@@ -48,7 +36,7 @@
 	async function save(e: Event) {
 		e.preventDefault();
 		submitting = true;
-		error = null;
+		mutationError = null;
 		try {
 			if (editingId !== null) {
 				await api.me.socials.update(editingId, form);
@@ -56,9 +44,9 @@
 				await api.me.socials.create(form);
 			}
 			cancelEdit();
-			await load();
+			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiClientError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
@@ -68,9 +56,9 @@
 		if (!confirm('Delete this social?')) return;
 		try {
 			await api.me.socials.remove(id);
-			await load();
+			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiClientError ? err.message : String(err);
 		}
 	}
 </script>
@@ -80,14 +68,14 @@
 <div class="grid gap-4 lg:grid-cols-3">
 	<div class="lg:col-span-2">
 		<Card title="My socials">
-			{#if loading}
-				<p class="text-sm text-zinc-500">Loading…</p>
-			{:else if items.length === 0}
+			{#if data.items.length === 0}
 				<p class="text-sm text-zinc-500">No socials yet.</p>
 			{:else}
 				<ul class="space-y-2">
-					{#each items as s (s.id)}
-						<li class="flex items-center justify-between gap-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+					{#each data.items as s (s.id)}
+						<li
+							class="flex items-center justify-between gap-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
+						>
 							<div>
 								<span class="font-medium text-zinc-900">{s.social}</span>
 								<span class="ml-2 text-zinc-600">{s.link}</span>
@@ -119,7 +107,11 @@
 				<Input required bind:value={form.link} maxlength={127} />
 			</Field>
 			<label class="flex items-center gap-2 text-sm text-zinc-700">
-				<input type="checkbox" bind:checked={form.isPreferred} class="h-4 w-4 rounded border-zinc-300" />
+				<input
+					type="checkbox"
+					bind:checked={form.isPreferred}
+					class="h-4 w-4 rounded border-zinc-300"
+				/>
 				Preferred social
 			</label>
 			<div class="flex gap-2 pt-2">

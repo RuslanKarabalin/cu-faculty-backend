@@ -19,6 +19,7 @@ export type Page<T> = {
 
 export type EduPlace = {
 	id: number;
+	universityId: number;
 	universityName: string;
 	grade: string;
 	level: string | null;

@@ -1,37 +1,17 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { api, ApiClientError } from '$lib/api/client';
-	import type { University } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
 	import ReferenceTable from '$lib/components/ReferenceTable.svelte';
+	import type { PageData } from './$types';
 
-	let items = $state<University[]>([]);
-	let error = $state<string | null>(null);
-	let loading = $state(true);
-
-	async function load() {
-		loading = true;
-		error = null;
-		try {
-			items = await api.reference.universities();
-		} catch (e) {
-			error = e instanceof ApiClientError ? e.message : String(e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	onMount(load);
+	let { data }: { data: PageData } = $props();
 </script>
 
-{#if error}<Alert variant="error">{error}</Alert>{/if}
+{#if data.error}<Alert variant="error">{data.error}</Alert>{/if}
 
 <ReferenceTable
 	title="Universities"
-	{items}
-	{loading}
-	matches={(u, q) =>
-		u.name.toLowerCase().includes(q) || u.shortName.toLowerCase().includes(q)}
+	items={data.items}
+	matches={(u, q) => u.name.toLowerCase().includes(q) || u.shortName.toLowerCase().includes(q)}
 >
 	{#snippet headers()}
 		<th class="px-5 py-2 font-medium">ID</th>

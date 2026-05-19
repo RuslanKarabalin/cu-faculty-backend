@@ -1,35 +1,16 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { api, ApiClientError } from '$lib/api/client';
-	import type { Status } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
 	import ReferenceTable from '$lib/components/ReferenceTable.svelte';
+	import type { PageData } from './$types';
 
-	let items = $state<Status[]>([]);
-	let error = $state<string | null>(null);
-	let loading = $state(true);
-
-	async function load() {
-		loading = true;
-		error = null;
-		try {
-			items = await api.reference.statuses();
-		} catch (e) {
-			error = e instanceof ApiClientError ? e.message : String(e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	onMount(load);
+	let { data }: { data: PageData } = $props();
 </script>
 
-{#if error}<Alert variant="error">{error}</Alert>{/if}
+{#if data.error}<Alert variant="error">{data.error}</Alert>{/if}
 
 <ReferenceTable
 	title="Statuses"
-	{items}
-	{loading}
+	items={data.items}
 	matches={(s, q) => s.content.toLowerCase().includes(q)}
 >
 	{#snippet headers()}

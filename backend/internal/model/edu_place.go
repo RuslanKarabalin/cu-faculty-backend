@@ -45,6 +45,7 @@ type EduPlaceRequest struct {
 
 type EduPlace struct {
 	ID             int     `json:"id"`
+	UniversityId   int     `json:"universityId"`
 	UniversityName string  `json:"universityName"`
 	Grade          string  `json:"grade"`
 	Level          *string `json:"level"`

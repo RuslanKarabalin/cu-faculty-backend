@@ -113,6 +113,23 @@ func (h *UserHandler) UpdateMe(c fiber.Ctx) error {
 	return c.JSON(user)
 }
 
+func (h *UserHandler) GetStudentByID(c fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return respondError(c, fiber.StatusBadRequest, "invalid id")
+	}
+
+	user, err := h.userService.GetUserByID(c.Context(), id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return respondError(c, fiber.StatusNotFound, "user not found")
+		}
+		h.logger.Error("failed to get user by id", zap.Error(err))
+		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+	}
+	return c.JSON(user)
+}
+
 func (h *UserHandler) GetUsers(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {

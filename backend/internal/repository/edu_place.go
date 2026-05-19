@@ -62,6 +62,7 @@ func (r *Repository) GetEduPlaceByID(ctx context.Context, id int) (*model.EduPla
 	query := `
 	select
 		ep.id
+		, ep.university_id
 		, u.name
 		, ep.grade
 		, ep.level
@@ -77,6 +78,7 @@ func (r *Repository) GetEduPlaceByID(ctx context.Context, id int) (*model.EduPla
 	ep := &model.EduPlace{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&ep.ID,
+		&ep.UniversityId,
 		&ep.UniversityName,
 		&ep.Grade,
 		&ep.Level,
@@ -98,6 +100,7 @@ func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID)
 	query := `
 	select
 		ep.id
+		, ep.university_id
 		, u.name
 		, ep.grade
 		, ep.level
@@ -122,6 +125,7 @@ func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID)
 		ep := &model.EduPlace{}
 		if err := rows.Scan(
 			&ep.ID,
+			&ep.UniversityId,
 			&ep.UniversityName,
 			&ep.Grade,
 			&ep.Level,

@@ -1,5 +1,12 @@
 declare global {
-	namespace App {}
+	namespace App {
+		interface Locals {
+			bffCookie: string | null;
+		}
+		interface PageData {
+			authed: boolean;
+		}
+	}
 }
 
 export {};

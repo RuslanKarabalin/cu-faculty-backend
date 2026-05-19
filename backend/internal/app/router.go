@@ -67,6 +67,7 @@ func (a *App) registerRoutes() {
 
 	students.Post("/register", userHandler.Register)
 	students.Get("/", userHandler.GetUsers)
+	students.Get("/:id", userHandler.GetStudentByID)
 	students.Get("/:id/edu-places", eduPlaceHandler.GetUserEduPlaces)
 	students.Get("/:id/work-places", workPlaceHandler.GetUserWorkPlaces)
 	students.Get("/:id/socials", socialHandler.GetUserSocials)

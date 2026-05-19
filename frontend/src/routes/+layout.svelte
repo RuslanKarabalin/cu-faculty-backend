@@ -4,7 +4,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import BffCookieInput from '$lib/components/BffCookieInput.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	const links = [
 		{ href: '/', label: 'Dashboard' },
@@ -60,7 +60,7 @@
 					</a>
 				{/each}
 			</nav>
-			<div class="ml-auto"><BffCookieInput /></div>
+			<div class="ml-auto"><BffCookieInput authed={data.authed} /></div>
 		</header>
 		<div class="px-6 py-6 md:px-10 md:py-8">{@render children()}</div>
 	</main>

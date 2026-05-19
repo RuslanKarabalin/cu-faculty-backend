@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { api, ApiClientError } from '$lib/api/client';
 	import { WORK_GRADES, type WorkPlace, type WorkPlaceRequest } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
@@ -8,10 +8,12 @@
 	import Field from '$lib/components/Field.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Select from '$lib/components/Select.svelte';
+	import type { PageData } from './$types';
 
-	let items = $state<WorkPlace[]>([]);
-	let error = $state<string | null>(null);
-	let loading = $state(true);
+	let { data }: { data: PageData } = $props();
+
+	let mutationError = $state<string | null>(null);
+	const error = $derived(mutationError ?? data.error);
 
 	function emptyForm(): WorkPlaceRequest {
 		return {
@@ -27,20 +29,6 @@
 	let form = $state(emptyForm());
 	let editingId = $state<number | null>(null);
 	let submitting = $state(false);
-
-	async function load() {
-		loading = true;
-		error = null;
-		try {
-			items = await api.me.workPlaces.list();
-		} catch (e) {
-			error = e instanceof ApiClientError ? e.message : String(e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	onMount(load);
 
 	function startEdit(item: WorkPlace) {
 		editingId = item.id;
@@ -66,7 +54,7 @@
 	async function save(e: Event) {
 		e.preventDefault();
 		submitting = true;
-		error = null;
+		mutationError = null;
 		try {
 			const body: WorkPlaceRequest = {
 				...form,
@@ -78,9 +66,9 @@
 				await api.me.workPlaces.create(body);
 			}
 			cancelEdit();
-			await load();
+			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiClientError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
@@ -90,9 +78,9 @@
 		if (!confirm('Delete this work place?')) return;
 		try {
 			await api.me.workPlaces.remove(id);
-			await load();
+			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiClientError ? err.message : String(err);
 		}
 	}
 </script>
@@ -102,14 +90,14 @@
 <div class="grid gap-4 lg:grid-cols-3">
 	<div class="lg:col-span-2">
 		<Card title="My work places">
-			{#if loading}
-				<p class="text-sm text-zinc-500">Loading…</p>
-			{:else if items.length === 0}
+			{#if data.items.length === 0}
 				<p class="text-sm text-zinc-500">No work places yet.</p>
 			{:else}
 				<ul class="space-y-3">
-					{#each items as w (w.id)}
-						<li class="flex items-start justify-between gap-4 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+					{#each data.items as w (w.id)}
+						<li
+							class="flex items-start justify-between gap-4 rounded-md border border-zinc-200 bg-zinc-50 p-3"
+						>
 							<div class="text-sm">
 								<div class="font-medium text-zinc-900">{w.companyName}</div>
 								<div class="text-zinc-600">{w.position} · {w.grade}</div>
@@ -150,7 +138,11 @@
 				</Field>
 			</div>
 			<label class="flex items-center gap-2 text-sm text-zinc-700">
-				<input type="checkbox" bind:checked={form.isWorkingNow} class="h-4 w-4 rounded border-zinc-300" />
+				<input
+					type="checkbox"
+					bind:checked={form.isWorkingNow}
+					class="h-4 w-4 rounded border-zinc-300"
+				/>
 				Currently working here
 			</label>
 			<div class="flex gap-2 pt-2">

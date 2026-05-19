@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { ApiClientError } from '$lib/api/client';
 	import type { Skill } from '$lib/api/types';
 	import Alert from './Alert.svelte';
@@ -10,20 +10,17 @@
 
 	type Props = {
 		title: string;
+		items: Skill[];
+		all: Skill[];
 		api: {
-			list: () => Promise<Skill[]>;
 			add: (id: number) => Promise<Skill>;
 			remove: (id: number) => Promise<void>;
 		};
-		listAll: () => Promise<Skill[]>;
 	};
 
-	let { title, api, listAll }: Props = $props();
+	let { title, items, all, api }: Props = $props();
 
-	let items = $state<Skill[]>([]);
-	let all = $state<Skill[]>([]);
 	let error = $state<string | null>(null);
-	let loading = $state(true);
 	let selectedId = $state('');
 	let submitting = $state(false);
 
@@ -31,22 +28,6 @@
 		const taken = new Set(items.map((s) => s.id));
 		return all.filter((s) => !taken.has(s.id));
 	});
-
-	async function load() {
-		loading = true;
-		error = null;
-		try {
-			const [mine, every] = await Promise.all([api.list(), listAll()]);
-			items = mine;
-			all = every;
-		} catch (e) {
-			error = e instanceof ApiClientError ? e.message : String(e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	onMount(load);
 
 	async function add(e: Event) {
 		e.preventDefault();
@@ -57,7 +38,7 @@
 		try {
 			await api.add(id);
 			selectedId = '';
-			await load();
+			await invalidateAll();
 		} catch (err) {
 			error = err instanceof ApiClientError ? err.message : String(err);
 		} finally {
@@ -69,7 +50,7 @@
 		if (!confirm('Remove this skill?')) return;
 		try {
 			await api.remove(id);
-			await load();
+			await invalidateAll();
 		} catch (err) {
 			error = err instanceof ApiClientError ? err.message : String(err);
 		}
@@ -81,14 +62,14 @@
 <div class="grid gap-4 lg:grid-cols-3">
 	<div class="lg:col-span-2">
 		<Card {title}>
-			{#if loading}
-				<p class="text-sm text-zinc-500">Loading…</p>
-			{:else if items.length === 0}
+			{#if items.length === 0}
 				<p class="text-sm text-zinc-500">No skills yet.</p>
 			{:else}
 				<div class="flex flex-wrap gap-2">
 					{#each items as s (s.id)}
-						<span class="inline-flex items-center gap-2 rounded-full bg-zinc-100 py-1 pl-3 pr-1 text-sm text-zinc-700">
+						<span
+							class="inline-flex items-center gap-2 rounded-full bg-zinc-100 py-1 pl-3 pr-1 text-sm text-zinc-700"
+						>
 							{s.name}
 							<button
 								type="button"
@@ -108,9 +89,9 @@
 	<Card title="Add skill">
 		<form onsubmit={add} class="space-y-3">
 			<Field label="Skill">
-				<Select bind:value={selectedId} disabled={loading || available.length === 0}>
+				<Select bind:value={selectedId} disabled={available.length === 0}>
 					<option value="">
-						{available.length === 0 && !loading ? 'No more skills to add' : 'Select a skill…'}
+						{available.length === 0 ? 'No more skills to add' : 'Select a skill…'}
 					</option>
 					{#each available as s (s.id)}
 						<option value={String(s.id)}>{s.name}</option>

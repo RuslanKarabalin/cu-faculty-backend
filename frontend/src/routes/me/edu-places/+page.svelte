@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { api, ApiClientError } from '$lib/api/client';
 	import { EDU_GRADES, type EduPlace, type EduPlaceRequest } from '$lib/api/types';
 	import Alert from '$lib/components/Alert.svelte';
@@ -8,16 +8,18 @@
 	import Field from '$lib/components/Field.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Select from '$lib/components/Select.svelte';
+	import type { PageData } from './$types';
 
-	let items = $state<EduPlace[]>([]);
-	let error = $state<string | null>(null);
-	let loading = $state(true);
+	let { data }: { data: PageData } = $props();
 
-	type FormState = Omit<EduPlaceRequest, 'universityId'> & { universityId: number | null };
+	let mutationError = $state<string | null>(null);
+	const error = $derived(mutationError ?? data.error);
+
+	type FormState = Omit<EduPlaceRequest, 'universityId'> & { universityIdStr: string };
 
 	function emptyForm(): FormState {
 		return {
-			universityId: null,
+			universityIdStr: '',
 			grade: 'bachelor',
 			level: null,
 			specialization: '',
@@ -31,25 +33,10 @@
 	let editingId = $state<number | null>(null);
 	let submitting = $state(false);
 
-	async function load() {
-		loading = true;
-		error = null;
-		try {
-			items = await api.me.eduPlaces.list();
-		} catch (e) {
-			error = e instanceof ApiClientError ? e.message : String(e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	onMount(load);
-
 	function startEdit(item: EduPlace) {
 		editingId = item.id;
-		// The API doesn't return universityId, so the user must re-supply it on edit.
 		form = {
-			universityId: null,
+			universityIdStr: String(item.universityId),
 			grade: item.grade,
 			level: item.level,
 			specialization: item.specialization,
@@ -70,12 +57,13 @@
 
 	async function save(e: Event) {
 		e.preventDefault();
-		if (form.universityId == null) return;
+		const universityId = Number(form.universityIdStr);
+		if (!universityId) return;
 		submitting = true;
-		error = null;
+		mutationError = null;
 		try {
 			const body: EduPlaceRequest = {
-				universityId: form.universityId,
+				universityId,
 				grade: form.grade,
 				level: form.level,
 				specialization: form.specialization,
@@ -89,9 +77,9 @@
 				await api.me.eduPlaces.create(body);
 			}
 			cancelEdit();
-			await load();
+			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiClientError ? err.message : String(err);
 		} finally {
 			submitting = false;
 		}
@@ -101,9 +89,9 @@
 		if (!confirm('Delete this education place?')) return;
 		try {
 			await api.me.eduPlaces.remove(id);
-			await load();
+			await invalidateAll();
 		} catch (err) {
-			error = err instanceof ApiClientError ? err.message : String(err);
+			mutationError = err instanceof ApiClientError ? err.message : String(err);
 		}
 	}
 </script>
@@ -113,14 +101,14 @@
 <div class="grid gap-4 lg:grid-cols-3">
 	<div class="lg:col-span-2">
 		<Card title="My education places">
-			{#if loading}
-				<p class="text-sm text-zinc-500">Loading…</p>
-			{:else if items.length === 0}
+			{#if data.items.length === 0}
 				<p class="text-sm text-zinc-500">No education places yet.</p>
 			{:else}
 				<ul class="space-y-3">
-					{#each items as e (e.id)}
-						<li class="flex items-start justify-between gap-4 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+					{#each data.items as e (e.id)}
+						<li
+							class="flex items-start justify-between gap-4 rounded-md border border-zinc-200 bg-zinc-50 p-3"
+						>
 							<div class="text-sm">
 								<div class="font-medium text-zinc-900">{e.universityName}</div>
 								<div class="text-zinc-600">
@@ -143,13 +131,13 @@
 
 	<Card title={editingId !== null ? 'Edit education place' : 'Add education place'}>
 		<form onsubmit={save} class="space-y-3">
-			<Field
-				label="University ID"
-				hint={editingId !== null
-					? 'Re-enter ID — the API does not return universityId on read.'
-					: 'Numeric ID from universities catalog'}
-			>
-				<Input type="number" required min="1" bind:value={form.universityId} />
+			<Field label="University">
+				<Select bind:value={form.universityIdStr} required>
+					<option value="">Select a university…</option>
+					{#each data.universities as u (u.id)}
+						<option value={String(u.id)}>{u.shortName} — {u.name}</option>
+					{/each}
+				</Select>
 			</Field>
 			<Field label="Grade">
 				<Select bind:value={form.grade}>
@@ -171,11 +159,15 @@
 				</Field>
 			</div>
 			<label class="flex items-center gap-2 text-sm text-zinc-700">
-				<input type="checkbox" bind:checked={form.isStudyingNow} class="h-4 w-4 rounded border-zinc-300" />
+				<input
+					type="checkbox"
+					bind:checked={form.isStudyingNow}
+					class="h-4 w-4 rounded border-zinc-300"
+				/>
 				Currently studying
 			</label>
 			<div class="flex gap-2 pt-2">
-				<Button type="submit" disabled={submitting}>
+				<Button type="submit" disabled={submitting || !form.universityIdStr}>
 					{editingId !== null ? 'Save' : 'Add'}
 				</Button>
 				{#if editingId !== null}
