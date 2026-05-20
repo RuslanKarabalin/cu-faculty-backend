@@ -1,9 +1,11 @@
-import type { PageServerLoad } from './$types';
-import { createServerApi, ApiError } from '$lib/server/api';
+import type { PageLoad } from './$types';
+import { api, ApiError } from '$lib/api/client';
 import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ locals, fetch, params }) => {
-	const api = createServerApi(locals.bffCookie, fetch);
+// Dynamic id is only known at runtime, so this route is served by the SPA fallback.
+export const prerender = false;
+
+export const load: PageLoad = async ({ params }) => {
 	try {
 		const [user, eduPlaces, workPlaces, socials, keySkills, softSkills] = await Promise.all([
 			api.students.get(params.id),

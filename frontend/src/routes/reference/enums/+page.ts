@@ -1,8 +1,7 @@
-import type { PageServerLoad } from './$types';
-import { createServerApi, ApiError } from '$lib/server/api';
+import type { PageLoad } from './$types';
+import { api, ApiError } from '$lib/api/client';
 
-export const load: PageServerLoad = async ({ locals, fetch }) => {
-	const api = createServerApi(locals.bffCookie, fetch);
+export const load: PageLoad = async () => {
 	try {
 		const [social, edu, work, event] = await Promise.all([
 			api.reference.socialNetworks(),
