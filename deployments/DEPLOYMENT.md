@@ -37,8 +37,8 @@ sudo ufw enable
 ### Создать namespace'ы
 
 ```bash
-sudo kubectl create namespace staging
-sudo kubectl create namespace production
+sudo kubectl create namespace dev
+sudo kubectl create namespace prod
 ```
 
 ---
@@ -60,7 +60,7 @@ sudo kubectl create secret docker-registry gitlab-registry \
   --docker-server=registry.gitlab.com \
   --docker-username=<username из токена> \
   --docker-password=<token из токена> \
-  --namespace=staging
+  --namespace=dev
 ```
 
 ```bash
@@ -68,7 +68,7 @@ sudo kubectl create secret docker-registry gitlab-registry \
   --docker-server=registry.gitlab.com \
   --docker-username=<username из токена> \
   --docker-password=<token из токена> \
-  --namespace=production
+  --namespace=prod
 ```
 
 ---
@@ -77,14 +77,14 @@ sudo kubectl create secret docker-registry gitlab-registry \
 
 ### Применить манифесты
 
-Создать файл `k8s/staging.yaml`:
+Создать файл `k8s/dev.yaml`:
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cu-faculty-backend
-  namespace: staging
+  namespace: dev
 spec:
   replicas: 1
   selector:
@@ -107,7 +107,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cu-faculty-backend
-  namespace: staging
+  namespace: dev
 spec:
   selector:
     app: cu-faculty-backend
@@ -119,7 +119,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: cu-faculty-backend
-  namespace: staging
+  namespace: dev
 spec:
   ingressClassName: traefik
   rules:
@@ -135,10 +135,10 @@ spec:
 ```
 
 ```bash
-sudo kubectl apply -f k8s/staging.yaml
+sudo kubectl apply -f k8s/dev.yaml
 ```
 
-> Для production — создай аналогичный `k8s/production.yaml` с `namespace: production`.
+> Для prod — создай аналогичный `k8s/prod.yaml` с `namespace: prod`.
 
 ---
 
@@ -172,17 +172,17 @@ GitLab → Settings → CI/CD → Variables → **Add variable**:
 
 1. **test** — запускает `go test ./...`
 2. **build** — собирает Docker образ и пушит в GitLab Registry
-3. **deploy:staging** — автоматически обновляет deployment в namespace `staging`
-4. **deploy:production** — запускается вручную через GitLab UI
+3. **deploy:dev** — автоматически обновляет deployment в namespace `dev`
+4. **deploy:prod** — запускается вручную через GitLab UI
 
 Проверить статус подов:
 
 ```bash
-sudo kubectl get pods -n staging
-sudo kubectl get pods -n production
+sudo kubectl get pods -n dev
+sudo kubectl get pods -n prod
 ```
 
-Приложение доступно по `http://<IP_СЕРВЕРА>` (staging через Traefik на порту 80).
+Приложение доступно по `http://<IP_СЕРВЕРА>` (dev через Traefik на порту 80).
 
 ---
 
