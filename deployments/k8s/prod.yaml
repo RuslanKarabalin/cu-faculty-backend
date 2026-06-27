@@ -17,7 +17,7 @@ spec:
         - name: gitlab-registry
       containers:
         - name: cu-faculty-backend
-          image: registry.gitlab.com/<your-project>/cu-faculty-backend:latest
+          image: registry.gitlab.com/cu-faculty/backend:latest
           ports:
             - containerPort: 8080
           resources:

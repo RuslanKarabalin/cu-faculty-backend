@@ -77,68 +77,16 @@ sudo kubectl create secret docker-registry gitlab-registry \
 
 ### Применить манифесты
 
-Создать файл `k8s/dev.yaml`:
+Манифесты уже лежат в репозитории: `deployments/k8s/dev.yaml` и `deployments/k8s/prod.yaml`. Каждый содержит `Deployment` + `Service` + `Ingress` (Traefik) с health-проба­ми на `/health` и лимитами ресурсов.
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cu-faculty-backend
-  namespace: dev
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: cu-faculty-backend
-  template:
-    metadata:
-      labels:
-        app: cu-faculty-backend
-    spec:
-      imagePullSecrets:
-        - name: gitlab-registry
-      containers:
-        - name: cu-faculty-backend
-          image: registry.gitlab.com/<your-project>/cu-faculty-backend:latest
-          ports:
-            - containerPort: 8080
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: cu-faculty-backend
-  namespace: dev
-spec:
-  selector:
-    app: cu-faculty-backend
-  ports:
-    - port: 80
-      targetPort: 8080
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: cu-faculty-backend
-  namespace: dev
-spec:
-  ingressClassName: traefik
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: cu-faculty-backend
-                port:
-                  number: 80
-```
+Образ указан как `registry.gitlab.com/cu-faculty/backend:latest` (совпадает с `$CI_REGISTRY_IMAGE`). Для другого проекта замени путь на свой `registry.gitlab.com/<namespace>/<project>`.
 
 ```bash
-sudo kubectl apply -f k8s/dev.yaml
+sudo kubectl apply -f deployments/k8s/dev.yaml
+sudo kubectl apply -f deployments/k8s/prod.yaml
 ```
 
-> Для prod — создай аналогичный `k8s/prod.yaml` с `namespace: prod`.
+> Манифесты описывают только Go backend. Фронтенд (nginx со статикой SvelteKit, проксирует `/api` на backend) деплоится отдельно и в этом гайде не рассматривается.
 
 ---
 
@@ -168,12 +116,12 @@ GitLab → Settings → CI/CD → Variables → **Add variable**:
 
 ## 5. Проверка
 
-После пуша в `main`:
+После пуша в ветку (или открытия MR) пайплайн проходит стадии:
 
-1. **test** — запускает `go test ./...`
-2. **build** — собирает Docker образ и пушит в GitLab Registry
-3. **deploy:dev** — автоматически обновляет deployment в namespace `dev`
-4. **deploy:prod** — запускается вручную через GitLab UI
+1. **test** — `cd backend && go test` с coverage-отчётом (cobertura)
+2. **build** — собирает Docker образ backend и пушит в GitLab Registry (теги `$CI_COMMIT_SHORT_SHA` и `latest`)
+3. **deploy:dev** — обновляет deployment в namespace `dev`, **запускается вручную** через GitLab UI
+4. **deploy:prod** — обновляет deployment в namespace `prod`, **запускается вручную** через GitLab UI
 
 Проверить статус подов:
 
