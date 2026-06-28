@@ -11,7 +11,7 @@ export GOBIN
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "%-15s %s\n", $$1, $$2}'
 
-all: ffvl brun ## fmt + fix + lint + build + run
+all: ffvl brun ## fmt + fix + vet + lint + build + run
 
 install-lint: ## install golangci-lint
 	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(GOBIN)
