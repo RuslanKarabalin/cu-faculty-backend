@@ -43,8 +43,8 @@
 								<td class="px-5 py-3 font-medium text-zinc-900">
 									{u.firstName} {u.lastName}
 								</td>
-								<td class="px-5 py-3 text-zinc-600">{u.speciality ?? '—'}</td>
-								<td class="px-5 py-3 text-zinc-600">{u.status ?? '—'}</td>
+								<td class="px-5 py-3 text-zinc-600">{u.speciality ?? '-'}</td>
+								<td class="px-5 py-3 text-zinc-600">{u.status ?? '-'}</td>
 								<td class="px-5 py-3 text-zinc-600">{u.role}</td>
 								<td class="px-5 py-3 text-right">
 									<a href="/students/{u.id}" class="text-sm font-medium text-zinc-900 underline">

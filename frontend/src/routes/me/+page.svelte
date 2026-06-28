@@ -113,16 +113,16 @@
 						</div>
 						<div>
 							<dt class="text-xs font-medium uppercase text-zinc-500">Speciality</dt>
-							<dd class="text-zinc-900">{data.user.speciality ?? '—'}</dd>
+							<dd class="text-zinc-900">{data.user.speciality ?? '-'}</dd>
 						</div>
 						<div>
 							<dt class="text-xs font-medium uppercase text-zinc-500">Status</dt>
-							<dd class="text-zinc-900">{data.user.status ?? '—'}</dd>
+							<dd class="text-zinc-900">{data.user.status ?? '-'}</dd>
 						</div>
 						<div>
 							<dt class="text-xs font-medium uppercase text-zinc-500">Photo</dt>
 							<dd class="text-zinc-900">
-								{data.user.photoS3Key ?? '—'}
+								{data.user.photoS3Key ?? '-'}
 							</dd>
 						</div>
 					</dl>
@@ -149,7 +149,7 @@
 
 					<Field label="Status">
 						<Select bind:value={statusIdStr}>
-							<option value="">—</option>
+							<option value="">-</option>
 							{#each data.statuses as s (s.id)}
 								<option value={String(s.id)}>{s.content}</option>
 							{/each}

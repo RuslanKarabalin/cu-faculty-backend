@@ -135,7 +135,7 @@
 				<Select bind:value={form.universityIdStr} required>
 					<option value="">Select a university…</option>
 					{#each data.universities as u (u.id)}
-						<option value={String(u.id)}>{u.shortName} — {u.name}</option>
+						<option value={String(u.id)}>{u.shortName} - {u.name}</option>
 					{/each}
 				</Select>
 			</Field>

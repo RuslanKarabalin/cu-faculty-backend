@@ -510,7 +510,7 @@ components:
         isDraft:
           type: boolean
           default: false
-          description: true — сохранить как черновик, не публиковать
+          description: true - сохранить как черновик, не публиковать
 
     # --- News ---
 
@@ -581,7 +581,7 @@ components:
         isDraft:
           type: boolean
           default: false
-          description: true — сохранить как черновик, не публиковать
+          description: true - сохранить как черновик, не публиковать
 
     # --- FAQs ---
 
@@ -1536,7 +1536,7 @@ paths:
       summary: Повторно опубликовать объявление из архива
       description: |
         Возвращает объявление в активные, сохраняя накопленные отклики. Продлевает срок на +7 дней.
-        Тело запроса опционально — если не передано, объявление переиздаётся с текущим содержимым.
+        Тело запроса опционально - если не передано, объявление переиздаётся с текущим содержимым.
       tags: [Announcements]
       operationId: republishAnnouncement
       parameters:
@@ -1601,7 +1601,7 @@ paths:
   /events:
     get:
       summary: Список мероприятий (актуальные)
-      description: Без параметра `draft` возвращает только опубликованные. `draft=true` — только черновики (только администраторы).
+      description: Без параметра `draft` возвращает только опубликованные. `draft=true` - только черновики (только администраторы).
       tags: [Events]
       operationId: getEvents
       parameters:
@@ -1614,7 +1614,7 @@ paths:
             $ref: '#/components/schemas/EventCategory'
         - name: draft
           in: query
-          description: true — вернуть черновики (только для администраторов)
+          description: true - вернуть черновики (только для администраторов)
           schema:
             type: boolean
       responses:
@@ -1807,7 +1807,7 @@ paths:
       summary: Лента новостей (активные)
       description: |
         Новости, отсортированные по дате публикации, сначала самые свежие.
-        `draft=true` — только черновики (только для администраторов).
+        `draft=true` - только черновики (только для администраторов).
       tags: [News]
       operationId: getNews
       parameters:
@@ -1815,7 +1815,7 @@ paths:
         - $ref: '#/components/parameters/OffsetParam'
         - name: draft
           in: query
-          description: true — вернуть черновики (только для администраторов)
+          description: true - вернуть черновики (только для администраторов)
           schema:
             type: boolean
       responses:
