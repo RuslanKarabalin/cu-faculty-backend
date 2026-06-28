@@ -18,6 +18,9 @@ spec:
       containers:
         - name: cu-faculty-backend
           image: registry.gitlab.com/cu-faculty/backend:latest
+          envFrom:
+            - secretRef:
+                name: cu-faculty-backend-env
           ports:
             - containerPort: 8080
           resources:
