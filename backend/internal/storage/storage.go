@@ -13,9 +13,7 @@ import (
 )
 
 type Config struct {
-	Endpoint string
-	// PublicEndpoint is the internet-reachable base URL used when signing
-	// download URLs handed to clients. Falls back to Endpoint when empty.
+	Endpoint       string
 	PublicEndpoint string
 	Region         string
 	AccessKey      string
@@ -50,8 +48,6 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 		})
 	}
 
-	// Uploads go server-to-store over the internal endpoint; download URLs are
-	// signed against the public endpoint so browsers can reach (and validate) them.
 	publicEndpoint := cfg.PublicEndpoint
 	if publicEndpoint == "" {
 		publicEndpoint = cfg.Endpoint

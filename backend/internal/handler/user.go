@@ -100,9 +100,6 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 	return c.Status(statusCode).JSON(user)
 }
 
-// UploadMyPhoto stores the uploaded image in object storage and wires it to the
-// current user's profile in a single request. The client sends the file as
-// multipart form-data under the "photo" field.
 func (h *UserHandler) UploadMyPhoto(c fiber.Ctx) error {
 	cuUser, err := currentUser(c, h.logger)
 	if err != nil {

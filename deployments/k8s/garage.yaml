@@ -117,8 +117,6 @@ metadata:
   name: garage
   namespace: dev
   annotations:
-    # Serve only on the dedicated :8081 entrypoint (see traefik.yaml), so the
-    # host-less "/" rule never competes with the app on :80.
     traefik.ingress.kubernetes.io/router.entrypoints: garage
 spec:
   ingressClassName: traefik

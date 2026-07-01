@@ -1,12 +1,7 @@
 import { browser } from '$app/environment';
 
 export const BFF_COOKIE_NAME = 'bff.cookie';
-const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
-
-// Static build: there is no server to set an httpOnly cookie, so the SPA stores
-// the bff.cookie token in a same-origin cookie itself. The browser then attaches
-// it automatically to same-origin /api requests (proxied to the backend by nginx).
-// Trade-off vs the old BFF model: this cookie is readable by JS (not httpOnly).
+const MAX_AGE = 60 * 60 * 24 * 30;
 
 export function hasBffCookie(): boolean {
 	return readCookie(BFF_COOKIE_NAME) !== null;
