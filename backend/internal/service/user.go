@@ -18,6 +18,7 @@ type userRepository interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserParams) error
+	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) error
 }
 
 type UserService struct {
@@ -34,6 +35,13 @@ func (s *UserService) GetUserByID(ctx context.Context, id uuid.UUID) (*model.Use
 
 func (s *UserService) GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error) {
 	return s.repo.GetAllUsers(ctx, limit, offset)
+}
+
+func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, error) {
+	if err := s.repo.UpdateUserPhoto(ctx, id, key); err != nil {
+		return nil, err
+	}
+	return s.repo.GetUserByID(ctx, id)
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error) {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -17,6 +18,13 @@ type Config struct {
 	PgDatabase     string
 	PgMaxConns     int32
 	PgMinConns     int32
+	S3Endpoint     string
+	S3Region       string
+	S3AccessKey    string
+	S3SecretKey    string
+	S3Bucket       string
+	S3UsePathStyle bool
+	S3PresignTTL   time.Duration
 }
 
 func ReadConfig() (*Config, error) {
@@ -24,6 +32,9 @@ func ReadConfig() (*Config, error) {
 	viper.SetConfigType("env")
 	viper.SetDefault("POSTGRES_MAX_CONNS", 25)
 	viper.SetDefault("POSTGRES_MIN_CONNS", 5)
+	viper.SetDefault("S3_REGION", "garage")
+	viper.SetDefault("S3_USE_PATH_STYLE", true)
+	viper.SetDefault("S3_PRESIGN_TTL", 15*time.Minute)
 
 	cfg := &Config{
 		Addr:           viper.GetString("APP_PORT"),
@@ -36,6 +47,13 @@ func ReadConfig() (*Config, error) {
 		PgDatabase:     viper.GetString("POSTGRES_DB"),
 		PgMaxConns:     viper.GetInt32("POSTGRES_MAX_CONNS"),
 		PgMinConns:     viper.GetInt32("POSTGRES_MIN_CONNS"),
+		S3Endpoint:     viper.GetString("S3_ENDPOINT"),
+		S3Region:       viper.GetString("S3_REGION"),
+		S3AccessKey:    viper.GetString("S3_ACCESS_KEY"),
+		S3SecretKey:    viper.GetString("S3_SECRET_KEY"),
+		S3Bucket:       viper.GetString("S3_BUCKET"),
+		S3UsePathStyle: viper.GetBool("S3_USE_PATH_STYLE"),
+		S3PresignTTL:   viper.GetDuration("S3_PRESIGN_TTL"),
 	}
 
 	var errs []error
@@ -62,6 +80,18 @@ func ReadConfig() (*Config, error) {
 	}
 	if cfg.AllowedOrigins == nil {
 		errs = append(errs, errors.New("ALLOWED_ORIGINS is required"))
+	}
+	if cfg.S3Endpoint == "" {
+		errs = append(errs, errors.New("S3_ENDPOINT is required"))
+	}
+	if cfg.S3AccessKey == "" {
+		errs = append(errs, errors.New("S3_ACCESS_KEY is required"))
+	}
+	if cfg.S3SecretKey == "" {
+		errs = append(errs, errors.New("S3_SECRET_KEY is required"))
+	}
+	if cfg.S3Bucket == "" {
+		errs = append(errs, errors.New("S3_BUCKET is required"))
 	}
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)

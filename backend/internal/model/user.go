@@ -9,6 +9,7 @@ import (
 type User struct {
 	ID         uuid.UUID `json:"id"`
 	PhotoS3Key *string   `json:"photoS3Key"`
+	PhotoURL   *string   `json:"photoUrl"`
 	FirstName  string    `json:"firstName"`
 	LastName   string    `json:"lastName"`
 	Bio        *string   `json:"bio"`

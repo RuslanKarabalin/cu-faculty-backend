@@ -33,6 +33,7 @@ func (a *App) registerRoutes() {
 	userHandler := handler.NewUserHandler(
 		service.NewUserService(repo),
 		service.NewRegistrationService(repo, a.CuClient),
+		a.Storage,
 		a.Logger,
 	)
 	eduPlaceHandler := handler.NewEduPlaceHandler(service.NewEduPlaceService(repo), a.Logger)
@@ -61,6 +62,7 @@ func (a *App) registerRoutes() {
 
 	me.Get("/", userHandler.GetMe)
 	me.Put("/", userHandler.UpdateMe)
+	me.Put("/photo", userHandler.UploadMyPhoto)
 
 	me.Post("/edu-places", eduPlaceHandler.CreateEduPlace)
 	me.Get("/edu-places", eduPlaceHandler.GetMyEduPlaces)

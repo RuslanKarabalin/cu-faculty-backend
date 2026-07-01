@@ -19,6 +19,17 @@ func (r *Repository) CreateUser(ctx context.Context, params model.CreateUserPara
 	return nil
 }
 
+func (r *Repository) UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) error {
+	tag, err := r.db.Exec(ctx, `update users set photo_s3_key = $2 where id = $1`, id, key)
+	if err != nil {
+		return wrapPgError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error) {
 	var total int
 	if err := r.db.QueryRow(ctx, `select count(*) from users where role = 'user'`).Scan(&total); err != nil {

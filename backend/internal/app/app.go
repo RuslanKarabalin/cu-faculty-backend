@@ -13,6 +13,7 @@ import (
 	"faculty/internal/config"
 	"faculty/internal/cuclient"
 	"faculty/internal/db"
+	"faculty/internal/storage"
 
 	fiberzap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
@@ -25,6 +26,7 @@ const (
 	dbPingTimeout   = 5 * time.Second
 	shutdownTimeout = 30 * time.Second
 	httpReqTimeout  = 10 * time.Second
+	maxBodyBytes    = 10 * 1024 * 1024
 )
 
 type App struct {
@@ -33,6 +35,7 @@ type App struct {
 	DB       *pgxpool.Pool
 	Logger   *zap.Logger
 	CuClient *cuclient.Client
+	Storage  *storage.Client
 }
 
 func New() (*App, error) {
@@ -56,12 +59,26 @@ func New() (*App, error) {
 		return nil, err
 	}
 
+	storageClient, err := storage.New(context.Background(), storage.Config{
+		Endpoint:     cfg.S3Endpoint,
+		Region:       cfg.S3Region,
+		AccessKey:    cfg.S3AccessKey,
+		SecretKey:    cfg.S3SecretKey,
+		Bucket:       cfg.S3Bucket,
+		UsePathStyle: cfg.S3UsePathStyle,
+		PresignTTL:   cfg.S3PresignTTL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init storage: %w", err)
+	}
+
 	a := &App{
 		Fiber:    newFiber(logger),
 		Config:   cfg,
 		DB:       dbPool,
 		Logger:   logger,
 		CuClient: cuclient.New(&http.Client{Timeout: httpReqTimeout}, cfg.CuBaseUrl),
+		Storage:  storageClient,
 	}
 	a.registerRoutes()
 
@@ -102,7 +119,7 @@ func buildPgDSN(cfg *config.Config) string {
 }
 
 func newFiber(logger *zap.Logger) *fiber.App {
-	f := fiber.New()
+	f := fiber.New(fiber.Config{BodyLimit: maxBodyBytes})
 	f.Use(fiberzap.New(fiberzap.Config{Logger: logger}))
 	return f
 }
