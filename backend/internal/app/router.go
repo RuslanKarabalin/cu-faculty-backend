@@ -10,21 +10,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
-func (a *App) listRoutes(c fiber.Ctx) error {
-	routes := a.Fiber.GetRoutes(true)
-	result := make([]map[string]string, 0, len(routes))
-	for _, r := range routes {
-		if r.Method == "HEAD" {
-			continue
-		}
-		result = append(result, map[string]string{
-			"method": r.Method,
-			"path":   r.Path,
-		})
-	}
-	return c.JSON(result)
-}
-
 func (a *App) health(c fiber.Ctx) error {
 	if err := a.DB.Ping(c.Context()); err != nil {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"status": "unhealthy"})
@@ -39,7 +24,6 @@ func (a *App) registerRoutes() {
 	}))
 
 	publicPaths := map[string]struct{}{
-		"/":       {},
 		"/health": {},
 	}
 	a.Fiber.Use(middleware.Auth(a.CuClient, publicPaths))
@@ -58,7 +42,6 @@ func (a *App) registerRoutes() {
 	userSoftSkillHandler := handler.NewUserSoftSkillHandler(service.NewUserSoftSkillService(repo), a.Logger)
 	referenceHandler := handler.NewReferenceHandler(service.NewReferenceService(repo), a.Logger)
 
-	a.Fiber.Get("/", a.listRoutes)
 	a.Fiber.Get("/health", a.health)
 
 	api := a.Fiber.Group("/api")
