@@ -13,13 +13,16 @@ import (
 )
 
 type Config struct {
-	Endpoint     string
-	Region       string
-	AccessKey    string
-	SecretKey    string
-	Bucket       string
-	UsePathStyle bool
-	PresignTTL   time.Duration
+	Endpoint string
+	// PublicEndpoint is the internet-reachable base URL used when signing
+	// download URLs handed to clients. Falls back to Endpoint when empty.
+	PublicEndpoint string
+	Region         string
+	AccessKey      string
+	SecretKey      string
+	Bucket         string
+	UsePathStyle   bool
+	PresignTTL     time.Duration
 }
 
 type Client struct {
@@ -40,14 +43,23 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("load aws config: %w", err)
 	}
 
-	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(cfg.Endpoint)
-		o.UsePathStyle = cfg.UsePathStyle
-	})
+	newS3 := func(endpoint string) *s3.Client {
+		return s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = cfg.UsePathStyle
+		})
+	}
+
+	// Uploads go server-to-store over the internal endpoint; download URLs are
+	// signed against the public endpoint so browsers can reach (and validate) them.
+	publicEndpoint := cfg.PublicEndpoint
+	if publicEndpoint == "" {
+		publicEndpoint = cfg.Endpoint
+	}
 
 	return &Client{
-		s3:         s3Client,
-		presign:    s3.NewPresignClient(s3Client),
+		s3:         newS3(cfg.Endpoint),
+		presign:    s3.NewPresignClient(newS3(publicEndpoint)),
 		bucket:     cfg.Bucket,
 		presignTTL: cfg.PresignTTL,
 	}, nil

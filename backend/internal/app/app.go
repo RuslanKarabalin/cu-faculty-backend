@@ -60,13 +60,14 @@ func New() (*App, error) {
 	}
 
 	storageClient, err := storage.New(context.Background(), storage.Config{
-		Endpoint:     cfg.S3Endpoint,
-		Region:       cfg.S3Region,
-		AccessKey:    cfg.S3AccessKey,
-		SecretKey:    cfg.S3SecretKey,
-		Bucket:       cfg.S3Bucket,
-		UsePathStyle: cfg.S3UsePathStyle,
-		PresignTTL:   cfg.S3PresignTTL,
+		Endpoint:       cfg.S3Endpoint,
+		PublicEndpoint: cfg.S3PublicEndpoint,
+		Region:         cfg.S3Region,
+		AccessKey:      cfg.S3AccessKey,
+		SecretKey:      cfg.S3SecretKey,
+		Bucket:         cfg.S3Bucket,
+		UsePathStyle:   cfg.S3UsePathStyle,
+		PresignTTL:     cfg.S3PresignTTL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init storage: %w", err)

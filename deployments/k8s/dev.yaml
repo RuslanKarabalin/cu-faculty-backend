@@ -62,6 +62,10 @@ kind: Ingress
 metadata:
   name: cu-faculty-backend
   namespace: dev
+  annotations:
+    # Pin to the default :80 entrypoint so this host-less "/" rule doesn't also
+    # attach to Garage's :8081 entrypoint (which would collide with it).
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   ingressClassName: traefik
   rules:

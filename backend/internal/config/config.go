@@ -8,23 +8,24 @@ import (
 )
 
 type Config struct {
-	Addr           string
-	CuBaseUrl      string
-	AllowedOrigins []string
-	PgUsername     string
-	PgPassword     string
-	PgHost         string
-	PgPort         string
-	PgDatabase     string
-	PgMaxConns     int32
-	PgMinConns     int32
-	S3Endpoint     string
-	S3Region       string
-	S3AccessKey    string
-	S3SecretKey    string
-	S3Bucket       string
-	S3UsePathStyle bool
-	S3PresignTTL   time.Duration
+	Addr             string
+	CuBaseUrl        string
+	AllowedOrigins   []string
+	PgUsername       string
+	PgPassword       string
+	PgHost           string
+	PgPort           string
+	PgDatabase       string
+	PgMaxConns       int32
+	PgMinConns       int32
+	S3Endpoint       string
+	S3PublicEndpoint string
+	S3Region         string
+	S3AccessKey      string
+	S3SecretKey      string
+	S3Bucket         string
+	S3UsePathStyle   bool
+	S3PresignTTL     time.Duration
 }
 
 func ReadConfig() (*Config, error) {
@@ -37,23 +38,24 @@ func ReadConfig() (*Config, error) {
 	viper.SetDefault("S3_PRESIGN_TTL", 15*time.Minute)
 
 	cfg := &Config{
-		Addr:           viper.GetString("APP_PORT"),
-		CuBaseUrl:      viper.GetString("CU_BASE_URL"),
-		AllowedOrigins: viper.GetStringSlice("ALLOWED_ORIGINS"),
-		PgUsername:     viper.GetString("POSTGRES_USER"),
-		PgPassword:     viper.GetString("POSTGRES_PASSWORD"),
-		PgHost:         viper.GetString("POSTGRES_HOST"),
-		PgPort:         viper.GetString("POSTGRES_PORT"),
-		PgDatabase:     viper.GetString("POSTGRES_DB"),
-		PgMaxConns:     viper.GetInt32("POSTGRES_MAX_CONNS"),
-		PgMinConns:     viper.GetInt32("POSTGRES_MIN_CONNS"),
-		S3Endpoint:     viper.GetString("S3_ENDPOINT"),
-		S3Region:       viper.GetString("S3_REGION"),
-		S3AccessKey:    viper.GetString("S3_ACCESS_KEY"),
-		S3SecretKey:    viper.GetString("S3_SECRET_KEY"),
-		S3Bucket:       viper.GetString("S3_BUCKET"),
-		S3UsePathStyle: viper.GetBool("S3_USE_PATH_STYLE"),
-		S3PresignTTL:   viper.GetDuration("S3_PRESIGN_TTL"),
+		Addr:             viper.GetString("APP_PORT"),
+		CuBaseUrl:        viper.GetString("CU_BASE_URL"),
+		AllowedOrigins:   viper.GetStringSlice("ALLOWED_ORIGINS"),
+		PgUsername:       viper.GetString("POSTGRES_USER"),
+		PgPassword:       viper.GetString("POSTGRES_PASSWORD"),
+		PgHost:           viper.GetString("POSTGRES_HOST"),
+		PgPort:           viper.GetString("POSTGRES_PORT"),
+		PgDatabase:       viper.GetString("POSTGRES_DB"),
+		PgMaxConns:       viper.GetInt32("POSTGRES_MAX_CONNS"),
+		PgMinConns:       viper.GetInt32("POSTGRES_MIN_CONNS"),
+		S3Endpoint:       viper.GetString("S3_ENDPOINT"),
+		S3PublicEndpoint: viper.GetString("S3_PUBLIC_ENDPOINT"),
+		S3Region:         viper.GetString("S3_REGION"),
+		S3AccessKey:      viper.GetString("S3_ACCESS_KEY"),
+		S3SecretKey:      viper.GetString("S3_SECRET_KEY"),
+		S3Bucket:         viper.GetString("S3_BUCKET"),
+		S3UsePathStyle:   viper.GetBool("S3_USE_PATH_STYLE"),
+		S3PresignTTL:     viper.GetDuration("S3_PRESIGN_TTL"),
 	}
 
 	var errs []error
