@@ -33,6 +33,7 @@ func (a *App) registerRoutes() {
 	eduPlaceHandler := handler.NewEduPlaceHandler(service.NewEduPlaceService(repo), a.Logger)
 	workPlaceHandler := handler.NewWorkPlaceHandler(service.NewWorkPlaceService(repo), a.Logger)
 	socialHandler := handler.NewSocialHandler(service.NewSocialService(repo), a.Logger)
+	contactHandler := handler.NewContactHandler(service.NewContactService(repo), a.Storage, a.Logger)
 	userKeySkillHandler := handler.NewUserKeySkillHandler(service.NewUserKeySkillService(repo), a.Logger)
 	userSoftSkillHandler := handler.NewUserSoftSkillHandler(service.NewUserSoftSkillService(repo), a.Logger)
 	referenceHandler := handler.NewReferenceHandler(service.NewReferenceService(repo), a.Logger)
@@ -72,6 +73,11 @@ func (a *App) registerRoutes() {
 	me.Get("/socials", socialHandler.GetMySocials)
 	me.Put("/socials/:socialId", socialHandler.UpdateSocial)
 	me.Delete("/socials/:socialId", socialHandler.DeleteSocial)
+
+	me.Post("/contacts", contactHandler.CreateContact)
+	me.Get("/contacts", contactHandler.GetMyContacts)
+	me.Put("/contacts/:contactId", contactHandler.UpdateContact)
+	me.Delete("/contacts/:contactId", contactHandler.DeleteContact)
 
 	me.Get("/key-skills", userKeySkillHandler.GetMyKeySkills)
 	me.Post("/key-skills/:skillId", userKeySkillHandler.AddMyKeySkill)
