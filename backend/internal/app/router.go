@@ -7,7 +7,6 @@ import (
 	"faculty/internal/service"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
 func (a *App) health(c fiber.Ctx) error {
@@ -18,11 +17,6 @@ func (a *App) health(c fiber.Ctx) error {
 }
 
 func (a *App) registerRoutes() {
-	a.Fiber.Use(cors.New(cors.Config{
-		AllowOrigins:     a.Config.AllowedOrigins,
-		AllowCredentials: true,
-	}))
-
 	publicPaths := map[string]struct{}{
 		"/health": {},
 	}

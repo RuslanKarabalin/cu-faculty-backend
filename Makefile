@@ -1,5 +1,8 @@
 BACKEND = backend
 
+COMPOSE = docker compose -f deployments/docker-compose.yaml
+ENV_FILE = deployments/.env
+
 GOBIN = $(CURDIR)/$(BACKEND)/bin
 
 DBIN = ./$(BACKEND)/bin
@@ -42,10 +45,19 @@ run: ## run
 brun: build run ## build + run
 
 up: ## up compose
-	docker compose -f deployments/docker-compose.yaml up -d --build
+	$(COMPOSE) up -d --build
 
 down: ## down compose
-	docker compose -f deployments/docker-compose.yaml down --volumes
+	$(COMPOSE) down --volumes
 
 ps: ## ps compose
-	docker compose -f deployments/docker-compose.yaml ps -a
+	$(COMPOSE) ps -a
+
+garage-init: ## init garage layout, bucket and key (run once after `up`; re-run after `down` since it wipes volumes)
+	@set -a; . $(ENV_FILE); set +a; \
+	NODE=$$($(COMPOSE) exec -T garage /garage node id -q | cut -d@ -f1); \
+	$(COMPOSE) exec -T garage /garage layout assign -z dc1 -c 1G $$NODE; \
+	$(COMPOSE) exec -T garage /garage layout apply --version 1; \
+	$(COMPOSE) exec -T garage /garage bucket create $$S3_BUCKET; \
+	$(COMPOSE) exec -T garage /garage key import --yes -n cu-faculty-app $$S3_ACCESS_KEY $$S3_SECRET_KEY; \
+	$(COMPOSE) exec -T garage /garage bucket allow --read --write $$S3_BUCKET --key $$S3_ACCESS_KEY
