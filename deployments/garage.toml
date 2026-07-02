@@ -20,4 +20,4 @@ index = "index.html"
 
 [admin]
 api_bind_addr = "[::]:3903"
-admin_token = ""
+admin_token = "5b5530512400ef552b74a175c30cd96908b8a75c9c17cfdff3073176d71c6a53"

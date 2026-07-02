@@ -1,7 +1,7 @@
 BACKEND = backend
 
 COMPOSE = docker compose -f deployments/docker-compose.yaml
-ENV_FILE = deployments/.env
+ENV_FILE = deployments/.env.example
 
 GOBIN = $(CURDIR)/$(BACKEND)/bin
 
@@ -44,8 +44,9 @@ run: ## run
 
 brun: build run ## build + run
 
-up: ## up compose
-	$(COMPOSE) up -d --build
+up: ## up compose and initialize garage
+	$(COMPOSE) up -d --build --wait
+	@$(MAKE) garage-init
 
 down: ## down compose
 	$(COMPOSE) down --volumes
@@ -53,11 +54,16 @@ down: ## down compose
 ps: ## ps compose
 	$(COMPOSE) ps -a
 
-garage-init: ## init garage layout, bucket and key (run once after `up`; re-run after `down` since it wipes volumes)
+garage-init: ## init garage layout, bucket and key (idempotent; auto-run by `up`)
 	@set -a; . $(ENV_FILE); set +a; \
-	NODE=$$($(COMPOSE) exec -T garage /garage node id -q | cut -d@ -f1); \
-	$(COMPOSE) exec -T garage /garage layout assign -z dc1 -c 1G $$NODE; \
-	$(COMPOSE) exec -T garage /garage layout apply --version 1; \
-	$(COMPOSE) exec -T garage /garage bucket create $$S3_BUCKET; \
-	$(COMPOSE) exec -T garage /garage key import --yes -n cu-faculty-app $$S3_ACCESS_KEY $$S3_SECRET_KEY; \
-	$(COMPOSE) exec -T garage /garage bucket allow --read --write $$S3_BUCKET --key $$S3_ACCESS_KEY
+	if $(COMPOSE) exec -T garage /garage bucket info $$S3_BUCKET >/dev/null 2>&1; then \
+		echo "garage already initialized, skipping"; \
+	else \
+		echo "initializing garage..."; \
+		NODE=$$($(COMPOSE) exec -T garage /garage node id -q | cut -d@ -f1); \
+		$(COMPOSE) exec -T garage /garage layout assign -z dc1 -c 1G $$NODE; \
+		$(COMPOSE) exec -T garage /garage layout apply --version 1; \
+		$(COMPOSE) exec -T garage /garage bucket create $$S3_BUCKET; \
+		$(COMPOSE) exec -T garage /garage key import --yes -n cu-faculty-app $$S3_ACCESS_KEY $$S3_SECRET_KEY; \
+		$(COMPOSE) exec -T garage /garage bucket allow --read --write $$S3_BUCKET --key $$S3_ACCESS_KEY; \
+	fi

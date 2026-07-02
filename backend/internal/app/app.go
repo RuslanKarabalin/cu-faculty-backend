@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -120,9 +122,22 @@ func buildPgDSN(cfg *config.Config) string {
 }
 
 func newFiber(logger *zap.Logger) *fiber.App {
-	f := fiber.New(fiber.Config{BodyLimit: maxBodyBytes})
+	f := fiber.New(fiber.Config{
+		BodyLimit:   maxBodyBytes,
+		JSONEncoder: jsonMarshalNoEscape,
+	})
 	f.Use(fiberzap.New(fiberzap.Config{Logger: logger}))
 	return f
+}
+
+func jsonMarshalNoEscape(v any) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		return nil, err
+	}
+	return bytes.TrimRight(buf.Bytes(), "\n"), nil
 }
 
 func (a *App) Run() error {
