@@ -129,7 +129,7 @@ create table "announcements" (
 create table "news" (
     id uuid primary key default gen_random_uuid()
     , author_id uuid references users(id) on delete cascade
-    , photo_s3_key varchar(255) not null
+    , photo_s3_key varchar(255)
     , title varchar(127) not null
     , content varchar(255) not null
     , publish_days smallint not null default 7
@@ -140,7 +140,7 @@ create table "news" (
 create table "events" (
     id uuid primary key default gen_random_uuid()
     , author_id uuid references users(id) on delete cascade
-    , photo_s3_key varchar(255) not null
+    , photo_s3_key varchar(255)
     , title varchar(127) not null
     , content varchar(255) not null
     , place varchar(63) not null
