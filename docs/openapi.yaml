@@ -74,7 +74,8 @@ paths:
               type: object
               properties:
                 data:
-                  $ref: "#/components/schemas/UpdateUserRequest"
+                  allOf:
+                    - $ref: "#/components/schemas/UpdateUserRequest"
                 photo:
                   type: string
                   format: binary
@@ -260,7 +261,8 @@ paths:
               type: object
               properties:
                 data:
-                  $ref: "#/components/schemas/UpdateUserRequest"
+                  allOf:
+                    - $ref: "#/components/schemas/UpdateUserRequest"
                 photo:
                   type: string
                   format: binary
@@ -921,7 +923,8 @@ paths:
               required: [data]
               properties:
                 data:
-                  $ref: "#/components/schemas/CreateNewsRequest"
+                  allOf:
+                    - $ref: "#/components/schemas/CreateNewsRequest"
                 photo:
                   type: string
                   format: binary
@@ -974,7 +977,8 @@ paths:
               type: object
               properties:
                 data:
-                  $ref: "#/components/schemas/UpdateNewsRequest"
+                  allOf:
+                    - $ref: "#/components/schemas/UpdateNewsRequest"
                 photo:
                   type: string
                   format: binary
@@ -1037,7 +1041,8 @@ paths:
               required: [data]
               properties:
                 data:
-                  $ref: "#/components/schemas/CreateEventRequest"
+                  allOf:
+                    - $ref: "#/components/schemas/CreateEventRequest"
                 photo:
                   type: string
                   format: binary
@@ -1090,7 +1095,8 @@ paths:
               type: object
               properties:
                 data:
-                  $ref: "#/components/schemas/UpdateEventRequest"
+                  allOf:
+                    - $ref: "#/components/schemas/UpdateEventRequest"
                 photo:
                   type: string
                   format: binary
