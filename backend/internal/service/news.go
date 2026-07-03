@@ -13,7 +13,7 @@ const defaultPublishDays = 7
 type newsRepository interface {
 	CreateNews(ctx context.Context, params model.CreateNewsParams) (uuid.UUID, error)
 	UpdateNews(ctx context.Context, params model.UpdateNewsParams) error
-	UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key string) error
+	UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error)
 	DeleteNews(ctx context.Context, id, authorID uuid.UUID) error
 	GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News, error)
 	GetNews(ctx context.Context, limit, offset int) ([]*model.News, int, error)
@@ -69,11 +69,18 @@ func (s *NewsService) UpdateNews(ctx context.Context, authorID, id uuid.UUID, re
 	return s.repo.GetNewsByID(ctx, id)
 }
 
-func (s *NewsService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, error) {
-	if err := s.repo.UpdateNewsPhoto(ctx, id, authorID, key); err != nil {
-		return nil, err
+// SetPhoto updates the news photo and returns the updated news along with the
+// previous photo key (if any) so the caller can delete the replaced object.
+func (s *NewsService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, *string, error) {
+	oldKey, err := s.repo.UpdateNewsPhoto(ctx, id, authorID, key)
+	if err != nil {
+		return nil, nil, err
 	}
-	return s.repo.GetNewsByID(ctx, id)
+	news, err := s.repo.GetNewsByID(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	return news, oldKey, nil
 }
 
 func (s *NewsService) DeleteNews(ctx context.Context, authorID, id uuid.UUID) error {

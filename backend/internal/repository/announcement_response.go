@@ -11,12 +11,30 @@ import (
 func (r *Repository) AddAnnouncementResponse(ctx context.Context, userID, announcementID uuid.UUID) error {
 	query := `
 	insert into announcement_responses(user_id, announcement_id)
-	values($1, $2)
+	select $1, $2
+	where exists (
+		select 1 from announcements where id = $2 and not is_archived
+	)
 	on conflict do nothing
 	`
 
-	if _, err := r.db.Exec(ctx, query, userID, announcementID); err != nil {
+	tag, err := r.db.Exec(ctx, query, userID, announcementID)
+	if err != nil {
 		return wrapPgError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		// No row inserted: either the announcement is missing/archived, or the
+		// user has already responded. Only the former is an error.
+		var alreadyResponded bool
+		if err := r.db.QueryRow(ctx,
+			`select exists(select 1 from announcement_responses where user_id = $1 and announcement_id = $2)`,
+			userID, announcementID,
+		).Scan(&alreadyResponded); err != nil {
+			return fmt.Errorf("failed to check announcement response: %w", err)
+		}
+		if !alreadyResponded {
+			return ErrNotFound
+		}
 	}
 	return nil
 }

@@ -41,7 +41,7 @@ type News struct {
 	ID          uuid.UUID `json:"id"`
 	Title       string    `json:"title"`
 	Content     string    `json:"content"`
-	PhotoS3Key  *string   `json:"photoS3Key"`
+	PhotoS3Key  *string   `json:"-"`
 	PhotoURL    *string   `json:"photoUrl"`
 	PublishDays int       `json:"publishDays"`
 	IsDraft     bool      `json:"isDraft"`

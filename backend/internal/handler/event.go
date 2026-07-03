@@ -20,13 +20,14 @@ type eventService interface {
 	GetEventsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Event, int, error)
 	CreateEvent(ctx context.Context, authorID uuid.UUID, req model.CreateEventRequest) (*model.Event, error)
 	UpdateEvent(ctx context.Context, authorID, id uuid.UUID, req model.UpdateEventRequest) (*model.Event, error)
-	SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.Event, error)
+	SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.Event, *string, error)
 	DeleteEvent(ctx context.Context, authorID, id uuid.UUID) error
 }
 
 type eventPhotoStorage interface {
 	Upload(ctx context.Context, key, contentType string, body io.Reader, size int64) error
 	PresignDownload(ctx context.Context, key string) (string, error)
+	Delete(ctx context.Context, key string) error
 }
 
 type EventHandler struct {
@@ -197,7 +198,7 @@ func (h *EventHandler) UploadEventPhoto(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
 
-	event, err := h.service.SetPhoto(c.Context(), cuUser.ID, id, key)
+	event, oldKey, err := h.service.SetPhoto(c.Context(), cuUser.ID, id, key)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "event not found")
@@ -205,6 +206,7 @@ func (h *EventHandler) UploadEventPhoto(c fiber.Ctx) error {
 		h.logger.Error("failed to set event photo", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
+	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	h.attachURLs(c.Context(), event)
 	return c.JSON(event)
 }

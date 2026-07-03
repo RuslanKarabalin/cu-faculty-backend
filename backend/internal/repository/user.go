@@ -19,15 +19,22 @@ func (r *Repository) CreateUser(ctx context.Context, params model.CreateUserPara
 	return nil
 }
 
-func (r *Repository) UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) error {
-	tag, err := r.db.Exec(ctx, `update users set photo_s3_key = $2 where id = $1`, id, key)
-	if err != nil {
-		return wrapPgError(err)
+// UpdateUserPhoto sets the user's photo key and returns the previous key (if any)
+// so the caller can clean up the replaced object.
+func (r *Repository) UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) (*string, error) {
+	query := `
+	with old as (select photo_s3_key from users where id = $1)
+	update users set photo_s3_key = $2 where id = $1
+	returning (select photo_s3_key from old)
+	`
+	var oldKey *string
+	if err := r.db.QueryRow(ctx, query, id, key).Scan(&oldKey); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, wrapPgError(err)
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return oldKey, nil
 }
 
 func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error) {
@@ -87,14 +94,13 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 func (r *Repository) UpdateUser(ctx context.Context, params model.UpdateUserParams) error {
 	query := `
 	update users
-	set photo_s3_key = $2
-		, bio = $3
-		, speciality = $4
-		, status_id = $5
+	set bio = $2
+		, speciality = $3
+		, status_id = $4
 	where id = $1
 	`
 
-	tag, err := r.db.Exec(ctx, query, params.ID, params.PhotoS3Key, params.Bio, params.Speciality, params.StatusID)
+	tag, err := r.db.Exec(ctx, query, params.ID, params.Bio, params.Speciality, params.StatusID)
 	if err != nil {
 		return wrapPgError(err)
 	}

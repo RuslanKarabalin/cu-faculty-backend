@@ -44,15 +44,22 @@ func (r *Repository) UpdateNews(ctx context.Context, params model.UpdateNewsPara
 	return nil
 }
 
-func (r *Repository) UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key string) error {
-	tag, err := r.db.Exec(ctx, `update news set photo_s3_key = $3 where id = $1 and author_id = $2`, id, authorID, key)
-	if err != nil {
-		return wrapPgError(err)
+// UpdateNewsPhoto sets the news photo key and returns the previous key (if any)
+// so the caller can clean up the replaced object.
+func (r *Repository) UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error) {
+	query := `
+	with old as (select photo_s3_key from news where id = $1 and author_id = $2)
+	update news set photo_s3_key = $3 where id = $1 and author_id = $2
+	returning (select photo_s3_key from old)
+	`
+	var oldKey *string
+	if err := r.db.QueryRow(ctx, query, id, authorID, key).Scan(&oldKey); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, wrapPgError(err)
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return oldKey, nil
 }
 
 func (r *Repository) DeleteNews(ctx context.Context, id, authorID uuid.UUID) error {

@@ -47,15 +47,22 @@ func (r *Repository) UpdateEvent(ctx context.Context, params model.UpdateEventPa
 	return nil
 }
 
-func (r *Repository) UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) error {
-	tag, err := r.db.Exec(ctx, `update events set photo_s3_key = $3 where id = $1 and author_id = $2`, id, authorID, key)
-	if err != nil {
-		return wrapPgError(err)
+// UpdateEventPhoto sets the event's photo key and returns the previous key (if
+// any) so the caller can clean up the replaced object.
+func (r *Repository) UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error) {
+	query := `
+	with old as (select photo_s3_key from events where id = $1 and author_id = $2)
+	update events set photo_s3_key = $3 where id = $1 and author_id = $2
+	returning (select photo_s3_key from old)
+	`
+	var oldKey *string
+	if err := r.db.QueryRow(ctx, query, id, authorID, key).Scan(&oldKey); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, wrapPgError(err)
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return oldKey, nil
 }
 
 func (r *Repository) DeleteEvent(ctx context.Context, id, authorID uuid.UUID) error {

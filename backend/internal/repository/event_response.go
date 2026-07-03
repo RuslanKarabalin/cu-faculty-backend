@@ -11,12 +11,30 @@ import (
 func (r *Repository) AddEventResponse(ctx context.Context, userID, eventID uuid.UUID) error {
 	query := `
 	insert into event_responses(user_id, event_id)
-	values($1, $2)
+	select $1, $2
+	where exists (
+		select 1 from events where id = $2 and not is_draft
+	)
 	on conflict do nothing
 	`
 
-	if _, err := r.db.Exec(ctx, query, userID, eventID); err != nil {
+	tag, err := r.db.Exec(ctx, query, userID, eventID)
+	if err != nil {
 		return wrapPgError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		// No row inserted: either the event is missing/draft, or the user has
+		// already responded. Only the former is an error.
+		var alreadyResponded bool
+		if err := r.db.QueryRow(ctx,
+			`select exists(select 1 from event_responses where user_id = $1 and event_id = $2)`,
+			userID, eventID,
+		).Scan(&alreadyResponded); err != nil {
+			return fmt.Errorf("failed to check event response: %w", err)
+		}
+		if !alreadyResponded {
+			return ErrNotFound
+		}
 	}
 	return nil
 }

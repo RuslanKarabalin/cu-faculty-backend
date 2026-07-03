@@ -18,7 +18,7 @@ type userRepository interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserParams) error
-	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) error
+	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) (*string, error)
 }
 
 type UserService struct {
@@ -37,17 +37,23 @@ func (s *UserService) GetAllUsers(ctx context.Context, limit, offset int) ([]*mo
 	return s.repo.GetAllUsers(ctx, limit, offset)
 }
 
-func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, error) {
-	if err := s.repo.UpdateUserPhoto(ctx, id, key); err != nil {
-		return nil, err
+// SetPhoto updates the user's photo and returns the updated user along with the
+// previous photo key (if any) so the caller can delete the replaced object.
+func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error) {
+	oldKey, err := s.repo.UpdateUserPhoto(ctx, id, key)
+	if err != nil {
+		return nil, nil, err
 	}
-	return s.repo.GetUserByID(ctx, id)
+	user, err := s.repo.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	return user, oldKey, nil
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error) {
 	if err := s.repo.UpdateUser(ctx, model.UpdateUserParams{
 		ID:         id,
-		PhotoS3Key: req.PhotoS3Key,
 		Bio:        req.Bio,
 		Speciality: req.Speciality,
 		StatusID:   req.StatusID,

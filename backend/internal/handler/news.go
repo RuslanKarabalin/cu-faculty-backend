@@ -20,13 +20,14 @@ type newsService interface {
 	GetNewsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.News, int, error)
 	CreateNews(ctx context.Context, authorID uuid.UUID, req model.CreateNewsRequest) (*model.News, error)
 	UpdateNews(ctx context.Context, authorID, id uuid.UUID, req model.UpdateNewsRequest) (*model.News, error)
-	SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, error)
+	SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, *string, error)
 	DeleteNews(ctx context.Context, authorID, id uuid.UUID) error
 }
 
 type newsPhotoStorage interface {
 	Upload(ctx context.Context, key, contentType string, body io.Reader, size int64) error
 	PresignDownload(ctx context.Context, key string) (string, error)
+	Delete(ctx context.Context, key string) error
 }
 
 type NewsHandler struct {
@@ -197,7 +198,7 @@ func (h *NewsHandler) UploadNewsPhoto(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
 
-	news, err := h.service.SetPhoto(c.Context(), cuUser.ID, id, key)
+	news, oldKey, err := h.service.SetPhoto(c.Context(), cuUser.ID, id, key)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "news not found")
@@ -205,6 +206,7 @@ func (h *NewsHandler) UploadNewsPhoto(c fiber.Ctx) error {
 		h.logger.Error("failed to set news photo", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
+	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	h.attachURLs(c.Context(), news)
 	return c.JSON(news)
 }

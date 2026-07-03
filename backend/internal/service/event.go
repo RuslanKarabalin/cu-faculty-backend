@@ -11,7 +11,7 @@ import (
 type eventRepository interface {
 	CreateEvent(ctx context.Context, params model.CreateEventParams) (uuid.UUID, error)
 	UpdateEvent(ctx context.Context, params model.UpdateEventParams) error
-	UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) error
+	UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error)
 	DeleteEvent(ctx context.Context, id, authorID uuid.UUID) error
 	GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error)
 	GetEvents(ctx context.Context, limit, offset int) ([]*model.Event, int, error)
@@ -73,11 +73,18 @@ func (s *EventService) UpdateEvent(ctx context.Context, authorID, id uuid.UUID, 
 	return s.repo.GetEventByID(ctx, id)
 }
 
-func (s *EventService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.Event, error) {
-	if err := s.repo.UpdateEventPhoto(ctx, id, authorID, key); err != nil {
-		return nil, err
+// SetPhoto updates the event's photo and returns the updated event along with
+// the previous photo key (if any) so the caller can delete the replaced object.
+func (s *EventService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.Event, *string, error) {
+	oldKey, err := s.repo.UpdateEventPhoto(ctx, id, authorID, key)
+	if err != nil {
+		return nil, nil, err
 	}
-	return s.repo.GetEventByID(ctx, id)
+	event, err := s.repo.GetEventByID(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	return event, oldKey, nil
 }
 
 func (s *EventService) DeleteEvent(ctx context.Context, authorID, id uuid.UUID) error {

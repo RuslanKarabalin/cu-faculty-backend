@@ -18,6 +18,22 @@ type photoPresigner interface {
 	PresignDownload(ctx context.Context, key string) (string, error)
 }
 
+type photoDeleter interface {
+	Delete(ctx context.Context, key string) error
+}
+
+// deleteReplacedPhoto best-effort removes the previous S3 object after a new one
+// has replaced it. The new photo is already persisted, so failures are logged
+// rather than surfaced to the client.
+func deleteReplacedPhoto(ctx context.Context, storage photoDeleter, logger *zap.Logger, oldKey *string, newKey string) {
+	if oldKey == nil || *oldKey == "" || *oldKey == newKey {
+		return
+	}
+	if err := storage.Delete(ctx, *oldKey); err != nil {
+		logger.Warn("failed to delete replaced photo", zap.String("key", *oldKey), zap.Error(err))
+	}
+}
+
 // presignPhoto returns a presigned download URL for the given S3 key, or nil if
 // there is no key or presigning fails.
 func presignPhoto(ctx context.Context, storage photoPresigner, logger *zap.Logger, key *string) *string {

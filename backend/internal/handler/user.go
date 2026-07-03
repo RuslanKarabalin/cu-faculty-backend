@@ -20,7 +20,7 @@ type userService interface {
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error)
-	SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, error)
+	SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error)
 }
 
 type registrationService interface {
@@ -30,6 +30,7 @@ type registrationService interface {
 type photoStorage interface {
 	Upload(ctx context.Context, key, contentType string, body io.Reader, size int64) error
 	PresignDownload(ctx context.Context, key string) (string, error)
+	Delete(ctx context.Context, key string) error
 }
 
 type UserHandler struct {
@@ -129,7 +130,7 @@ func (h *UserHandler) UploadMyPhoto(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
 
-	user, err := h.userService.SetPhoto(c.Context(), cuUser.ID, key)
+	user, oldKey, err := h.userService.SetPhoto(c.Context(), cuUser.ID, key)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "user not found")
@@ -137,6 +138,7 @@ func (h *UserHandler) UploadMyPhoto(c fiber.Ctx) error {
 		h.logger.Error("failed to set user photo", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
+	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	h.attachPhotoURL(c.Context(), user)
 	return c.JSON(user)
 }

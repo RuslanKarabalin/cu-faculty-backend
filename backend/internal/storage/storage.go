@@ -77,6 +77,16 @@ func (c *Client) Upload(ctx context.Context, key, contentType string, body io.Re
 	return nil
 }
 
+func (c *Client) Delete(ctx context.Context, key string) error {
+	if _, err := c.s3.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	}); err != nil {
+		return fmt.Errorf("delete object: %w", err)
+	}
+	return nil
+}
+
 func (c *Client) PresignDownload(ctx context.Context, key string) (string, error) {
 	req, err := c.presign.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(c.bucket),

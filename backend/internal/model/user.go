@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	ID         uuid.UUID `json:"id"`
-	PhotoS3Key *string   `json:"photoS3Key"`
+	PhotoS3Key *string   `json:"-"`
 	PhotoURL   *string   `json:"photoUrl"`
 	FirstName  string    `json:"firstName"`
 	LastName   string    `json:"lastName"`
@@ -34,7 +34,6 @@ type CreateUserParams struct {
 }
 
 type UpdateUserRequest struct {
-	PhotoS3Key *string `json:"photoS3Key"`
 	Bio        *string `json:"bio"`
 	Speciality *string `json:"speciality"`
 	StatusID   *int    `json:"statusId"`
@@ -42,7 +41,6 @@ type UpdateUserRequest struct {
 
 type UpdateUserParams struct {
 	ID         uuid.UUID
-	PhotoS3Key *string
 	Bio        *string
 	Speciality *string
 	StatusID   *int
