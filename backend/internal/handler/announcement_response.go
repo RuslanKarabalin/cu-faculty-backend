@@ -15,7 +15,7 @@ import (
 type announcementResponseService interface {
 	Respond(ctx context.Context, userID, announcementID uuid.UUID) (*model.Announcement, error)
 	DeleteResponse(ctx context.Context, userID, announcementID uuid.UUID) error
-	GetResponders(ctx context.Context, announcementID uuid.UUID) ([]*model.User, error)
+	GetResponders(ctx context.Context, announcementID uuid.UUID, limit, offset int) ([]*model.User, int, error)
 	GetMyResponses(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Announcement, int, error)
 }
 
@@ -81,7 +81,13 @@ func (h *AnnouncementResponseHandler) GetResponders(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid announcement id")
 	}
 
-	users, err := h.service.GetResponders(c.Context(), announcementID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	users, total, err := h.service.GetResponders(c.Context(), announcementID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get announcement responders", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
@@ -89,7 +95,7 @@ func (h *AnnouncementResponseHandler) GetResponders(c fiber.Ctx) error {
 	for _, u := range users {
 		u.PhotoURL = presignPhoto(c.Context(), h.storage, h.logger, u.PhotoS3Key)
 	}
-	return c.JSON(users)
+	return c.JSON(model.Page[*model.User]{Data: users, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *AnnouncementResponseHandler) GetMyResponses(c fiber.Ctx) error {

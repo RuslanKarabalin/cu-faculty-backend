@@ -15,7 +15,7 @@ import (
 type eventResponseService interface {
 	Respond(ctx context.Context, userID, eventID uuid.UUID) (*model.Event, error)
 	DeleteResponse(ctx context.Context, userID, eventID uuid.UUID) error
-	GetResponders(ctx context.Context, eventID uuid.UUID) ([]*model.User, error)
+	GetResponders(ctx context.Context, eventID uuid.UUID, limit, offset int) ([]*model.User, int, error)
 	GetMyResponses(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Event, int, error)
 }
 
@@ -86,7 +86,13 @@ func (h *EventResponseHandler) GetResponders(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid event id")
 	}
 
-	users, err := h.service.GetResponders(c.Context(), eventID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	users, total, err := h.service.GetResponders(c.Context(), eventID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get event responders", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
@@ -94,7 +100,7 @@ func (h *EventResponseHandler) GetResponders(c fiber.Ctx) error {
 	for _, u := range users {
 		u.PhotoURL = presignPhoto(c.Context(), h.storage, h.logger, u.PhotoS3Key)
 	}
-	return c.JSON(users)
+	return c.JSON(model.Page[*model.User]{Data: users, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *EventResponseHandler) GetMyResponses(c fiber.Ctx) error {

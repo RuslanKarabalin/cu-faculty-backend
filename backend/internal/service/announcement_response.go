@@ -11,7 +11,7 @@ import (
 type announcementResponseRepository interface {
 	AddAnnouncementResponse(ctx context.Context, userID, announcementID uuid.UUID) error
 	DeleteAnnouncementResponse(ctx context.Context, userID, announcementID uuid.UUID) error
-	GetAnnouncementResponders(ctx context.Context, announcementID uuid.UUID) ([]*model.User, error)
+	GetAnnouncementResponders(ctx context.Context, announcementID uuid.UUID, limit, offset int) ([]*model.User, int, error)
 	GetAnnouncementsRespondedByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Announcement, int, error)
 	GetAnnouncementByID(ctx context.Context, id uuid.UUID) (*model.Announcement, error)
 }
@@ -35,8 +35,8 @@ func (s *AnnouncementResponseService) DeleteResponse(ctx context.Context, userID
 	return s.repo.DeleteAnnouncementResponse(ctx, userID, announcementID)
 }
 
-func (s *AnnouncementResponseService) GetResponders(ctx context.Context, announcementID uuid.UUID) ([]*model.User, error) {
-	return s.repo.GetAnnouncementResponders(ctx, announcementID)
+func (s *AnnouncementResponseService) GetResponders(ctx context.Context, announcementID uuid.UUID, limit, offset int) ([]*model.User, int, error) {
+	return s.repo.GetAnnouncementResponders(ctx, announcementID, limit, offset)
 }
 
 func (s *AnnouncementResponseService) GetMyResponses(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Announcement, int, error) {

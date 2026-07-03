@@ -12,7 +12,7 @@ type userSoftSkillRepository interface {
 	AddUserSoftSkill(ctx context.Context, userID uuid.UUID, skillID int) error
 	DeleteUserSoftSkill(ctx context.Context, userID uuid.UUID, skillID int) error
 	GetSoftSkillByID(ctx context.Context, id int) (*model.Skill, error)
-	GetUserSoftSkills(ctx context.Context, userID uuid.UUID) ([]*model.Skill, error)
+	GetUserSoftSkills(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Skill, int, error)
 }
 
 type UserSoftSkillService struct {
@@ -23,8 +23,8 @@ func NewUserSoftSkillService(repo userSoftSkillRepository) *UserSoftSkillService
 	return &UserSoftSkillService{repo: repo}
 }
 
-func (s *UserSoftSkillService) GetUserSoftSkills(ctx context.Context, userID uuid.UUID) ([]*model.Skill, error) {
-	return s.repo.GetUserSoftSkills(ctx, userID)
+func (s *UserSoftSkillService) GetUserSoftSkills(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Skill, int, error) {
+	return s.repo.GetUserSoftSkills(ctx, userID, limit, offset)
 }
 
 func (s *UserSoftSkillService) AddUserSoftSkill(ctx context.Context, userID uuid.UUID, skillID int) (*model.Skill, error) {

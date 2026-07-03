@@ -46,18 +46,24 @@ func (r *Repository) GetKeySkillByID(ctx context.Context, id int) (*model.Skill,
 	return s, nil
 }
 
-func (r *Repository) GetUserKeySkills(ctx context.Context, userID uuid.UUID) ([]*model.Skill, error) {
+func (r *Repository) GetUserKeySkills(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Skill, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from user_key_skills where user_id = $1`, userID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count user key skills: %w", err)
+	}
+
 	query := `
 	select ks.id, ks.name
 	from user_key_skills uks
 	join key_skills ks on ks.id = uks.key_skill_id
 	where uks.user_id = $1
 	order by ks.name, ks.id
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select user key skills: %w", err)
+		return nil, 0, fmt.Errorf("failed to select user key skills: %w", err)
 	}
 	defer rows.Close()
 
@@ -65,12 +71,12 @@ func (r *Repository) GetUserKeySkills(ctx context.Context, userID uuid.UUID) ([]
 	for rows.Next() {
 		s := &model.Skill{}
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {
-			return nil, fmt.Errorf("failed to scan key skill: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan key skill: %w", err)
 		}
 		skills = append(skills, s)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
-	return skills, nil
+	return skills, total, nil
 }

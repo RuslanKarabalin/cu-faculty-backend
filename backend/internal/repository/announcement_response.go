@@ -48,7 +48,12 @@ func (r *Repository) DeleteAnnouncementResponse(ctx context.Context, userID, ann
 	return nil
 }
 
-func (r *Repository) GetAnnouncementResponders(ctx context.Context, announcementID uuid.UUID) ([]*model.User, error) {
+func (r *Repository) GetAnnouncementResponders(ctx context.Context, announcementID uuid.UUID, limit, offset int) ([]*model.User, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from announcement_responses where announcement_id = $1`, announcementID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count announcement responders: %w", err)
+	}
+
 	query := `
 	select
 		u.id
@@ -65,11 +70,12 @@ func (r *Repository) GetAnnouncementResponders(ctx context.Context, announcement
 	left join statuses st on st.id = u.status_id
 	where ar.announcement_id = $1
 	order by u.last_name, u.first_name, u.id
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, announcementID)
+	rows, err := r.db.Query(ctx, query, announcementID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select announcement responders: %w", err)
+		return nil, 0, fmt.Errorf("failed to select announcement responders: %w", err)
 	}
 	defer rows.Close()
 
@@ -87,14 +93,14 @@ func (r *Repository) GetAnnouncementResponders(ctx context.Context, announcement
 			&u.Status,
 			&u.Role,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan responder: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan responder: %w", err)
 		}
 		users = append(users, u)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
-	return users, nil
+	return users, total, nil
 }
 
 func (r *Repository) GetAnnouncementsRespondedByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Announcement, int, error) {

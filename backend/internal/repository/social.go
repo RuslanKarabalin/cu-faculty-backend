@@ -81,7 +81,12 @@ func (r *Repository) GetSocialByID(ctx context.Context, id int) (*model.Social, 
 	return s, nil
 }
 
-func (r *Repository) GetSocialsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Social, error) {
+func (r *Repository) GetSocialsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Social, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from socials where user_id = $1`, userID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count socials: %w", err)
+	}
+
 	query := `
 	select
 		s.id
@@ -91,11 +96,12 @@ func (r *Repository) GetSocialsByUserID(ctx context.Context, userID uuid.UUID) (
 	from socials s
 	where s.user_id = $1
 	order by s.is_preferred desc, s.id
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select socials: %w", err)
+		return nil, 0, fmt.Errorf("failed to select socials: %w", err)
 	}
 	defer rows.Close()
 
@@ -108,12 +114,12 @@ func (r *Repository) GetSocialsByUserID(ctx context.Context, userID uuid.UUID) (
 			&s.Link,
 			&s.IsPreferred,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan social: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan social: %w", err)
 		}
 		socials = append(socials, s)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
-	return socials, nil
+	return socials, total, nil
 }

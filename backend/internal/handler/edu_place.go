@@ -14,7 +14,7 @@ import (
 )
 
 type eduPlaceService interface {
-	GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.EduPlace, error)
+	GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.EduPlace, int, error)
 	CreateEduPlace(ctx context.Context, userID uuid.UUID, req model.EduPlaceRequest) (*model.EduPlace, error)
 	UpdateEduPlace(ctx context.Context, userID uuid.UUID, id int, req model.EduPlaceRequest) (*model.EduPlace, error)
 	DeleteEduPlace(ctx context.Context, userID uuid.UUID, id int) error
@@ -35,12 +35,18 @@ func (h *EduPlaceHandler) GetUserEduPlaces(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid user id")
 	}
 
-	places, err := h.service.GetEduPlacesByUserID(c.Context(), userID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	places, total, err := h.service.GetEduPlacesByUserID(c.Context(), userID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get edu places", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(places)
+	return c.JSON(model.Page[*model.EduPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *EduPlaceHandler) GetMyEduPlaces(c fiber.Ctx) error {
@@ -49,12 +55,18 @@ func (h *EduPlaceHandler) GetMyEduPlaces(c fiber.Ctx) error {
 		return err
 	}
 
-	places, err := h.service.GetEduPlacesByUserID(c.Context(), cuUser.ID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	places, total, err := h.service.GetEduPlacesByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get edu places", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(places)
+	return c.JSON(model.Page[*model.EduPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *EduPlaceHandler) CreateEduPlace(c fiber.Ctx) error {

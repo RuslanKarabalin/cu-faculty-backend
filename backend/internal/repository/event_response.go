@@ -48,7 +48,12 @@ func (r *Repository) DeleteEventResponse(ctx context.Context, userID, eventID uu
 	return nil
 }
 
-func (r *Repository) GetEventResponders(ctx context.Context, eventID uuid.UUID) ([]*model.User, error) {
+func (r *Repository) GetEventResponders(ctx context.Context, eventID uuid.UUID, limit, offset int) ([]*model.User, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from event_responses where event_id = $1`, eventID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count event responders: %w", err)
+	}
+
 	query := `
 	select
 		u.id
@@ -65,11 +70,12 @@ func (r *Repository) GetEventResponders(ctx context.Context, eventID uuid.UUID) 
 	left join statuses st on st.id = u.status_id
 	where er.event_id = $1
 	order by u.last_name, u.first_name, u.id
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, eventID)
+	rows, err := r.db.Query(ctx, query, eventID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select event responders: %w", err)
+		return nil, 0, fmt.Errorf("failed to select event responders: %w", err)
 	}
 	defer rows.Close()
 
@@ -87,14 +93,14 @@ func (r *Repository) GetEventResponders(ctx context.Context, eventID uuid.UUID) 
 			&u.Status,
 			&u.Role,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan responder: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan responder: %w", err)
 		}
 		users = append(users, u)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
-	return users, nil
+	return users, total, nil
 }
 
 func (r *Repository) GetEventsRespondedByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Event, int, error) {

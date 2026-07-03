@@ -90,7 +90,12 @@ func (r *Repository) GetWorkPlaceByID(ctx context.Context, id int) (*model.WorkP
 	return wp, nil
 }
 
-func (r *Repository) GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.WorkPlace, error) {
+func (r *Repository) GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.WorkPlace, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from work_places where user_id = $1`, userID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count work places: %w", err)
+	}
+
 	query := `
 	select
 		wp.id
@@ -103,11 +108,12 @@ func (r *Repository) GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID
 	from work_places wp
 	where wp.user_id = $1
 	order by wp.start_year desc, wp.id
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select work places: %w", err)
+		return nil, 0, fmt.Errorf("failed to select work places: %w", err)
 	}
 	defer rows.Close()
 
@@ -123,12 +129,12 @@ func (r *Repository) GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID
 			&wp.EndYear,
 			&wp.IsWorkingNow,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan work place: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan work place: %w", err)
 		}
 		places = append(places, wp)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
-	return places, nil
+	return places, total, nil
 }

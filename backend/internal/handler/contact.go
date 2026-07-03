@@ -14,7 +14,7 @@ import (
 )
 
 type contactService interface {
-	GetContactsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Contact, error)
+	GetContactsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Contact, int, error)
 	CreateContact(ctx context.Context, userID uuid.UUID, req model.CreateContactRequest) (*model.Contact, error)
 	UpdateContact(ctx context.Context, userID, contactID uuid.UUID, req model.UpdateContactRequest) (*model.Contact, error)
 	DeleteContact(ctx context.Context, userID, contactID uuid.UUID) error
@@ -52,7 +52,13 @@ func (h *ContactHandler) GetMyContacts(c fiber.Ctx) error {
 		return err
 	}
 
-	contacts, err := h.service.GetContactsByUserID(c.Context(), cuUser.ID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	contacts, total, err := h.service.GetContactsByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get contacts", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
@@ -60,7 +66,7 @@ func (h *ContactHandler) GetMyContacts(c fiber.Ctx) error {
 	for _, contact := range contacts {
 		h.attachPhotoURL(c.Context(), contact.User)
 	}
-	return c.JSON(contacts)
+	return c.JSON(model.Page[*model.Contact]{Data: contacts, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *ContactHandler) CreateContact(c fiber.Ctx) error {

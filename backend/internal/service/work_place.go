@@ -13,7 +13,7 @@ type workPlaceRepository interface {
 	UpdateWorkPlace(ctx context.Context, params model.UpdateWorkPlaceParams) error
 	DeleteWorkPlace(ctx context.Context, id int, userID uuid.UUID) error
 	GetWorkPlaceByID(ctx context.Context, id int) (*model.WorkPlace, error)
-	GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.WorkPlace, error)
+	GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.WorkPlace, int, error)
 }
 
 type WorkPlaceService struct {
@@ -24,8 +24,8 @@ func NewWorkPlaceService(repo workPlaceRepository) *WorkPlaceService {
 	return &WorkPlaceService{repo: repo}
 }
 
-func (s *WorkPlaceService) GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.WorkPlace, error) {
-	return s.repo.GetWorkPlacesByUserID(ctx, userID)
+func (s *WorkPlaceService) GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.WorkPlace, int, error) {
+	return s.repo.GetWorkPlacesByUserID(ctx, userID, limit, offset)
 }
 
 func (s *WorkPlaceService) CreateWorkPlace(ctx context.Context, userID uuid.UUID, req model.WorkPlaceRequest) (*model.WorkPlace, error) {

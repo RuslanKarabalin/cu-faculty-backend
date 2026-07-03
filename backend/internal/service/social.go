@@ -13,7 +13,7 @@ type socialRepository interface {
 	UpdateSocial(ctx context.Context, params model.UpdateSocialParams) error
 	DeleteSocial(ctx context.Context, id int, userID uuid.UUID) error
 	GetSocialByID(ctx context.Context, id int) (*model.Social, error)
-	GetSocialsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Social, error)
+	GetSocialsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Social, int, error)
 }
 
 type SocialService struct {
@@ -24,8 +24,8 @@ func NewSocialService(repo socialRepository) *SocialService {
 	return &SocialService{repo: repo}
 }
 
-func (s *SocialService) GetSocialsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Social, error) {
-	return s.repo.GetSocialsByUserID(ctx, userID)
+func (s *SocialService) GetSocialsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Social, int, error) {
+	return s.repo.GetSocialsByUserID(ctx, userID, limit, offset)
 }
 
 func (s *SocialService) CreateSocial(ctx context.Context, userID uuid.UUID, req model.SocialRequest) (*model.Social, error) {

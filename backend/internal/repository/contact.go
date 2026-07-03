@@ -101,7 +101,12 @@ func (r *Repository) GetContact(ctx context.Context, userID, contactID uuid.UUID
 	return contact, nil
 }
 
-func (r *Repository) GetContactsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Contact, error) {
+func (r *Repository) GetContactsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Contact, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from contacts where user_id = $1`, userID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count contacts: %w", err)
+	}
+
 	query := `
 	select
 		c.note
@@ -119,11 +124,12 @@ func (r *Repository) GetContactsByUserID(ctx context.Context, userID uuid.UUID) 
 	left join statuses st on st.id = u.status_id
 	where c.user_id = $1
 	order by u.last_name, u.first_name, u.id
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select contacts: %w", err)
+		return nil, 0, fmt.Errorf("failed to select contacts: %w", err)
 	}
 	defer rows.Close()
 
@@ -142,12 +148,12 @@ func (r *Repository) GetContactsByUserID(ctx context.Context, userID uuid.UUID) 
 			&contact.User.Status,
 			&contact.User.Role,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan contact: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan contact: %w", err)
 		}
 		contacts = append(contacts, contact)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
-	return contacts, nil
+	return contacts, total, nil
 }

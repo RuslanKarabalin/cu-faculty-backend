@@ -14,7 +14,7 @@ import (
 )
 
 type workPlaceService interface {
-	GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.WorkPlace, error)
+	GetWorkPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.WorkPlace, int, error)
 	CreateWorkPlace(ctx context.Context, userID uuid.UUID, req model.WorkPlaceRequest) (*model.WorkPlace, error)
 	UpdateWorkPlace(ctx context.Context, userID uuid.UUID, id int, req model.WorkPlaceRequest) (*model.WorkPlace, error)
 	DeleteWorkPlace(ctx context.Context, userID uuid.UUID, id int) error
@@ -35,12 +35,18 @@ func (h *WorkPlaceHandler) GetUserWorkPlaces(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid user id")
 	}
 
-	places, err := h.service.GetWorkPlacesByUserID(c.Context(), userID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	places, total, err := h.service.GetWorkPlacesByUserID(c.Context(), userID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get work places", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(places)
+	return c.JSON(model.Page[*model.WorkPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *WorkPlaceHandler) GetMyWorkPlaces(c fiber.Ctx) error {
@@ -49,12 +55,18 @@ func (h *WorkPlaceHandler) GetMyWorkPlaces(c fiber.Ctx) error {
 		return err
 	}
 
-	places, err := h.service.GetWorkPlacesByUserID(c.Context(), cuUser.ID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	places, total, err := h.service.GetWorkPlacesByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get work places", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(places)
+	return c.JSON(model.Page[*model.WorkPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *WorkPlaceHandler) CreateWorkPlace(c fiber.Ctx) error {

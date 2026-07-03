@@ -14,7 +14,7 @@ import (
 )
 
 type userKeySkillService interface {
-	GetUserKeySkills(ctx context.Context, userID uuid.UUID) ([]*model.Skill, error)
+	GetUserKeySkills(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Skill, int, error)
 	AddUserKeySkill(ctx context.Context, userID uuid.UUID, skillID int) (*model.Skill, error)
 	DeleteUserKeySkill(ctx context.Context, userID uuid.UUID, skillID int) error
 }
@@ -34,12 +34,18 @@ func (h *UserKeySkillHandler) GetUserKeySkills(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid user id")
 	}
 
-	skills, err := h.service.GetUserKeySkills(c.Context(), userID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	skills, total, err := h.service.GetUserKeySkills(c.Context(), userID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get user key skills", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(skills)
+	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *UserKeySkillHandler) GetMyKeySkills(c fiber.Ctx) error {
@@ -48,12 +54,18 @@ func (h *UserKeySkillHandler) GetMyKeySkills(c fiber.Ctx) error {
 		return err
 	}
 
-	skills, err := h.service.GetUserKeySkills(c.Context(), cuUser.ID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	skills, total, err := h.service.GetUserKeySkills(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get user key skills", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(skills)
+	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *UserKeySkillHandler) AddMyKeySkill(c fiber.Ctx) error {

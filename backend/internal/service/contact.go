@@ -16,7 +16,7 @@ type contactRepository interface {
 	UpdateContact(ctx context.Context, params model.UpdateContactParams) error
 	DeleteContact(ctx context.Context, userID, contactID uuid.UUID) error
 	GetContact(ctx context.Context, userID, contactID uuid.UUID) (*model.Contact, error)
-	GetContactsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Contact, error)
+	GetContactsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Contact, int, error)
 }
 
 type ContactService struct {
@@ -27,8 +27,8 @@ func NewContactService(repo contactRepository) *ContactService {
 	return &ContactService{repo: repo}
 }
 
-func (s *ContactService) GetContactsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Contact, error) {
-	return s.repo.GetContactsByUserID(ctx, userID)
+func (s *ContactService) GetContactsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Contact, int, error) {
+	return s.repo.GetContactsByUserID(ctx, userID, limit, offset)
 }
 
 func (s *ContactService) CreateContact(ctx context.Context, userID uuid.UUID, req model.CreateContactRequest) (*model.Contact, error) {

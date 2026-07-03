@@ -10,17 +10,17 @@ import (
 )
 
 type referenceService interface {
-	GetStatuses(ctx context.Context) ([]*model.Status, error)
-	GetKeySkills(ctx context.Context) ([]*model.Skill, error)
-	GetSoftSkills(ctx context.Context) ([]*model.Skill, error)
-	GetCompanies(ctx context.Context) ([]*model.Company, error)
-	GetWorkPositions(ctx context.Context) ([]*model.WorkPosition, error)
-	GetUniversities(ctx context.Context) ([]*model.University, error)
-	GetFaqs(ctx context.Context) ([]*model.Faq, error)
-	GetSocialNetworks(ctx context.Context) ([]string, error)
-	GetEduGrades(ctx context.Context) ([]string, error)
-	GetWorkGrades(ctx context.Context) ([]string, error)
-	GetEventCategories(ctx context.Context) ([]string, error)
+	GetStatuses(ctx context.Context, limit, offset int) ([]*model.Status, int, error)
+	GetKeySkills(ctx context.Context, limit, offset int) ([]*model.Skill, int, error)
+	GetSoftSkills(ctx context.Context, limit, offset int) ([]*model.Skill, int, error)
+	GetCompanies(ctx context.Context, limit, offset int) ([]*model.Company, int, error)
+	GetWorkPositions(ctx context.Context, limit, offset int) ([]*model.WorkPosition, int, error)
+	GetUniversities(ctx context.Context, limit, offset int) ([]*model.University, int, error)
+	GetFaqs(ctx context.Context, limit, offset int) ([]*model.Faq, int, error)
+	GetSocialNetworks(ctx context.Context, limit, offset int) ([]string, int, error)
+	GetEduGrades(ctx context.Context, limit, offset int) ([]string, int, error)
+	GetWorkGrades(ctx context.Context, limit, offset int) ([]string, int, error)
+	GetEventCategories(ctx context.Context, limit, offset int) ([]string, int, error)
 }
 
 type ReferenceHandler struct {
@@ -32,101 +32,61 @@ func NewReferenceHandler(service referenceService, logger *zap.Logger) *Referenc
 	return &ReferenceHandler{service: service, logger: logger}
 }
 
-func (h *ReferenceHandler) GetStatuses(c fiber.Ctx) error {
-	items, err := h.service.GetStatuses(c.Context())
+func listReference[T any](c fiber.Ctx, h *ReferenceHandler, name string, fn func(ctx context.Context, limit, offset int) ([]T, int, error)) error {
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	items, total, err := fn(c.Context(), limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get statuses", zap.Error(err))
+		h.logger.Error("failed to get "+name, zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(items)
+	return c.JSON(model.Page[T]{Data: items, Total: total, Limit: limit, Offset: offset})
+}
+
+func (h *ReferenceHandler) GetStatuses(c fiber.Ctx) error {
+	return listReference(c, h, "statuses", h.service.GetStatuses)
 }
 
 func (h *ReferenceHandler) GetKeySkills(c fiber.Ctx) error {
-	items, err := h.service.GetKeySkills(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get key skills", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(items)
+	return listReference(c, h, "key skills", h.service.GetKeySkills)
 }
 
 func (h *ReferenceHandler) GetSoftSkills(c fiber.Ctx) error {
-	items, err := h.service.GetSoftSkills(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get soft skills", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(items)
+	return listReference(c, h, "soft skills", h.service.GetSoftSkills)
 }
 
 func (h *ReferenceHandler) GetCompanies(c fiber.Ctx) error {
-	items, err := h.service.GetCompanies(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get companies", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(items)
+	return listReference(c, h, "companies", h.service.GetCompanies)
 }
 
 func (h *ReferenceHandler) GetWorkPositions(c fiber.Ctx) error {
-	items, err := h.service.GetWorkPositions(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get work positions", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(items)
+	return listReference(c, h, "work positions", h.service.GetWorkPositions)
 }
 
 func (h *ReferenceHandler) GetUniversities(c fiber.Ctx) error {
-	items, err := h.service.GetUniversities(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get universities", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(items)
+	return listReference(c, h, "universities", h.service.GetUniversities)
 }
 
 func (h *ReferenceHandler) GetFaqs(c fiber.Ctx) error {
-	items, err := h.service.GetFaqs(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get faqs", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(items)
+	return listReference(c, h, "faqs", h.service.GetFaqs)
 }
 
 func (h *ReferenceHandler) GetSocialNetworks(c fiber.Ctx) error {
-	values, err := h.service.GetSocialNetworks(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get social networks", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(values)
+	return listReference(c, h, "social networks", h.service.GetSocialNetworks)
 }
 
 func (h *ReferenceHandler) GetEduGrades(c fiber.Ctx) error {
-	values, err := h.service.GetEduGrades(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get edu grades", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(values)
+	return listReference(c, h, "edu grades", h.service.GetEduGrades)
 }
 
 func (h *ReferenceHandler) GetWorkGrades(c fiber.Ctx) error {
-	values, err := h.service.GetWorkGrades(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get work grades", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(values)
+	return listReference(c, h, "work grades", h.service.GetWorkGrades)
 }
 
 func (h *ReferenceHandler) GetEventCategories(c fiber.Ctx) error {
-	values, err := h.service.GetEventCategories(c.Context())
-	if err != nil {
-		h.logger.Error("failed to get event categories", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	return c.JSON(values)
+	return listReference(c, h, "event categories", h.service.GetEventCategories)
 }

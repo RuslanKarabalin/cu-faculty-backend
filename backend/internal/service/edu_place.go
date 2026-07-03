@@ -13,7 +13,7 @@ type eduPlaceRepository interface {
 	UpdateEduPlace(ctx context.Context, params model.UpdateEduPlaceParams) error
 	DeleteEduPlace(ctx context.Context, id int, userID uuid.UUID) error
 	GetEduPlaceByID(ctx context.Context, id int) (*model.EduPlace, error)
-	GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.EduPlace, error)
+	GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.EduPlace, int, error)
 }
 
 type EduPlaceService struct {
@@ -24,8 +24,8 @@ func NewEduPlaceService(repo eduPlaceRepository) *EduPlaceService {
 	return &EduPlaceService{repo: repo}
 }
 
-func (s *EduPlaceService) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.EduPlace, error) {
-	return s.repo.GetEduPlacesByUserID(ctx, userID)
+func (s *EduPlaceService) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.EduPlace, int, error) {
+	return s.repo.GetEduPlacesByUserID(ctx, userID, limit, offset)
 }
 
 func (s *EduPlaceService) CreateEduPlace(ctx context.Context, userID uuid.UUID, req model.EduPlaceRequest) (*model.EduPlace, error) {

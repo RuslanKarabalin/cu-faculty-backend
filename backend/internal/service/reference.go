@@ -7,14 +7,14 @@ import (
 )
 
 type referenceRepository interface {
-	GetStatuses(ctx context.Context) ([]*model.Status, error)
-	GetKeySkills(ctx context.Context) ([]*model.Skill, error)
-	GetSoftSkills(ctx context.Context) ([]*model.Skill, error)
-	GetCompanies(ctx context.Context) ([]*model.Company, error)
-	GetWorkPositions(ctx context.Context) ([]*model.WorkPosition, error)
-	GetUniversities(ctx context.Context) ([]*model.University, error)
-	GetFaqs(ctx context.Context) ([]*model.Faq, error)
-	GetEnumValues(ctx context.Context, typeName string) ([]string, error)
+	GetStatuses(ctx context.Context, limit, offset int) ([]*model.Status, int, error)
+	GetKeySkills(ctx context.Context, limit, offset int) ([]*model.Skill, int, error)
+	GetSoftSkills(ctx context.Context, limit, offset int) ([]*model.Skill, int, error)
+	GetCompanies(ctx context.Context, limit, offset int) ([]*model.Company, int, error)
+	GetWorkPositions(ctx context.Context, limit, offset int) ([]*model.WorkPosition, int, error)
+	GetUniversities(ctx context.Context, limit, offset int) ([]*model.University, int, error)
+	GetFaqs(ctx context.Context, limit, offset int) ([]*model.Faq, int, error)
+	GetEnumValues(ctx context.Context, typeName string, limit, offset int) ([]string, int, error)
 }
 
 type ReferenceService struct {
@@ -25,46 +25,46 @@ func NewReferenceService(repo referenceRepository) *ReferenceService {
 	return &ReferenceService{repo: repo}
 }
 
-func (s *ReferenceService) GetStatuses(ctx context.Context) ([]*model.Status, error) {
-	return s.repo.GetStatuses(ctx)
+func (s *ReferenceService) GetStatuses(ctx context.Context, limit, offset int) ([]*model.Status, int, error) {
+	return s.repo.GetStatuses(ctx, limit, offset)
 }
 
-func (s *ReferenceService) GetKeySkills(ctx context.Context) ([]*model.Skill, error) {
-	return s.repo.GetKeySkills(ctx)
+func (s *ReferenceService) GetKeySkills(ctx context.Context, limit, offset int) ([]*model.Skill, int, error) {
+	return s.repo.GetKeySkills(ctx, limit, offset)
 }
 
-func (s *ReferenceService) GetSoftSkills(ctx context.Context) ([]*model.Skill, error) {
-	return s.repo.GetSoftSkills(ctx)
+func (s *ReferenceService) GetSoftSkills(ctx context.Context, limit, offset int) ([]*model.Skill, int, error) {
+	return s.repo.GetSoftSkills(ctx, limit, offset)
 }
 
-func (s *ReferenceService) GetCompanies(ctx context.Context) ([]*model.Company, error) {
-	return s.repo.GetCompanies(ctx)
+func (s *ReferenceService) GetCompanies(ctx context.Context, limit, offset int) ([]*model.Company, int, error) {
+	return s.repo.GetCompanies(ctx, limit, offset)
 }
 
-func (s *ReferenceService) GetWorkPositions(ctx context.Context) ([]*model.WorkPosition, error) {
-	return s.repo.GetWorkPositions(ctx)
+func (s *ReferenceService) GetWorkPositions(ctx context.Context, limit, offset int) ([]*model.WorkPosition, int, error) {
+	return s.repo.GetWorkPositions(ctx, limit, offset)
 }
 
-func (s *ReferenceService) GetUniversities(ctx context.Context) ([]*model.University, error) {
-	return s.repo.GetUniversities(ctx)
+func (s *ReferenceService) GetUniversities(ctx context.Context, limit, offset int) ([]*model.University, int, error) {
+	return s.repo.GetUniversities(ctx, limit, offset)
 }
 
-func (s *ReferenceService) GetFaqs(ctx context.Context) ([]*model.Faq, error) {
-	return s.repo.GetFaqs(ctx)
+func (s *ReferenceService) GetFaqs(ctx context.Context, limit, offset int) ([]*model.Faq, int, error) {
+	return s.repo.GetFaqs(ctx, limit, offset)
 }
 
-func (s *ReferenceService) GetSocialNetworks(ctx context.Context) ([]string, error) {
-	return s.repo.GetEnumValues(ctx, "social_network")
+func (s *ReferenceService) GetSocialNetworks(ctx context.Context, limit, offset int) ([]string, int, error) {
+	return s.repo.GetEnumValues(ctx, "social_network", limit, offset)
 }
 
-func (s *ReferenceService) GetEduGrades(ctx context.Context) ([]string, error) {
-	return s.repo.GetEnumValues(ctx, "edu_grade")
+func (s *ReferenceService) GetEduGrades(ctx context.Context, limit, offset int) ([]string, int, error) {
+	return s.repo.GetEnumValues(ctx, "edu_grade", limit, offset)
 }
 
-func (s *ReferenceService) GetWorkGrades(ctx context.Context) ([]string, error) {
-	return s.repo.GetEnumValues(ctx, "work_grade")
+func (s *ReferenceService) GetWorkGrades(ctx context.Context, limit, offset int) ([]string, int, error) {
+	return s.repo.GetEnumValues(ctx, "work_grade", limit, offset)
 }
 
-func (s *ReferenceService) GetEventCategories(ctx context.Context) ([]string, error) {
-	return s.repo.GetEnumValues(ctx, "event_category")
+func (s *ReferenceService) GetEventCategories(ctx context.Context, limit, offset int) ([]string, int, error) {
+	return s.repo.GetEnumValues(ctx, "event_category", limit, offset)
 }

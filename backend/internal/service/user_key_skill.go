@@ -12,7 +12,7 @@ type userKeySkillRepository interface {
 	AddUserKeySkill(ctx context.Context, userID uuid.UUID, skillID int) error
 	DeleteUserKeySkill(ctx context.Context, userID uuid.UUID, skillID int) error
 	GetKeySkillByID(ctx context.Context, id int) (*model.Skill, error)
-	GetUserKeySkills(ctx context.Context, userID uuid.UUID) ([]*model.Skill, error)
+	GetUserKeySkills(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Skill, int, error)
 }
 
 type UserKeySkillService struct {
@@ -23,8 +23,8 @@ func NewUserKeySkillService(repo userKeySkillRepository) *UserKeySkillService {
 	return &UserKeySkillService{repo: repo}
 }
 
-func (s *UserKeySkillService) GetUserKeySkills(ctx context.Context, userID uuid.UUID) ([]*model.Skill, error) {
-	return s.repo.GetUserKeySkills(ctx, userID)
+func (s *UserKeySkillService) GetUserKeySkills(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Skill, int, error) {
+	return s.repo.GetUserKeySkills(ctx, userID, limit, offset)
 }
 
 func (s *UserKeySkillService) AddUserKeySkill(ctx context.Context, userID uuid.UUID, skillID int) (*model.Skill, error) {

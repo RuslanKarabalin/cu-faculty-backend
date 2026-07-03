@@ -14,7 +14,7 @@ import (
 )
 
 type socialService interface {
-	GetSocialsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Social, error)
+	GetSocialsByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Social, int, error)
 	CreateSocial(ctx context.Context, userID uuid.UUID, req model.SocialRequest) (*model.Social, error)
 	UpdateSocial(ctx context.Context, userID uuid.UUID, id int, req model.SocialRequest) (*model.Social, error)
 	DeleteSocial(ctx context.Context, userID uuid.UUID, id int) error
@@ -35,12 +35,18 @@ func (h *SocialHandler) GetUserSocials(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid user id")
 	}
 
-	socials, err := h.service.GetSocialsByUserID(c.Context(), userID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	socials, total, err := h.service.GetSocialsByUserID(c.Context(), userID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get socials", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(socials)
+	return c.JSON(model.Page[*model.Social]{Data: socials, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *SocialHandler) GetMySocials(c fiber.Ctx) error {
@@ -49,12 +55,18 @@ func (h *SocialHandler) GetMySocials(c fiber.Ctx) error {
 		return err
 	}
 
-	socials, err := h.service.GetSocialsByUserID(c.Context(), cuUser.ID)
+	var q model.PageQuery
+	if err := c.Bind().Query(&q); err != nil {
+		return respondError(c, fiber.StatusBadRequest, err.Error())
+	}
+	limit, offset := q.Normalize()
+
+	socials, total, err := h.service.GetSocialsByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
 		h.logger.Error("failed to get socials", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(socials)
+	return c.JSON(model.Page[*model.Social]{Data: socials, Total: total, Limit: limit, Offset: offset})
 }
 
 func (h *SocialHandler) CreateSocial(c fiber.Ctx) error {

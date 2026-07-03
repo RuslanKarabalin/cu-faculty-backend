@@ -11,7 +11,7 @@ import (
 type eventResponseRepository interface {
 	AddEventResponse(ctx context.Context, userID, eventID uuid.UUID) error
 	DeleteEventResponse(ctx context.Context, userID, eventID uuid.UUID) error
-	GetEventResponders(ctx context.Context, eventID uuid.UUID) ([]*model.User, error)
+	GetEventResponders(ctx context.Context, eventID uuid.UUID, limit, offset int) ([]*model.User, int, error)
 	GetEventsRespondedByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Event, int, error)
 	GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error)
 }
@@ -35,8 +35,8 @@ func (s *EventResponseService) DeleteResponse(ctx context.Context, userID, event
 	return s.repo.DeleteEventResponse(ctx, userID, eventID)
 }
 
-func (s *EventResponseService) GetResponders(ctx context.Context, eventID uuid.UUID) ([]*model.User, error) {
-	return s.repo.GetEventResponders(ctx, eventID)
+func (s *EventResponseService) GetResponders(ctx context.Context, eventID uuid.UUID, limit, offset int) ([]*model.User, int, error) {
+	return s.repo.GetEventResponders(ctx, eventID, limit, offset)
 }
 
 func (s *EventResponseService) GetMyResponses(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.Event, int, error) {

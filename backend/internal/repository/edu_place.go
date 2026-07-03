@@ -96,7 +96,12 @@ func (r *Repository) GetEduPlaceByID(ctx context.Context, id int) (*model.EduPla
 	return ep, nil
 }
 
-func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID) ([]*model.EduPlace, error) {
+func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*model.EduPlace, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from edu_places where user_id = $1`, userID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count edu places: %w", err)
+	}
+
 	query := `
 	select
 		ep.id
@@ -112,11 +117,12 @@ func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID)
 	join universities u on u.id = ep.university_id
 	where ep.user_id = $1
 	order by ep.start_year desc, ep.id
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select edu places: %w", err)
+		return nil, 0, fmt.Errorf("failed to select edu places: %w", err)
 	}
 	defer rows.Close()
 
@@ -134,12 +140,12 @@ func (r *Repository) GetEduPlacesByUserID(ctx context.Context, userID uuid.UUID)
 			&ep.EndYear,
 			&ep.IsStudyingNow,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan edu place: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan edu place: %w", err)
 		}
 		places = append(places, ep)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
-	return places, nil
+	return places, total, nil
 }
