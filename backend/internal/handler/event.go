@@ -153,11 +153,17 @@ func (h *EventHandler) UpdateEvent(c fiber.Ctx) error {
 	}
 
 	var req model.UpdateEventRequest
-	if err := bindMultipartData(c, &req); err != nil {
+	present, err := bindOptionalMultipartData(c, &req)
+	if err != nil {
 		return err
 	}
 
-	event, err := h.service.UpdateEvent(c.Context(), cuUser.ID, id, req)
+	var event *model.Event
+	if present {
+		event, err = h.service.UpdateEvent(c.Context(), cuUser.ID, id, req)
+	} else {
+		event, err = h.service.GetEventByID(c.Context(), id)
+	}
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "event not found")

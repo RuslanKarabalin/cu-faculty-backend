@@ -55,15 +55,33 @@ func (s *NewsService) CreateNews(ctx context.Context, authorID uuid.UUID, req mo
 }
 
 func (s *NewsService) UpdateNews(ctx context.Context, authorID, id uuid.UUID, req model.UpdateNewsRequest) (*model.News, error) {
-	err := s.repo.UpdateNews(ctx, model.UpdateNewsParams{
+	current, err := s.repo.GetNewsByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	params := model.UpdateNewsParams{
 		ID:          id,
 		AuthorID:    authorID,
-		Title:       req.Title,
-		Content:     req.Content,
-		PublishDays: normalizePublishDays(req.PublishDays),
-		IsDraft:     req.IsDraft,
-	})
-	if err != nil {
+		Title:       current.Title,
+		Content:     current.Content,
+		PublishDays: current.PublishDays,
+		IsDraft:     current.IsDraft,
+	}
+	if req.Title != nil {
+		params.Title = *req.Title
+	}
+	if req.Content != nil {
+		params.Content = *req.Content
+	}
+	if req.PublishDays != nil {
+		params.PublishDays = normalizePublishDays(*req.PublishDays)
+	}
+	if req.IsDraft != nil {
+		params.IsDraft = *req.IsDraft
+	}
+
+	if err := s.repo.UpdateNews(ctx, params); err != nil {
 		return nil, err
 	}
 	return s.repo.GetNewsByID(ctx, id)

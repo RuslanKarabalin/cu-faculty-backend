@@ -40,13 +40,13 @@ type CreateEventRequest struct {
 }
 
 type UpdateEventRequest struct {
-	Title            string    `json:"title"`
-	Content          string    `json:"content"`
-	Place            string    `json:"place"`
-	Category         string    `json:"category"`
-	StartsAt         time.Time `json:"startsAt"`
-	RegistrationLink *string   `json:"registrationLink"`
-	IsDraft          bool      `json:"isDraft"`
+	Title            *string    `json:"title"`
+	Content          *string    `json:"content"`
+	Place            *string    `json:"place"`
+	Category         *string    `json:"category"`
+	StartsAt         *time.Time `json:"startsAt"`
+	RegistrationLink *string    `json:"registrationLink"`
+	IsDraft          *bool      `json:"isDraft"`
 }
 
 type Event struct {

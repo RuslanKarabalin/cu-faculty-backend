@@ -56,18 +56,45 @@ func (s *EventService) CreateEvent(ctx context.Context, authorID uuid.UUID, req 
 }
 
 func (s *EventService) UpdateEvent(ctx context.Context, authorID, id uuid.UUID, req model.UpdateEventRequest) (*model.Event, error) {
-	err := s.repo.UpdateEvent(ctx, model.UpdateEventParams{
+	current, err := s.repo.GetEventByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	params := model.UpdateEventParams{
 		ID:               id,
 		AuthorID:         authorID,
-		Title:            req.Title,
-		Content:          req.Content,
-		Place:            req.Place,
-		Category:         req.Category,
-		StartsAt:         req.StartsAt,
-		RegistrationLink: req.RegistrationLink,
-		IsDraft:          req.IsDraft,
-	})
-	if err != nil {
+		Title:            current.Title,
+		Content:          current.Content,
+		Place:            current.Place,
+		Category:         current.Category,
+		StartsAt:         current.StartsAt,
+		RegistrationLink: current.RegistrationLink,
+		IsDraft:          current.IsDraft,
+	}
+	if req.Title != nil {
+		params.Title = *req.Title
+	}
+	if req.Content != nil {
+		params.Content = *req.Content
+	}
+	if req.Place != nil {
+		params.Place = *req.Place
+	}
+	if req.Category != nil {
+		params.Category = *req.Category
+	}
+	if req.StartsAt != nil {
+		params.StartsAt = *req.StartsAt
+	}
+	if req.RegistrationLink != nil {
+		params.RegistrationLink = req.RegistrationLink
+	}
+	if req.IsDraft != nil {
+		params.IsDraft = *req.IsDraft
+	}
+
+	if err := s.repo.UpdateEvent(ctx, params); err != nil {
 		return nil, err
 	}
 	return s.repo.GetEventByID(ctx, id)

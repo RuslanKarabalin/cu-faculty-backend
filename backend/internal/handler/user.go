@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 
 	"faculty/internal/cuclient"
 	"faculty/internal/model"
@@ -92,6 +91,16 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
 
+	user, err = h.applyProfile(c, user)
+	if err != nil {
+		return err
+	}
+
+	user, err = h.applyPhoto(c, user)
+	if err != nil {
+		return err
+	}
+
 	h.attachPhotoURL(c.Context(), user)
 
 	statusCode := fiber.StatusCreated
@@ -101,46 +110,64 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 	return c.Status(statusCode).JSON(user)
 }
 
-func (h *UserHandler) UploadMyPhoto(c fiber.Ctx) error {
-	cuUser, err := currentUser(c, h.logger)
+func (h *UserHandler) applyProfile(c fiber.Ctx, user *model.User) (*model.User, error) {
+	var req model.UpdateUserRequest
+	present, err := bindOptionalMultipartData(c, &req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	fileHeader, err := c.FormFile("photo")
-	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "photo file is required")
+	if !present {
+		return user, nil
 	}
+	return h.updateUser(c, user.ID, req)
+}
 
-	contentType := fileHeader.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") {
-		return respondError(c, fiber.StatusBadRequest, "photo must be an image")
-	}
-
-	file, err := fileHeader.Open()
-	if err != nil {
-		h.logger.Error("failed to open uploaded photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	defer func() { _ = file.Close() }()
-
-	key := photoKeyPrefix(cuUser.ID) + uuid.NewString()
-	if err := h.storage.Upload(c.Context(), key, contentType, file, fileHeader.Size); err != nil {
-		h.logger.Error("failed to upload photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-
-	user, oldKey, err := h.userService.SetPhoto(c.Context(), cuUser.ID, key)
+func (h *UserHandler) updateUser(c fiber.Ctx, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error) {
+	user, err := h.userService.UpdateUser(c.Context(), id, req)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "user not found")
+			return nil, respondError(c, fiber.StatusNotFound, "user not found")
+		}
+		if errors.Is(err, repository.ErrInvalidRefID) {
+			return nil, respondError(c, fiber.StatusBadRequest, "invalid status id")
+		}
+		h.logger.Error("failed to update current user", zap.Error(err))
+		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+	}
+	return user, nil
+}
+
+func (h *UserHandler) getUser(c fiber.Ctx, id uuid.UUID) (*model.User, error) {
+	user, err := h.userService.GetUserByID(c.Context(), id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, respondError(c, fiber.StatusNotFound, "user not found")
+		}
+		h.logger.Error("failed to get current user", zap.Error(err))
+		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+	}
+	return user, nil
+}
+
+func (h *UserHandler) applyPhoto(c fiber.Ctx, user *model.User) (*model.User, error) {
+	key, err := uploadOptionalPhoto(c, h.storage, h.logger, photoKeyPrefix(user.ID))
+	if err != nil {
+		return nil, err
+	}
+	if key == "" {
+		return user, nil
+	}
+
+	updated, oldKey, err := h.userService.SetPhoto(c.Context(), user.ID, key)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, respondError(c, fiber.StatusNotFound, "user not found")
 		}
 		h.logger.Error("failed to set user photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
-	h.attachPhotoURL(c.Context(), user)
-	return c.JSON(user)
+	return updated, nil
 }
 
 func (h *UserHandler) GetMe(c fiber.Ctx) error {
@@ -149,13 +176,9 @@ func (h *UserHandler) GetMe(c fiber.Ctx) error {
 		return err
 	}
 
-	user, err := h.userService.GetUserByID(c.Context(), cuUser.ID)
+	user, err := h.getUser(c, cuUser.ID)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "user not found")
-		}
-		h.logger.Error("failed to get current user", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return err
 	}
 	h.attachPhotoURL(c.Context(), user)
 	return c.JSON(user)
@@ -168,21 +191,26 @@ func (h *UserHandler) UpdateMe(c fiber.Ctx) error {
 	}
 
 	var req model.UpdateUserRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	present, err := bindOptionalMultipartData(c, &req)
+	if err != nil {
+		return err
 	}
 
-	user, err := h.userService.UpdateUser(c.Context(), cuUser.ID, req)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "user not found")
-		}
-		if errors.Is(err, repository.ErrInvalidRefID) {
-			return respondError(c, fiber.StatusBadRequest, "invalid status id")
-		}
-		h.logger.Error("failed to update current user", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+	var user *model.User
+	if present {
+		user, err = h.updateUser(c, cuUser.ID, req)
+	} else {
+		user, err = h.getUser(c, cuUser.ID)
 	}
+	if err != nil {
+		return err
+	}
+
+	user, err = h.applyPhoto(c, user)
+	if err != nil {
+		return err
+	}
+
 	h.attachPhotoURL(c.Context(), user)
 	return c.JSON(user)
 }

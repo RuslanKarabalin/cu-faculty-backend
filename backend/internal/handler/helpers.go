@@ -41,6 +41,17 @@ func bindMultipartData(c fiber.Ctx, out any) error {
 	return nil
 }
 
+func bindOptionalMultipartData(c fiber.Ctx, out any) (bool, error) {
+	data := c.FormValue("data")
+	if data == "" {
+		return false, nil
+	}
+	if err := json.Unmarshal([]byte(data), out); err != nil {
+		return false, respondError(c, fiber.StatusBadRequest, "invalid data part")
+	}
+	return true, nil
+}
+
 func uploadOptionalPhoto(c fiber.Ctx, storage photoUploader, logger *zap.Logger, keyPrefix string) (string, error) {
 	fileHeader, err := c.FormFile("photo")
 	if err != nil {

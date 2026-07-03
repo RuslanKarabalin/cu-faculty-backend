@@ -31,10 +31,10 @@ type CreateNewsRequest struct {
 }
 
 type UpdateNewsRequest struct {
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	PublishDays int    `json:"publishDays"`
-	IsDraft     bool   `json:"isDraft"`
+	Title       *string `json:"title"`
+	Content     *string `json:"content"`
+	PublishDays *int    `json:"publishDays"`
+	IsDraft     *bool   `json:"isDraft"`
 }
 
 type News struct {

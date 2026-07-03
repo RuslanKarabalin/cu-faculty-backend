@@ -153,11 +153,17 @@ func (h *NewsHandler) UpdateNews(c fiber.Ctx) error {
 	}
 
 	var req model.UpdateNewsRequest
-	if err := bindMultipartData(c, &req); err != nil {
+	present, err := bindOptionalMultipartData(c, &req)
+	if err != nil {
 		return err
 	}
 
-	news, err := h.service.UpdateNews(c.Context(), cuUser.ID, id, req)
+	var news *model.News
+	if present {
+		news, err = h.service.UpdateNews(c.Context(), cuUser.ID, id, req)
+	} else {
+		news, err = h.service.GetNewsByID(c.Context(), id)
+	}
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "news not found")

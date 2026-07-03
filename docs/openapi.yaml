@@ -61,8 +61,27 @@ paths:
       description: >
         Idempotent. On first call creates the local user (and imports education
         places from CU) and returns 201. On subsequent calls returns the existing
-        user with 200.
+        user with 200. Optionally accepts multipart/form-data with a JSON `data`
+        part (profile fields) and/or a `photo` image part; supplying `data`
+        updates the profile fields and supplying `photo` sets (or replaces) the
+        user's photo in the same request.
       operationId: registerStudent
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: "#/components/schemas/UpdateUserRequest"
+                photo:
+                  type: string
+                  format: binary
+                  description: Optional image file (Content-Type must start with image/)
+            encoding:
+              data:
+                contentType: application/json
       responses:
         "201":
           description: User created
@@ -74,7 +93,9 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "502": { $ref: "#/components/responses/BadGateway" }
         "500": { $ref: "#/components/responses/InternalError" }
 
@@ -225,40 +246,28 @@ paths:
     put:
       tags: [Me]
       summary: Update the current user's profile
+      description: >
+        Accepts multipart/form-data with an optional JSON `data` part (profile
+        fields) and an optional `photo` image part. Supplying `data` updates the
+        profile fields; supplying `photo` sets (or replaces) the user's photo.
+        Either or both parts may be omitted.
       operationId: updateMe
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/UpdateUserRequest" }
-      responses:
-        "200":
-          description: Updated user
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/User" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "500": { $ref: "#/components/responses/InternalError" }
-
-  /api/me/photo:
-    put:
-      tags: [Me]
-      summary: Upload the current user's photo
-      operationId: uploadMyPhoto
-      requestBody:
-        required: true
+        required: false
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [photo]
               properties:
+                data:
+                  $ref: "#/components/schemas/UpdateUserRequest"
                 photo:
                   type: string
                   format: binary
-                  description: Image file (Content-Type must start with image/)
+                  description: Optional image file (Content-Type must start with image/)
+            encoding:
+              data:
+                contentType: application/json
       responses:
         "200":
           description: Updated user
@@ -951,18 +960,18 @@ paths:
       tags: [News]
       summary: Update a news item (author only)
       description: >-
-        Accepts multipart/form-data: a JSON `data` part with the news fields and
-        an optional `photo` image part. Supplying `photo` replaces the current one.
+        Accepts multipart/form-data with an optional JSON `data` part (news
+        fields, partial update) and an optional `photo` image part. Supplying
+        `photo` replaces the current one. Either or both parts may be omitted.
       operationId: updateNews
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       requestBody:
-        required: true
+        required: false
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [data]
               properties:
                 data:
                   $ref: "#/components/schemas/UpdateNewsRequest"
@@ -1067,18 +1076,18 @@ paths:
       tags: [Events]
       summary: Update an event (author only)
       description: >-
-        Accepts multipart/form-data: a JSON `data` part with the event fields and
-        an optional `photo` image part. Supplying `photo` replaces the current one.
+        Accepts multipart/form-data with an optional JSON `data` part (event
+        fields, partial update) and an optional `photo` image part. Supplying
+        `photo` replaces the current one. Either or both parts may be omitted.
       operationId: updateEvent
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       requestBody:
-        required: true
+        required: false
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [data]
               properties:
                 data:
                   $ref: "#/components/schemas/UpdateEventRequest"
@@ -1612,12 +1621,14 @@ components:
 
     UpdateNewsRequest:
       type: object
+      description: >-
+        Partial update. Only the fields supplied are changed; omitted fields keep
+        their current value.
       properties:
         title: { type: string }
         content: { type: string }
         publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
         isDraft: { type: boolean }
-      required: [title, content]
 
     Event:
       type: object
@@ -1649,6 +1660,9 @@ components:
 
     UpdateEventRequest:
       type: object
+      description: >-
+        Partial update. Only the fields supplied are changed; omitted fields keep
+        their current value.
       properties:
         title: { type: string }
         content: { type: string }
@@ -1657,7 +1671,6 @@ components:
         startsAt: { type: string, format: date-time }
         registrationLink: { type: string, nullable: true }
         isDraft: { type: boolean }
-      required: [title, content, place, category, startsAt]
 
     Status:
       type: object
