@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 
 	"faculty/internal/model"
 	"faculty/internal/repository"
@@ -123,8 +122,8 @@ func (h *EventHandler) CreateEvent(c fiber.Ctx) error {
 	}
 
 	var req model.CreateEventRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindMultipartData(c, &req); err != nil {
+		return err
 	}
 
 	event, err := h.service.CreateEvent(c.Context(), cuUser.ID, req)
@@ -132,6 +131,12 @@ func (h *EventHandler) CreateEvent(c fiber.Ctx) error {
 		h.logger.Error("failed to create event", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
+
+	event, err = h.applyPhoto(c, cuUser.ID, event)
+	if err != nil {
+		return err
+	}
+
 	h.attachURLs(c.Context(), event)
 	return c.Status(fiber.StatusCreated).JSON(event)
 }
@@ -148,8 +153,8 @@ func (h *EventHandler) UpdateEvent(c fiber.Ctx) error {
 	}
 
 	var req model.UpdateEventRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindMultipartData(c, &req); err != nil {
+		return err
 	}
 
 	event, err := h.service.UpdateEvent(c.Context(), cuUser.ID, id, req)
@@ -160,55 +165,35 @@ func (h *EventHandler) UpdateEvent(c fiber.Ctx) error {
 		h.logger.Error("failed to update event", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	h.attachURLs(c.Context(), event)
-	return c.JSON(event)
-}
 
-func (h *EventHandler) UploadEventPhoto(c fiber.Ctx) error {
-	cuUser, err := currentUser(c, h.logger)
+	event, err = h.applyPhoto(c, cuUser.ID, event)
 	if err != nil {
 		return err
 	}
 
-	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid event id")
-	}
-
-	fileHeader, err := c.FormFile("photo")
-	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "photo file is required")
-	}
-
-	contentType := fileHeader.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") {
-		return respondError(c, fiber.StatusBadRequest, "photo must be an image")
-	}
-
-	file, err := fileHeader.Open()
-	if err != nil {
-		h.logger.Error("failed to open uploaded photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	defer func() { _ = file.Close() }()
-
-	key := "events/" + id.String() + "/" + uuid.NewString()
-	if err := h.storage.Upload(c.Context(), key, contentType, file, fileHeader.Size); err != nil {
-		h.logger.Error("failed to upload photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-
-	event, oldKey, err := h.service.SetPhoto(c.Context(), cuUser.ID, id, key)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "event not found")
-		}
-		h.logger.Error("failed to set event photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	h.attachURLs(c.Context(), event)
 	return c.JSON(event)
+}
+
+func (h *EventHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, event *model.Event) (*model.Event, error) {
+	key, err := uploadOptionalPhoto(c, h.storage, h.logger, "events/"+event.ID.String()+"/")
+	if err != nil {
+		return nil, err
+	}
+	if key == "" {
+		return event, nil
+	}
+
+	updated, oldKey, err := h.service.SetPhoto(c.Context(), authorID, event.ID, key)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, respondError(c, fiber.StatusNotFound, "event not found")
+		}
+		h.logger.Error("failed to set event photo", zap.Error(err))
+		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+	}
+	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
+	return updated, nil
 }
 
 func (h *EventHandler) DeleteEvent(c fiber.Ctx) error {

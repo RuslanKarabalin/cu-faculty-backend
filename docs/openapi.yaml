@@ -899,12 +899,27 @@ paths:
     post:
       tags: [News]
       summary: Create a news item
+      description: >-
+        Accepts multipart/form-data: a JSON `data` part with the news fields and
+        an optional `photo` image part uploaded in the same request.
       operationId: createNews
       requestBody:
         required: true
         content:
-          application/json:
-            schema: { $ref: "#/components/schemas/CreateNewsRequest" }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "#/components/schemas/CreateNewsRequest"
+                photo:
+                  type: string
+                  format: binary
+                  description: Optional image file (Content-Type must start with image/)
+            encoding:
+              data:
+                contentType: application/json
       responses:
         "201":
           description: Created news
@@ -935,14 +950,29 @@ paths:
     put:
       tags: [News]
       summary: Update a news item (author only)
+      description: >-
+        Accepts multipart/form-data: a JSON `data` part with the news fields and
+        an optional `photo` image part. Supplying `photo` replaces the current one.
       operationId: updateNews
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
-          application/json:
-            schema: { $ref: "#/components/schemas/UpdateNewsRequest" }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "#/components/schemas/UpdateNewsRequest"
+                photo:
+                  type: string
+                  format: binary
+                  description: Optional image file (Content-Type must start with image/)
+            encoding:
+              data:
+                contentType: application/json
       responses:
         "200":
           description: Updated news
@@ -961,36 +991,6 @@ paths:
         - $ref: "#/components/parameters/ResourceId"
       responses:
         "204": { description: Deleted }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "500": { $ref: "#/components/responses/InternalError" }
-
-  /api/news/{id}/photo:
-    put:
-      tags: [News]
-      summary: Upload a news photo (author only)
-      operationId: uploadNewsPhoto
-      parameters:
-        - $ref: "#/components/parameters/ResourceId"
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [photo]
-              properties:
-                photo:
-                  type: string
-                  format: binary
-                  description: Image file (Content-Type must start with image/)
-      responses:
-        "200":
-          description: Updated news
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/News" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1015,12 +1015,27 @@ paths:
     post:
       tags: [Events]
       summary: Create an event
+      description: >-
+        Accepts multipart/form-data: a JSON `data` part with the event fields and
+        an optional `photo` image part uploaded in the same request.
       operationId: createEvent
       requestBody:
         required: true
         content:
-          application/json:
-            schema: { $ref: "#/components/schemas/CreateEventRequest" }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "#/components/schemas/CreateEventRequest"
+                photo:
+                  type: string
+                  format: binary
+                  description: Optional image file (Content-Type must start with image/)
+            encoding:
+              data:
+                contentType: application/json
       responses:
         "201":
           description: Created event
@@ -1051,14 +1066,29 @@ paths:
     put:
       tags: [Events]
       summary: Update an event (author only)
+      description: >-
+        Accepts multipart/form-data: a JSON `data` part with the event fields and
+        an optional `photo` image part. Supplying `photo` replaces the current one.
       operationId: updateEvent
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
-          application/json:
-            schema: { $ref: "#/components/schemas/UpdateEventRequest" }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "#/components/schemas/UpdateEventRequest"
+                photo:
+                  type: string
+                  format: binary
+                  description: Optional image file (Content-Type must start with image/)
+            encoding:
+              data:
+                contentType: application/json
       responses:
         "200":
           description: Updated event
@@ -1077,36 +1107,6 @@ paths:
         - $ref: "#/components/parameters/ResourceId"
       responses:
         "204": { description: Deleted }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "500": { $ref: "#/components/responses/InternalError" }
-
-  /api/events/{id}/photo:
-    put:
-      tags: [Events]
-      summary: Upload an event photo (author only)
-      operationId: uploadEventPhoto
-      parameters:
-        - $ref: "#/components/parameters/ResourceId"
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [photo]
-              properties:
-                photo:
-                  type: string
-                  format: binary
-                  description: Image file (Content-Type must start with image/)
-      responses:
-        "200":
-          description: Updated event
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Event" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }

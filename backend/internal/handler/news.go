@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 
 	"faculty/internal/model"
 	"faculty/internal/repository"
@@ -123,8 +122,8 @@ func (h *NewsHandler) CreateNews(c fiber.Ctx) error {
 	}
 
 	var req model.CreateNewsRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindMultipartData(c, &req); err != nil {
+		return err
 	}
 
 	news, err := h.service.CreateNews(c.Context(), cuUser.ID, req)
@@ -132,6 +131,12 @@ func (h *NewsHandler) CreateNews(c fiber.Ctx) error {
 		h.logger.Error("failed to create news", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
+
+	news, err = h.applyPhoto(c, cuUser.ID, news)
+	if err != nil {
+		return err
+	}
+
 	h.attachURLs(c.Context(), news)
 	return c.Status(fiber.StatusCreated).JSON(news)
 }
@@ -148,8 +153,8 @@ func (h *NewsHandler) UpdateNews(c fiber.Ctx) error {
 	}
 
 	var req model.UpdateNewsRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindMultipartData(c, &req); err != nil {
+		return err
 	}
 
 	news, err := h.service.UpdateNews(c.Context(), cuUser.ID, id, req)
@@ -160,55 +165,35 @@ func (h *NewsHandler) UpdateNews(c fiber.Ctx) error {
 		h.logger.Error("failed to update news", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
-	h.attachURLs(c.Context(), news)
-	return c.JSON(news)
-}
 
-func (h *NewsHandler) UploadNewsPhoto(c fiber.Ctx) error {
-	cuUser, err := currentUser(c, h.logger)
+	news, err = h.applyPhoto(c, cuUser.ID, news)
 	if err != nil {
 		return err
 	}
 
-	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid news id")
-	}
-
-	fileHeader, err := c.FormFile("photo")
-	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "photo file is required")
-	}
-
-	contentType := fileHeader.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") {
-		return respondError(c, fiber.StatusBadRequest, "photo must be an image")
-	}
-
-	file, err := fileHeader.Open()
-	if err != nil {
-		h.logger.Error("failed to open uploaded photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	defer func() { _ = file.Close() }()
-
-	key := "news/" + id.String() + "/" + uuid.NewString()
-	if err := h.storage.Upload(c.Context(), key, contentType, file, fileHeader.Size); err != nil {
-		h.logger.Error("failed to upload photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-
-	news, oldKey, err := h.service.SetPhoto(c.Context(), cuUser.ID, id, key)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "news not found")
-		}
-		h.logger.Error("failed to set news photo", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
-	}
-	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	h.attachURLs(c.Context(), news)
 	return c.JSON(news)
+}
+
+func (h *NewsHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, news *model.News) (*model.News, error) {
+	key, err := uploadOptionalPhoto(c, h.storage, h.logger, "news/"+news.ID.String()+"/")
+	if err != nil {
+		return nil, err
+	}
+	if key == "" {
+		return news, nil
+	}
+
+	updated, oldKey, err := h.service.SetPhoto(c.Context(), authorID, news.ID, key)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, respondError(c, fiber.StatusNotFound, "news not found")
+		}
+		h.logger.Error("failed to set news photo", zap.Error(err))
+		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+	}
+	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
+	return updated, nil
 }
 
 func (h *NewsHandler) DeleteNews(c fiber.Ctx) error {
