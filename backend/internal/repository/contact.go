@@ -11,15 +11,25 @@ import (
 )
 
 func (r *Repository) CreateContact(ctx context.Context, params model.CreateContactParams) error {
-	query := `
-	insert into contacts(user_id, contact_id, note)
-	values($1, $2, $3)
-	`
+	return r.RunInTx(ctx, func(tx *Repository) error {
+		forward := `
+		insert into contacts(user_id, contact_id, note)
+		values($1, $2, $3)
+		`
+		if _, err := tx.db.Exec(ctx, forward, params.UserID, params.ContactID, params.Note); err != nil {
+			return wrapPgError(err)
+		}
 
-	if _, err := r.db.Exec(ctx, query, params.UserID, params.ContactID, params.Note); err != nil {
-		return wrapPgError(err)
-	}
-	return nil
+		reverse := `
+		insert into contacts(user_id, contact_id)
+		values($1, $2)
+		on conflict do nothing
+		`
+		if _, err := tx.db.Exec(ctx, reverse, params.ContactID, params.UserID); err != nil {
+			return wrapPgError(err)
+		}
+		return nil
+	})
 }
 
 func (r *Repository) UpdateContact(ctx context.Context, params model.UpdateContactParams) error {
