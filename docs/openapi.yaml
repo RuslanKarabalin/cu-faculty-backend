@@ -1,0 +1,1833 @@
+openapi: 3.0.3
+info:
+  title: CU Faculty Backend API
+  version: "1.0.0"
+  description: >
+    REST API for the CU Faculty student hub. All endpoints under `/api` require a
+    valid `bff.cookie` session cookie, which is validated against the Central
+    University (CU) upstream on every request. The authenticated CU student id is
+    used as the local user id. The only unauthenticated endpoint is `/health`.
+
+
+    List endpoints are paginated and return a `{ data, total, limit, offset }`
+    envelope. Pagination is controlled with the `limit` (default 20, max 100) and
+    `offset` (default 0) query parameters.
+
+servers:
+  - url: /
+    description: Same-origin (nginx proxies /api to the backend)
+
+security:
+  - cookieAuth: []
+
+tags:
+  - name: Health
+  - name: Students
+  - name: Me
+  - name: Announcements
+  - name: News
+  - name: Events
+  - name: Reference
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness/readiness probe
+      operationId: health
+      security: []
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+        "503":
+          description: Database unreachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: unhealthy }
+
+  /api/students/register:
+    post:
+      tags: [Students]
+      summary: Register (or return) the current CU user
+      description: >
+        Idempotent. On first call creates the local user (and imports education
+        places from CU) and returns 201. On subsequent calls returns the existing
+        user with 200.
+      operationId: registerStudent
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "200":
+          description: User already existed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/students:
+    get:
+      tags: [Students]
+      summary: List students
+      operationId: listStudents
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged students
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/students/{id}:
+    get:
+      tags: [Students]
+      summary: Get a student by id
+      operationId: getStudent
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Student
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/students/{id}/edu-places:
+    get:
+      tags: [Students]
+      summary: List a student's education places
+      operationId: getStudentEduPlaces
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged education places
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EduPlacePage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/students/{id}/work-places:
+    get:
+      tags: [Students]
+      summary: List a student's work places
+      operationId: getStudentWorkPlaces
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged work places
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkPlacePage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/students/{id}/socials:
+    get:
+      tags: [Students]
+      summary: List a student's socials
+      operationId: getStudentSocials
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged socials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SocialPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/students/{id}/key-skills:
+    get:
+      tags: [Students]
+      summary: List a student's key skills
+      operationId: getStudentKeySkills
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged skills
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/students/{id}/soft-skills:
+    get:
+      tags: [Students]
+      summary: List a student's soft skills
+      operationId: getStudentSoftSkills
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged skills
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me:
+    get:
+      tags: [Me]
+      summary: Get the current user
+      operationId: getMe
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    put:
+      tags: [Me]
+      summary: Update the current user's profile
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateUserRequest" }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/photo:
+    put:
+      tags: [Me]
+      summary: Upload the current user's photo
+      operationId: uploadMyPhoto
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Image file (Content-Type must start with image/)
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/edu-places:
+    get:
+      tags: [Me]
+      summary: List my education places
+      operationId: getMyEduPlaces
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged education places
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EduPlacePage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Me]
+      summary: Create an education place
+      operationId: createEduPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EduPlaceRequest" }
+      responses:
+        "201":
+          description: Created education place
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EduPlace" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/edu-places/{eduId}:
+    put:
+      tags: [Me]
+      summary: Update an education place
+      operationId: updateEduPlace
+      parameters:
+        - $ref: "#/components/parameters/EduId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EduPlaceRequest" }
+      responses:
+        "200":
+          description: Updated education place
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EduPlace" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Delete an education place
+      operationId: deleteEduPlace
+      parameters:
+        - $ref: "#/components/parameters/EduId"
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/work-places:
+    get:
+      tags: [Me]
+      summary: List my work places
+      operationId: getMyWorkPlaces
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged work places
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkPlacePage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Me]
+      summary: Create a work place
+      operationId: createWorkPlace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkPlaceRequest" }
+      responses:
+        "201":
+          description: Created work place
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkPlace" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/work-places/{workId}:
+    put:
+      tags: [Me]
+      summary: Update a work place
+      operationId: updateWorkPlace
+      parameters:
+        - $ref: "#/components/parameters/WorkId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkPlaceRequest" }
+      responses:
+        "200":
+          description: Updated work place
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkPlace" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Delete a work place
+      operationId: deleteWorkPlace
+      parameters:
+        - $ref: "#/components/parameters/WorkId"
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/socials:
+    get:
+      tags: [Me]
+      summary: List my socials
+      operationId: getMySocials
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged socials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SocialPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Me]
+      summary: Create a social link
+      operationId: createSocial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SocialRequest" }
+      responses:
+        "201":
+          description: Created social
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Social" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/socials/{socialId}:
+    put:
+      tags: [Me]
+      summary: Update a social link
+      operationId: updateSocial
+      parameters:
+        - $ref: "#/components/parameters/SocialId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SocialRequest" }
+      responses:
+        "200":
+          description: Updated social
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Social" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Delete a social link
+      operationId: deleteSocial
+      parameters:
+        - $ref: "#/components/parameters/SocialId"
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/contacts:
+    get:
+      tags: [Me]
+      summary: List my contacts
+      operationId: getMyContacts
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged contacts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContactPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Me]
+      summary: Add a contact
+      description: >
+        Links the current user to another user in both directions. The reverse
+        link is created without a note.
+      operationId: createContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateContactRequest" }
+      responses:
+        "201":
+          description: Created contact
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+        "400":
+          description: Bad request or attempt to add yourself
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Referenced contact user does not exist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Contact already exists
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/contacts/{contactId}:
+    put:
+      tags: [Me]
+      summary: Update a contact note
+      operationId: updateContact
+      parameters:
+        - $ref: "#/components/parameters/ContactId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateContactRequest" }
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Delete a contact
+      operationId: deleteContact
+      parameters:
+        - $ref: "#/components/parameters/ContactId"
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/announcements:
+    get:
+      tags: [Me]
+      summary: List announcements I authored
+      operationId: getMyAnnouncements
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged announcements
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnnouncementPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/news:
+    get:
+      tags: [Me]
+      summary: List news I authored
+      operationId: getMyNews
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged news
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NewsPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/events:
+    get:
+      tags: [Me]
+      summary: List events I authored
+      operationId: getMyEvents
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged events
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/announcement-responses:
+    get:
+      tags: [Me]
+      summary: List announcements I responded to
+      operationId: getMyAnnouncementResponses
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged announcements
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnnouncementPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/event-responses:
+    get:
+      tags: [Me]
+      summary: List events I responded to
+      operationId: getMyEventResponses
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged events
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/key-skills:
+    get:
+      tags: [Me]
+      summary: List my key skills
+      operationId: getMyKeySkills
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged skills
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/key-skills/{skillId}:
+    post:
+      tags: [Me]
+      summary: Add a key skill to me
+      operationId: addMyKeySkill
+      parameters:
+        - $ref: "#/components/parameters/SkillId"
+      responses:
+        "201":
+          description: Added skill
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Skill" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Remove a key skill from me
+      operationId: deleteMyKeySkill
+      parameters:
+        - $ref: "#/components/parameters/SkillId"
+      responses:
+        "204": { description: Removed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/soft-skills:
+    get:
+      tags: [Me]
+      summary: List my soft skills
+      operationId: getMySoftSkills
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged skills
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/soft-skills/{skillId}:
+    post:
+      tags: [Me]
+      summary: Add a soft skill to me
+      operationId: addMySoftSkill
+      parameters:
+        - $ref: "#/components/parameters/SkillId"
+      responses:
+        "201":
+          description: Added skill
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Skill" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Remove a soft skill from me
+      operationId: deleteMySoftSkill
+      parameters:
+        - $ref: "#/components/parameters/SkillId"
+      responses:
+        "204": { description: Removed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/announcements:
+    get:
+      tags: [Announcements]
+      summary: List announcements
+      operationId: listAnnouncements
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged announcements
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnnouncementPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Announcements]
+      summary: Create an announcement
+      operationId: createAnnouncement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateAnnouncementRequest" }
+      responses:
+        "201":
+          description: Created announcement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Announcement" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/announcements/{id}:
+    get:
+      tags: [Announcements]
+      summary: Get an announcement
+      operationId: getAnnouncement
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Announcement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Announcement" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    put:
+      tags: [Announcements]
+      summary: Update an announcement (author only)
+      operationId: updateAnnouncement
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateAnnouncementRequest" }
+      responses:
+        "200":
+          description: Updated announcement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Announcement" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Announcements]
+      summary: Delete an announcement (author only)
+      operationId: deleteAnnouncement
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/announcements/{id}/responses:
+    get:
+      tags: [Announcements]
+      summary: List responders to an announcement
+      operationId: getAnnouncementResponders
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged responders
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Announcements]
+      summary: Respond to an announcement
+      description: Idempotent. Fails if the announcement is missing or archived.
+      operationId: respondToAnnouncement
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "201":
+          description: Announcement responded to
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Announcement" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Announcements]
+      summary: Remove my response to an announcement
+      operationId: deleteMyAnnouncementResponse
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204": { description: Removed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/news:
+    get:
+      tags: [News]
+      summary: List news
+      operationId: listNews
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged news
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NewsPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [News]
+      summary: Create a news item
+      operationId: createNews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateNewsRequest" }
+      responses:
+        "201":
+          description: Created news
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/News" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/news/{id}:
+    get:
+      tags: [News]
+      summary: Get a news item
+      operationId: getNews
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: News
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/News" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    put:
+      tags: [News]
+      summary: Update a news item (author only)
+      operationId: updateNews
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateNewsRequest" }
+      responses:
+        "200":
+          description: Updated news
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/News" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [News]
+      summary: Delete a news item (author only)
+      operationId: deleteNews
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/news/{id}/photo:
+    put:
+      tags: [News]
+      summary: Upload a news photo (author only)
+      operationId: uploadNewsPhoto
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Image file (Content-Type must start with image/)
+      responses:
+        "200":
+          description: Updated news
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/News" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/events:
+    get:
+      tags: [Events]
+      summary: List events
+      operationId: listEvents
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged events
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Events]
+      summary: Create an event
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateEventRequest" }
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/events/{id}:
+    get:
+      tags: [Events]
+      summary: Get an event
+      operationId: getEvent
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    put:
+      tags: [Events]
+      summary: Update an event (author only)
+      operationId: updateEvent
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateEventRequest" }
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Events]
+      summary: Delete an event (author only)
+      operationId: deleteEvent
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/events/{id}/photo:
+    put:
+      tags: [Events]
+      summary: Upload an event photo (author only)
+      operationId: uploadEventPhoto
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [photo]
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Image file (Content-Type must start with image/)
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/events/{id}/responses:
+    get:
+      tags: [Events]
+      summary: List responders to an event
+      operationId: getEventResponders
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged responders
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Events]
+      summary: Respond to an event
+      description: Idempotent. Fails if the event is missing or a draft.
+      operationId: respondToEvent
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "201":
+          description: Event responded to
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Events]
+      summary: Remove my response to an event
+      operationId: deleteMyEventResponse
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204": { description: Removed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/statuses:
+    get:
+      tags: [Reference]
+      summary: List statuses
+      operationId: listStatuses
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged statuses
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StatusPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/key-skills:
+    get:
+      tags: [Reference]
+      summary: List all key skills
+      operationId: listKeySkills
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged skills
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/soft-skills:
+    get:
+      tags: [Reference]
+      summary: List all soft skills
+      operationId: listSoftSkills
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged skills
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/companies:
+    get:
+      tags: [Reference]
+      summary: List companies
+      operationId: listCompanies
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged companies
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CompanyPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/work-positions:
+    get:
+      tags: [Reference]
+      summary: List work positions
+      operationId: listWorkPositions
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged work positions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkPositionPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/universities:
+    get:
+      tags: [Reference]
+      summary: List universities
+      operationId: listUniversities
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged universities
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UniversityPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/faqs:
+    get:
+      tags: [Reference]
+      summary: List FAQs
+      operationId: listFaqs
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged FAQs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FaqPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/social-networks:
+    get:
+      tags: [Reference]
+      summary: List social network enum values
+      operationId: listSocialNetworks
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged enum values
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StringPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/edu-grades:
+    get:
+      tags: [Reference]
+      summary: List education grade enum values
+      operationId: listEduGrades
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged enum values
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StringPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/work-grades:
+    get:
+      tags: [Reference]
+      summary: List work grade enum values
+      operationId: listWorkGrades
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged enum values
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StringPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/event-categories:
+    get:
+      tags: [Reference]
+      summary: List event category enum values
+      operationId: listEventCategories
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged enum values
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StringPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: bff.cookie
+      description: CU session cookie, validated against the CU upstream on every request.
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size (default 20, clamped to a maximum of 100).
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Number of items to skip (default 0).
+      schema: { type: integer, minimum: 0, default: 0 }
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    EduId:
+      name: eduId
+      in: path
+      required: true
+      schema: { type: integer }
+    WorkId:
+      name: workId
+      in: path
+      required: true
+      schema: { type: integer }
+    SocialId:
+      name: socialId
+      in: path
+      required: true
+      schema: { type: integer }
+    SkillId:
+      name: skillId
+      in: path
+      required: true
+      schema: { type: integer }
+    ContactId:
+      name: contactId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing or rejected session cookie
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadGateway:
+      description: Upstream (CU) error or invalid upstream data
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    PageMeta:
+      type: object
+      properties:
+        total: { type: integer, description: Total number of matching items }
+        limit: { type: integer }
+        offset: { type: integer }
+      required: [total, limit, offset]
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        photoUrl:
+          type: string
+          nullable: true
+          description: Presigned, time-limited download URL for the user's photo.
+        firstName: { type: string }
+        lastName: { type: string }
+        bio: { type: string, nullable: true }
+        birthdate: { type: string, format: date, example: "2000-01-31" }
+        speciality: { type: string, nullable: true }
+        status: { type: string, nullable: true, description: Resolved status content }
+        role: { type: string, enum: [user, admin] }
+      required: [id, firstName, lastName, birthdate, role]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        bio: { type: string, nullable: true }
+        speciality: { type: string, nullable: true }
+        statusId: { type: integer, nullable: true }
+
+    EduPlace:
+      type: object
+      properties:
+        id: { type: integer }
+        universityId: { type: integer }
+        universityName: { type: string }
+        grade: { $ref: "#/components/schemas/EduGrade" }
+        level: { type: string, nullable: true }
+        specialization: { type: string }
+        startYear: { type: integer }
+        endYear: { type: integer, nullable: true }
+        isStudyingNow: { type: boolean }
+      required: [id, universityId, universityName, grade, specialization, startYear, isStudyingNow]
+
+    EduPlaceRequest:
+      type: object
+      properties:
+        universityId: { type: integer }
+        grade: { $ref: "#/components/schemas/EduGrade" }
+        level: { type: string, nullable: true }
+        specialization: { type: string }
+        startYear: { type: integer }
+        endYear: { type: integer, nullable: true }
+        isStudyingNow: { type: boolean }
+      required: [universityId, grade, specialization, startYear, isStudyingNow]
+
+    WorkPlace:
+      type: object
+      properties:
+        id: { type: integer }
+        companyName: { type: string }
+        grade: { $ref: "#/components/schemas/WorkGrade" }
+        position: { type: string }
+        startYear: { type: integer }
+        endYear: { type: integer, nullable: true }
+        isWorkingNow: { type: boolean }
+      required: [id, companyName, grade, position, startYear, isWorkingNow]
+
+    WorkPlaceRequest:
+      type: object
+      properties:
+        companyName: { type: string }
+        grade: { $ref: "#/components/schemas/WorkGrade" }
+        position: { type: string }
+        startYear: { type: integer }
+        endYear: { type: integer, nullable: true }
+        isWorkingNow: { type: boolean }
+      required: [companyName, grade, position, startYear, isWorkingNow]
+
+    Social:
+      type: object
+      properties:
+        id: { type: integer }
+        social: { $ref: "#/components/schemas/SocialNetwork" }
+        link: { type: string }
+        isPreferred: { type: boolean }
+      required: [id, social, link, isPreferred]
+
+    SocialRequest:
+      type: object
+      properties:
+        social: { $ref: "#/components/schemas/SocialNetwork" }
+        link: { type: string }
+        isPreferred: { type: boolean }
+      required: [social, link, isPreferred]
+
+    Contact:
+      type: object
+      properties:
+        note: { type: string, nullable: true }
+        user: { $ref: "#/components/schemas/User" }
+      required: [user]
+
+    CreateContactRequest:
+      type: object
+      properties:
+        contactId: { type: string, format: uuid }
+        note: { type: string, nullable: true }
+      required: [contactId]
+
+    UpdateContactRequest:
+      type: object
+      properties:
+        note: { type: string, nullable: true }
+
+    Skill:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+      required: [id, name]
+
+    Announcement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        content: { type: string }
+        isArchived: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        author: { $ref: "#/components/schemas/User" }
+      required: [id, title, content, isArchived, createdAt, author]
+
+    CreateAnnouncementRequest:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+      required: [title, content]
+
+    UpdateAnnouncementRequest:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+        isArchived: { type: boolean }
+      required: [title, content]
+
+    News:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        content: { type: string }
+        photoUrl: { type: string, nullable: true, description: Presigned download URL }
+        publishDays: { type: integer }
+        isDraft: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        author: { $ref: "#/components/schemas/User" }
+      required: [id, title, content, publishDays, isDraft, createdAt, author]
+
+    CreateNewsRequest:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+        publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
+        isDraft: { type: boolean }
+      required: [title, content]
+
+    UpdateNewsRequest:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+        publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
+        isDraft: { type: boolean }
+      required: [title, content]
+
+    Event:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        content: { type: string }
+        photoUrl: { type: string, nullable: true, description: Presigned download URL }
+        place: { type: string }
+        category: { $ref: "#/components/schemas/EventCategory" }
+        startsAt: { type: string, format: date-time }
+        registrationLink: { type: string, nullable: true }
+        isDraft: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        author: { $ref: "#/components/schemas/User" }
+      required: [id, title, content, place, category, startsAt, isDraft, createdAt, author]
+
+    CreateEventRequest:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+        place: { type: string }
+        category: { $ref: "#/components/schemas/EventCategory" }
+        startsAt: { type: string, format: date-time }
+        registrationLink: { type: string, nullable: true }
+        isDraft: { type: boolean }
+      required: [title, content, place, category, startsAt]
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+        place: { type: string }
+        category: { $ref: "#/components/schemas/EventCategory" }
+        startsAt: { type: string, format: date-time }
+        registrationLink: { type: string, nullable: true }
+        isDraft: { type: boolean }
+      required: [title, content, place, category, startsAt]
+
+    Status:
+      type: object
+      properties:
+        id: { type: integer }
+        content: { type: string }
+      required: [id, content]
+
+    Company:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+      required: [id, name]
+
+    WorkPosition:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+      required: [id, name]
+
+    University:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        shortName: { type: string }
+      required: [id, name, shortName]
+
+    Faq:
+      type: object
+      properties:
+        id: { type: integer }
+        question: { type: string }
+        answer: { type: string }
+      required: [id, question, answer]
+
+    SocialNetwork:
+      type: string
+      enum: [vk, telegram, github]
+
+    EduGrade:
+      type: string
+      enum: [bachelor, master, specialist, postgraduate]
+
+    WorkGrade:
+      type: string
+      enum: [intern, junior, junior_plus, middle, middle_plus, senior, staff, principal, lead, head]
+
+    EventCategory:
+      type: string
+      enum: [networking, professional, partner]
+
+    UserPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/User" } }
+          required: [data]
+
+    EduPlacePage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/EduPlace" } }
+          required: [data]
+
+    WorkPlacePage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/WorkPlace" } }
+          required: [data]
+
+    SocialPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Social" } }
+          required: [data]
+
+    ContactPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Contact" } }
+          required: [data]
+
+    SkillPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Skill" } }
+          required: [data]
+
+    AnnouncementPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Announcement" } }
+          required: [data]
+
+    NewsPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/News" } }
+          required: [data]
+
+    EventPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Event" } }
+          required: [data]
+
+    StatusPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Status" } }
+          required: [data]
+
+    CompanyPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Company" } }
+          required: [data]
+
+    WorkPositionPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/WorkPosition" } }
+          required: [data]
+
+    UniversityPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/University" } }
+          required: [data]
+
+    FaqPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/Faq" } }
+          required: [data]
+
+    StringPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { type: string } }
+          required: [data]
