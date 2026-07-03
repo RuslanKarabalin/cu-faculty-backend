@@ -13,10 +13,6 @@ info:
     envelope. Pagination is controlled with the `limit` (default 20, max 100) and
     `offset` (default 0) query parameters.
 
-servers:
-  - url: /
-    description: Same-origin (nginx proxies /api to the backend)
-
 security:
   - cookieAuth: []
 
@@ -74,8 +70,12 @@ paths:
               type: object
               properties:
                 data:
-                  allOf:
-                    - $ref: "#/components/schemas/UpdateUserRequest"
+                  type: object
+                  description: Profile fields (partial update; omitted fields keep their current value)
+                  properties:
+                    bio: { type: string, nullable: true }
+                    speciality: { type: string, nullable: true }
+                    statusId: { type: integer, nullable: true }
                 photo:
                   type: string
                   format: binary
@@ -261,8 +261,12 @@ paths:
               type: object
               properties:
                 data:
-                  allOf:
-                    - $ref: "#/components/schemas/UpdateUserRequest"
+                  type: object
+                  description: Profile fields (partial update; omitted fields keep their current value)
+                  properties:
+                    bio: { type: string, nullable: true }
+                    speciality: { type: string, nullable: true }
+                    statusId: { type: integer, nullable: true }
                 photo:
                   type: string
                   format: binary
@@ -923,8 +927,13 @@ paths:
               required: [data]
               properties:
                 data:
-                  allOf:
-                    - $ref: "#/components/schemas/CreateNewsRequest"
+                  type: object
+                  required: [title, content]
+                  properties:
+                    title: { type: string }
+                    content: { type: string }
+                    publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
+                    isDraft: { type: boolean }
                 photo:
                   type: string
                   format: binary
@@ -977,8 +986,13 @@ paths:
               type: object
               properties:
                 data:
-                  allOf:
-                    - $ref: "#/components/schemas/UpdateNewsRequest"
+                  type: object
+                  description: Partial update; omitted fields keep their current value
+                  properties:
+                    title: { type: string }
+                    content: { type: string }
+                    publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
+                    isDraft: { type: boolean }
                 photo:
                   type: string
                   format: binary
@@ -1041,8 +1055,16 @@ paths:
               required: [data]
               properties:
                 data:
-                  allOf:
-                    - $ref: "#/components/schemas/CreateEventRequest"
+                  type: object
+                  required: [title, content, place, category, startsAt]
+                  properties:
+                    title: { type: string }
+                    content: { type: string }
+                    place: { type: string }
+                    category: { $ref: "#/components/schemas/EventCategory" }
+                    startsAt: { type: string, format: date-time }
+                    registrationLink: { type: string, nullable: true }
+                    isDraft: { type: boolean }
                 photo:
                   type: string
                   format: binary
@@ -1095,8 +1117,16 @@ paths:
               type: object
               properties:
                 data:
-                  allOf:
-                    - $ref: "#/components/schemas/UpdateEventRequest"
+                  type: object
+                  description: Partial update; omitted fields keep their current value
+                  properties:
+                    title: { type: string }
+                    content: { type: string }
+                    place: { type: string }
+                    category: { $ref: "#/components/schemas/EventCategory" }
+                    startsAt: { type: string, format: date-time }
+                    registrationLink: { type: string, nullable: true }
+                    isDraft: { type: boolean }
                 photo:
                   type: string
                   format: binary
@@ -1478,13 +1508,6 @@ components:
         role: { type: string, enum: [user, admin] }
       required: [id, firstName, lastName, birthdate, role]
 
-    UpdateUserRequest:
-      type: object
-      properties:
-        bio: { type: string, nullable: true }
-        speciality: { type: string, nullable: true }
-        statusId: { type: integer, nullable: true }
-
     EduPlace:
       type: object
       properties:
@@ -1616,26 +1639,6 @@ components:
         author: { $ref: "#/components/schemas/User" }
       required: [id, title, content, publishDays, isDraft, createdAt, author]
 
-    CreateNewsRequest:
-      type: object
-      properties:
-        title: { type: string }
-        content: { type: string }
-        publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
-        isDraft: { type: boolean }
-      required: [title, content]
-
-    UpdateNewsRequest:
-      type: object
-      description: >-
-        Partial update. Only the fields supplied are changed; omitted fields keep
-        their current value.
-      properties:
-        title: { type: string }
-        content: { type: string }
-        publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
-        isDraft: { type: boolean }
-
     Event:
       type: object
       properties:
@@ -1651,32 +1654,6 @@ components:
         createdAt: { type: string, format: date-time }
         author: { $ref: "#/components/schemas/User" }
       required: [id, title, content, place, category, startsAt, isDraft, createdAt, author]
-
-    CreateEventRequest:
-      type: object
-      properties:
-        title: { type: string }
-        content: { type: string }
-        place: { type: string }
-        category: { $ref: "#/components/schemas/EventCategory" }
-        startsAt: { type: string, format: date-time }
-        registrationLink: { type: string, nullable: true }
-        isDraft: { type: boolean }
-      required: [title, content, place, category, startsAt]
-
-    UpdateEventRequest:
-      type: object
-      description: >-
-        Partial update. Only the fields supplied are changed; omitted fields keep
-        their current value.
-      properties:
-        title: { type: string }
-        content: { type: string }
-        place: { type: string }
-        category: { $ref: "#/components/schemas/EventCategory" }
-        startsAt: { type: string, format: date-time }
-        registrationLink: { type: string, nullable: true }
-        isDraft: { type: boolean }
 
     Status:
       type: object
