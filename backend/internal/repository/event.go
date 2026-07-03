@@ -47,8 +47,6 @@ func (r *Repository) UpdateEvent(ctx context.Context, params model.UpdateEventPa
 	return nil
 }
 
-// UpdateEventPhoto sets the event's photo key and returns the previous key (if
-// any) so the caller can clean up the replaced object.
 func (r *Repository) UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error) {
 	query := `
 	with old as (select photo_s3_key from events where id = $1 and author_id = $2)

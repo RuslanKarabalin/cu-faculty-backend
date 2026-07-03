@@ -69,8 +69,6 @@ func (s *NewsService) UpdateNews(ctx context.Context, authorID, id uuid.UUID, re
 	return s.repo.GetNewsByID(ctx, id)
 }
 
-// SetPhoto updates the news photo and returns the updated news along with the
-// previous photo key (if any) so the caller can delete the replaced object.
 func (s *NewsService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, *string, error) {
 	oldKey, err := s.repo.UpdateNewsPhoto(ctx, id, authorID, key)
 	if err != nil {

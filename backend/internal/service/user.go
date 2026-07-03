@@ -37,8 +37,6 @@ func (s *UserService) GetAllUsers(ctx context.Context, limit, offset int) ([]*mo
 	return s.repo.GetAllUsers(ctx, limit, offset)
 }
 
-// SetPhoto updates the user's photo and returns the updated user along with the
-// previous photo key (if any) so the caller can delete the replaced object.
 func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error) {
 	oldKey, err := s.repo.UpdateUserPhoto(ctx, id, key)
 	if err != nil {

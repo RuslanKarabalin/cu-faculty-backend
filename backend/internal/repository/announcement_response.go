@@ -23,8 +23,6 @@ func (r *Repository) AddAnnouncementResponse(ctx context.Context, userID, announ
 		return wrapPgError(err)
 	}
 	if tag.RowsAffected() == 0 {
-		// No row inserted: either the announcement is missing/archived, or the
-		// user has already responded. Only the former is an error.
 		var alreadyResponded bool
 		if err := r.db.QueryRow(ctx,
 			`select exists(select 1 from announcement_responses where user_id = $1 and announcement_id = $2)`,

@@ -73,8 +73,6 @@ func (s *EventService) UpdateEvent(ctx context.Context, authorID, id uuid.UUID, 
 	return s.repo.GetEventByID(ctx, id)
 }
 
-// SetPhoto updates the event's photo and returns the updated event along with
-// the previous photo key (if any) so the caller can delete the replaced object.
 func (s *EventService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.Event, *string, error) {
 	oldKey, err := s.repo.UpdateEventPhoto(ctx, id, authorID, key)
 	if err != nil {

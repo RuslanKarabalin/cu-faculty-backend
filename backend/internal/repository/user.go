@@ -19,8 +19,6 @@ func (r *Repository) CreateUser(ctx context.Context, params model.CreateUserPara
 	return nil
 }
 
-// UpdateUserPhoto sets the user's photo key and returns the previous key (if any)
-// so the caller can clean up the replaced object.
 func (r *Repository) UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) (*string, error) {
 	query := `
 	with old as (select photo_s3_key from users where id = $1)

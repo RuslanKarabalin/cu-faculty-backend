@@ -23,8 +23,6 @@ func (r *Repository) AddEventResponse(ctx context.Context, userID, eventID uuid.
 		return wrapPgError(err)
 	}
 	if tag.RowsAffected() == 0 {
-		// No row inserted: either the event is missing/draft, or the user has
-		// already responded. Only the former is an error.
 		var alreadyResponded bool
 		if err := r.db.QueryRow(ctx,
 			`select exists(select 1 from event_responses where user_id = $1 and event_id = $2)`,
