@@ -13,6 +13,7 @@ create type "social_network" as enum (
 create type "edu_grade" as enum (
     'bachelor'
     , 'master'
+    , 'dpomaster'
     , 'specialist'
     , 'postgraduate'
 );
