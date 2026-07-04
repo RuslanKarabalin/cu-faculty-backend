@@ -11,10 +11,14 @@ import (
 )
 
 func (r *Repository) CreateUser(ctx context.Context, params model.CreateUserParams) error {
-	query := `insert into users(id, first_name, last_name, birth_date, role) values($1, $2, $3, $4, 'user')`
+	query := `insert into users(id, first_name, last_name, birth_date, role) values($1, $2, $3, $4, 'user') on conflict (id) do nothing`
 
-	if _, err := r.db.Exec(ctx, query, params.ID, params.FirstName, params.LastName, params.BirthDate); err != nil {
+	tag, err := r.db.Exec(ctx, query, params.ID, params.FirstName, params.LastName, params.BirthDate)
+	if err != nil {
 		return wrapPgError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrDuplicate
 	}
 	return nil
 }

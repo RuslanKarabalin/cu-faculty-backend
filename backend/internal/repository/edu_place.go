@@ -14,11 +14,15 @@ func (r *Repository) CreateEduPlace(ctx context.Context, params model.CreateEduP
 	query := `
 	insert into edu_places(user_id, university_id, grade, level, specialization, start_year, end_year, is_studying_now)
 	values($1, $2, $3, $4, $5, $6, $7, $8)
+	on conflict (user_id, university_id, start_year) do nothing
 	returning id
 	`
 
 	var id int
 	if err := r.db.QueryRow(ctx, query, params.UserId, params.UniversityId, params.Grade, params.Level, params.Specialization, params.StartYear, params.EndYear, params.IsStudyingNow).Scan(&id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrDuplicate
+		}
 		return 0, wrapPgError(err)
 	}
 	return id, nil
