@@ -17,7 +17,6 @@ security:
   - cookieAuth: []
 
 tags:
-  - name: Health
   - name: Students
   - name: Me
   - name: Announcements
@@ -26,30 +25,6 @@ tags:
   - name: Reference
 
 paths:
-  /health:
-    get:
-      tags: [Health]
-      summary: Liveness/readiness probe
-      operationId: health
-      security: []
-      responses:
-        "200":
-          description: Service healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status: { type: string, example: ok }
-        "503":
-          description: Database unreachable
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status: { type: string, example: unhealthy }
-
   /api/students/register:
     post:
       tags: [Students]
@@ -57,10 +32,10 @@ paths:
       description: >
         Idempotent. On first call creates the local user (and imports education
         places from CU) and returns 201. On subsequent calls returns the existing
-        user with 200. Optionally accepts multipart/form-data with a JSON `data`
-        part (profile fields) and/or a `photo` image part; supplying `data`
-        updates the profile fields and supplying `photo` sets (or replaces) the
-        user's photo in the same request.
+        user with 200. Identity comes entirely from the `bff.cookie` session; the
+        only accepted body is an optional `photo` image part that sets (or
+        replaces) the user's photo. No profile fields are read here — use
+        `PUT /api/me` to edit those.
       operationId: registerStudent
       requestBody:
         required: false
@@ -69,15 +44,10 @@ paths:
             schema:
               type: object
               properties:
-                data:
-                  $ref: "#/components/schemas/ProfileData"
                 photo:
                   type: string
                   format: binary
                   description: Optional image file (Content-Type must start with image/)
-            encoding:
-              data:
-                contentType: application/json
       responses:
         "201":
           description: User created
@@ -250,20 +220,15 @@ paths:
       operationId: updateMe
       requestBody:
         required: false
+        description: >
+          Actually sent as `multipart/form-data`: a JSON `data` part matching the
+          schema below, plus an optional `photo` image part (Content-Type must
+          start with `image/`) that sets or replaces the photo. Documented as
+          `application/json` so the `data` schema renders; only the `data` part is
+          shown here.
         content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                data:
-                  $ref: "#/components/schemas/ProfileData"
-                photo:
-                  type: string
-                  format: binary
-                  description: Optional image file (Content-Type must start with image/)
-            encoding:
-              data:
-                contentType: application/json
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileData" }
       responses:
         "200":
           description: Updated user
@@ -910,21 +875,14 @@ paths:
       operationId: createNews
       requestBody:
         required: true
+        description: >
+          Actually sent as `multipart/form-data`: a required JSON `data` part
+          matching the schema below, plus an optional `photo` image part
+          (Content-Type must start with `image/`). Documented as `application/json`
+          so the `data` schema renders; only the `data` part is shown here.
         content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [data]
-              properties:
-                data:
-                  $ref: "#/components/schemas/CreateNewsData"
-                photo:
-                  type: string
-                  format: binary
-                  description: Optional image file (Content-Type must start with image/)
-            encoding:
-              data:
-                contentType: application/json
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateNewsData" }
       responses:
         "201":
           description: Created news
@@ -964,20 +922,15 @@ paths:
         - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: false
+        description: >
+          Actually sent as `multipart/form-data`: an optional JSON `data` part
+          matching the schema below (partial update), plus an optional `photo`
+          image part (Content-Type must start with `image/`) that replaces the
+          current one. Documented as `application/json` so the `data` schema
+          renders; only the `data` part is shown here.
         content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                data:
-                  $ref: "#/components/schemas/UpdateNewsData"
-                photo:
-                  type: string
-                  format: binary
-                  description: Optional image file (Content-Type must start with image/)
-            encoding:
-              data:
-                contentType: application/json
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateNewsData" }
       responses:
         "200":
           description: Updated news
@@ -1026,21 +979,14 @@ paths:
       operationId: createEvent
       requestBody:
         required: true
+        description: >
+          Actually sent as `multipart/form-data`: a required JSON `data` part
+          matching the schema below, plus an optional `photo` image part
+          (Content-Type must start with `image/`). Documented as `application/json`
+          so the `data` schema renders; only the `data` part is shown here.
         content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [data]
-              properties:
-                data:
-                  $ref: "#/components/schemas/CreateEventData"
-                photo:
-                  type: string
-                  format: binary
-                  description: Optional image file (Content-Type must start with image/)
-            encoding:
-              data:
-                contentType: application/json
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateEventData" }
       responses:
         "201":
           description: Created event
@@ -1080,20 +1026,15 @@ paths:
         - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: false
+        description: >
+          Actually sent as `multipart/form-data`: an optional JSON `data` part
+          matching the schema below (partial update), plus an optional `photo`
+          image part (Content-Type must start with `image/`) that replaces the
+          current one. Documented as `application/json` so the `data` schema
+          renders; only the `data` part is shown here.
         content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                data:
-                  $ref: "#/components/schemas/UpdateEventData"
-                photo:
-                  type: string
-                  format: binary
-                  description: Optional image file (Content-Type must start with image/)
-            encoding:
-              data:
-                contentType: application/json
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateEventData" }
       responses:
         "200":
           description: Updated event
@@ -1459,12 +1400,12 @@ components:
           type: string
           nullable: true
           description: Presigned, time-limited download URL for the user's photo.
-        firstName: { type: string }
-        lastName: { type: string }
-        bio: { type: string, nullable: true }
+        firstName: { type: string, maxLength: 31 }
+        lastName: { type: string, maxLength: 31 }
+        bio: { type: string, nullable: true, maxLength: 255 }
         birthdate: { type: string, format: date, example: "2000-01-31" }
-        speciality: { type: string, nullable: true }
-        status: { type: string, nullable: true, description: Resolved status content }
+        speciality: { type: string, nullable: true, maxLength: 63 }
+        status: { type: string, nullable: true, maxLength: 127, description: Resolved status content }
         role: { type: string, enum: [user, admin] }
       required: [id, firstName, lastName, birthdate, role]
 
@@ -1473,12 +1414,12 @@ components:
       properties:
         id: { type: integer }
         universityId: { type: integer }
-        universityName: { type: string }
+        universityName: { type: string, maxLength: 127 }
         grade: { $ref: "#/components/schemas/EduGrade" }
-        level: { type: string, nullable: true }
-        specialization: { type: string }
-        startYear: { type: integer }
-        endYear: { type: integer, nullable: true }
+        level: { type: string, nullable: true, maxLength: 31 }
+        specialization: { type: string, maxLength: 63 }
+        startYear: { type: integer, minimum: -32768, maximum: 32767 }
+        endYear: { type: integer, nullable: true, minimum: -32768, maximum: 32767 }
         isStudyingNow: { type: boolean }
       required: [id, universityId, universityName, grade, specialization, startYear, isStudyingNow]
 
@@ -1487,10 +1428,10 @@ components:
       properties:
         universityId: { type: integer }
         grade: { $ref: "#/components/schemas/EduGrade" }
-        level: { type: string, nullable: true }
-        specialization: { type: string }
-        startYear: { type: integer }
-        endYear: { type: integer, nullable: true }
+        level: { type: string, nullable: true, maxLength: 31 }
+        specialization: { type: string, maxLength: 63 }
+        startYear: { type: integer, minimum: -32768, maximum: 32767 }
+        endYear: { type: integer, nullable: true, minimum: -32768, maximum: 32767 }
         isStudyingNow: { type: boolean }
       required: [universityId, grade, specialization, startYear, isStudyingNow]
 
@@ -1498,22 +1439,22 @@ components:
       type: object
       properties:
         id: { type: integer }
-        companyName: { type: string }
+        companyName: { type: string, maxLength: 63 }
         grade: { $ref: "#/components/schemas/WorkGrade" }
-        position: { type: string }
-        startYear: { type: integer }
-        endYear: { type: integer, nullable: true }
+        position: { type: string, maxLength: 63 }
+        startYear: { type: integer, minimum: -32768, maximum: 32767 }
+        endYear: { type: integer, nullable: true, minimum: -32768, maximum: 32767 }
         isWorkingNow: { type: boolean }
       required: [id, companyName, grade, position, startYear, isWorkingNow]
 
     WorkPlaceRequest:
       type: object
       properties:
-        companyName: { type: string }
+        companyName: { type: string, maxLength: 63 }
         grade: { $ref: "#/components/schemas/WorkGrade" }
-        position: { type: string }
-        startYear: { type: integer }
-        endYear: { type: integer, nullable: true }
+        position: { type: string, maxLength: 63 }
+        startYear: { type: integer, minimum: -32768, maximum: 32767 }
+        endYear: { type: integer, nullable: true, minimum: -32768, maximum: 32767 }
         isWorkingNow: { type: boolean }
       required: [companyName, grade, position, startYear, isWorkingNow]
 
@@ -1522,7 +1463,7 @@ components:
       properties:
         id: { type: integer }
         social: { $ref: "#/components/schemas/SocialNetwork" }
-        link: { type: string }
+        link: { type: string, maxLength: 127 }
         isPreferred: { type: boolean }
       required: [id, social, link, isPreferred]
 
@@ -1530,14 +1471,14 @@ components:
       type: object
       properties:
         social: { $ref: "#/components/schemas/SocialNetwork" }
-        link: { type: string }
+        link: { type: string, maxLength: 127 }
         isPreferred: { type: boolean }
       required: [social, link, isPreferred]
 
     Contact:
       type: object
       properties:
-        note: { type: string, nullable: true }
+        note: { type: string, nullable: true, maxLength: 255 }
         user: { $ref: "#/components/schemas/User" }
       required: [user]
 
@@ -1545,27 +1486,27 @@ components:
       type: object
       properties:
         contactId: { type: string, format: uuid }
-        note: { type: string, nullable: true }
+        note: { type: string, nullable: true, maxLength: 255 }
       required: [contactId]
 
     UpdateContactRequest:
       type: object
       properties:
-        note: { type: string, nullable: true }
+        note: { type: string, nullable: true, maxLength: 255 }
 
     Skill:
       type: object
       properties:
         id: { type: integer }
-        name: { type: string }
+        name: { type: string, maxLength: 63 }
       required: [id, name]
 
     Announcement:
       type: object
       properties:
         id: { type: string, format: uuid }
-        title: { type: string }
-        content: { type: string }
+        title: { type: string, maxLength: 63 }
+        content: { type: string, maxLength: 255 }
         isArchived: { type: boolean }
         createdAt: { type: string, format: date-time }
         author: { $ref: "#/components/schemas/User" }
@@ -1574,15 +1515,15 @@ components:
     CreateAnnouncementRequest:
       type: object
       properties:
-        title: { type: string }
-        content: { type: string }
+        title: { type: string, maxLength: 63 }
+        content: { type: string, maxLength: 255 }
       required: [title, content]
 
     UpdateAnnouncementRequest:
       type: object
       properties:
-        title: { type: string }
-        content: { type: string }
+        title: { type: string, maxLength: 63 }
+        content: { type: string, maxLength: 255 }
         isArchived: { type: boolean }
       required: [title, content]
 
@@ -1590,60 +1531,60 @@ components:
       type: object
       description: Profile fields (partial update; omitted fields keep their current value)
       properties:
-        bio: { type: string, nullable: true }
-        speciality: { type: string, nullable: true }
+        bio: { type: string, nullable: true, maxLength: 255 }
+        speciality: { type: string, nullable: true, maxLength: 63 }
         statusId: { type: integer, nullable: true }
 
     CreateNewsData:
       type: object
       required: [title, content]
       properties:
-        title: { type: string }
-        content: { type: string }
-        publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
+        title: { type: string, maxLength: 127 }
+        content: { type: string, maxLength: 255 }
+        publishDays: { type: integer, minimum: -32768, maximum: 32767, default: 7, description: "Defaults to 7 when <= 0" }
         isDraft: { type: boolean }
 
     UpdateNewsData:
       type: object
       description: Partial update; omitted fields keep their current value
       properties:
-        title: { type: string }
-        content: { type: string }
-        publishDays: { type: integer, description: "Defaults to 7 when <= 0" }
+        title: { type: string, maxLength: 127 }
+        content: { type: string, maxLength: 255 }
+        publishDays: { type: integer, minimum: -32768, maximum: 32767, default: 7, description: "Defaults to 7 when <= 0" }
         isDraft: { type: boolean }
 
     CreateEventData:
       type: object
       required: [title, content, place, category, startsAt]
       properties:
-        title: { type: string }
-        content: { type: string }
-        place: { type: string }
+        title: { type: string, maxLength: 127 }
+        content: { type: string, maxLength: 255 }
+        place: { type: string, maxLength: 63 }
         category: { $ref: "#/components/schemas/EventCategory" }
         startsAt: { type: string, format: date-time }
-        registrationLink: { type: string, nullable: true }
+        registrationLink: { type: string, nullable: true, maxLength: 255 }
         isDraft: { type: boolean }
 
     UpdateEventData:
       type: object
       description: Partial update; omitted fields keep their current value
       properties:
-        title: { type: string }
-        content: { type: string }
-        place: { type: string }
+        title: { type: string, maxLength: 127 }
+        content: { type: string, maxLength: 255 }
+        place: { type: string, maxLength: 63 }
         category: { $ref: "#/components/schemas/EventCategory" }
         startsAt: { type: string, format: date-time }
-        registrationLink: { type: string, nullable: true }
+        registrationLink: { type: string, nullable: true, maxLength: 255 }
         isDraft: { type: boolean }
 
     News:
       type: object
       properties:
         id: { type: string, format: uuid }
-        title: { type: string }
-        content: { type: string }
+        title: { type: string, maxLength: 127 }
+        content: { type: string, maxLength: 255 }
         photoUrl: { type: string, nullable: true, description: Presigned download URL }
-        publishDays: { type: integer }
+        publishDays: { type: integer, minimum: -32768, maximum: 32767 }
         isDraft: { type: boolean }
         createdAt: { type: string, format: date-time }
         author: { $ref: "#/components/schemas/User" }
@@ -1653,13 +1594,13 @@ components:
       type: object
       properties:
         id: { type: string, format: uuid }
-        title: { type: string }
-        content: { type: string }
+        title: { type: string, maxLength: 127 }
+        content: { type: string, maxLength: 255 }
         photoUrl: { type: string, nullable: true, description: Presigned download URL }
-        place: { type: string }
+        place: { type: string, maxLength: 63 }
         category: { $ref: "#/components/schemas/EventCategory" }
         startsAt: { type: string, format: date-time }
-        registrationLink: { type: string, nullable: true }
+        registrationLink: { type: string, nullable: true, maxLength: 255 }
         isDraft: { type: boolean }
         createdAt: { type: string, format: date-time }
         author: { $ref: "#/components/schemas/User" }
@@ -1669,37 +1610,37 @@ components:
       type: object
       properties:
         id: { type: integer }
-        content: { type: string }
+        content: { type: string, maxLength: 127 }
       required: [id, content]
 
     Company:
       type: object
       properties:
         id: { type: integer }
-        name: { type: string }
+        name: { type: string, maxLength: 63 }
       required: [id, name]
 
     WorkPosition:
       type: object
       properties:
         id: { type: integer }
-        name: { type: string }
+        name: { type: string, maxLength: 63 }
       required: [id, name]
 
     University:
       type: object
       properties:
         id: { type: integer }
-        name: { type: string }
-        shortName: { type: string }
+        name: { type: string, maxLength: 127 }
+        shortName: { type: string, maxLength: 31 }
       required: [id, name, shortName]
 
     Faq:
       type: object
       properties:
         id: { type: integer }
-        question: { type: string }
-        answer: { type: string }
+        question: { type: string, maxLength: 255 }
+        answer: { type: string, maxLength: 255 }
       required: [id, question, answer]
 
     SocialNetwork:

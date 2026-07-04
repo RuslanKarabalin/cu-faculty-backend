@@ -91,11 +91,6 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
 	}
 
-	user, err = h.applyProfile(c, user)
-	if err != nil {
-		return err
-	}
-
 	user, err = h.applyPhoto(c, user)
 	if err != nil {
 		return err
@@ -108,18 +103,6 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 		statusCode = fiber.StatusOK
 	}
 	return c.Status(statusCode).JSON(user)
-}
-
-func (h *UserHandler) applyProfile(c fiber.Ctx, user *model.User) (*model.User, error) {
-	var req model.UpdateUserRequest
-	present, err := bindOptionalMultipartData(c, &req)
-	if err != nil {
-		return nil, err
-	}
-	if !present {
-		return user, nil
-	}
-	return h.updateUser(c, user.ID, req)
 }
 
 func (h *UserHandler) updateUser(c fiber.Ctx, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error) {
