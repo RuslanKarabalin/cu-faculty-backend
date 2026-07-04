@@ -1,6 +1,7 @@
 package app
 
 import (
+	"faculty/internal/apierr"
 	"faculty/internal/handler"
 	"faculty/internal/middleware"
 	"faculty/internal/repository"
@@ -11,7 +12,7 @@ import (
 
 func (a *App) health(c fiber.Ctx) error {
 	if err := a.DB.Ping(c.Context()); err != nil {
-		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"status": "unhealthy"})
+		return apierr.WriteCode(c, fiber.StatusServiceUnavailable, apierr.CodeUnavailable, "database is unavailable")
 	}
 	return c.JSON(fiber.Map{"status": "ok"})
 }

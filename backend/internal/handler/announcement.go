@@ -50,14 +50,13 @@ func (h *AnnouncementHandler) attachAuthorPhotoURL(ctx context.Context, u *model
 func (h *AnnouncementHandler) GetAnnouncements(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	announcements, total, err := h.service.GetAnnouncements(c.Context(), limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get announcements", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get announcements", err)
 	}
 	for _, a := range announcements {
 		h.attachAuthorPhotoURL(c.Context(), a.Author)
@@ -78,14 +77,13 @@ func (h *AnnouncementHandler) GetMyAnnouncements(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	announcements, total, err := h.service.GetAnnouncementsByAuthorID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get announcements", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get announcements", err)
 	}
 	for _, a := range announcements {
 		h.attachAuthorPhotoURL(c.Context(), a.Author)
@@ -114,8 +112,7 @@ func (h *AnnouncementHandler) GetAnnouncementByID(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "announcement not found")
 		}
-		h.logger.Error("failed to get announcement by id", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get announcement by id", err)
 	}
 	h.attachAuthorPhotoURL(c.Context(), announcement.Author)
 	return c.JSON(announcement)
@@ -128,14 +125,13 @@ func (h *AnnouncementHandler) CreateAnnouncement(c fiber.Ctx) error {
 	}
 
 	var req model.CreateAnnouncementRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	announcement, err := h.service.CreateAnnouncement(c.Context(), cuUser.ID, req)
 	if err != nil {
-		h.logger.Error("failed to create announcement", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to create announcement", err)
 	}
 	h.attachAuthorPhotoURL(c.Context(), announcement.Author)
 	return c.Status(fiber.StatusCreated).JSON(announcement)
@@ -153,8 +149,8 @@ func (h *AnnouncementHandler) UpdateAnnouncement(c fiber.Ctx) error {
 	}
 
 	var req model.UpdateAnnouncementRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	announcement, err := h.service.UpdateAnnouncement(c.Context(), cuUser.ID, id, req)
@@ -162,8 +158,7 @@ func (h *AnnouncementHandler) UpdateAnnouncement(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "announcement not found")
 		}
-		h.logger.Error("failed to update announcement", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to update announcement", err)
 	}
 	h.attachAuthorPhotoURL(c.Context(), announcement.Author)
 	return c.JSON(announcement)
@@ -184,8 +179,7 @@ func (h *AnnouncementHandler) DeleteAnnouncement(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "announcement not found")
 		}
-		h.logger.Error("failed to delete announcement", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete announcement", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

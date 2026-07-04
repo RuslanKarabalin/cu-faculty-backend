@@ -54,14 +54,13 @@ func (h *ContactHandler) GetMyContacts(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	contacts, total, err := h.service.GetContactsByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get contacts", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get contacts", err)
 	}
 	for _, contact := range contacts {
 		h.attachPhotoURL(c.Context(), contact.User)
@@ -76,22 +75,21 @@ func (h *ContactHandler) CreateContact(c fiber.Ctx) error {
 	}
 
 	var req model.CreateContactRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	contact, err := h.service.CreateContact(c.Context(), cuUser.ID, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrSelfContact):
-			return respondError(c, fiber.StatusBadRequest, err.Error())
+			return respondValidation(c, err.Error())
 		case errors.Is(err, repository.ErrDuplicate):
 			return respondError(c, fiber.StatusConflict, "contact already exists")
 		case errors.Is(err, repository.ErrInvalidRefID):
 			return respondError(c, fiber.StatusNotFound, "user not found")
 		}
-		h.logger.Error("failed to create contact", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to create contact", err)
 	}
 	h.attachPhotoURL(c.Context(), contact.User)
 	return c.Status(fiber.StatusCreated).JSON(contact)
@@ -109,8 +107,8 @@ func (h *ContactHandler) UpdateContact(c fiber.Ctx) error {
 	}
 
 	var req model.UpdateContactRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	contact, err := h.service.UpdateContact(c.Context(), cuUser.ID, contactID, req)
@@ -118,8 +116,7 @@ func (h *ContactHandler) UpdateContact(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "contact not found")
 		}
-		h.logger.Error("failed to update contact", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to update contact", err)
 	}
 	h.attachPhotoURL(c.Context(), contact.User)
 	return c.JSON(contact)
@@ -140,8 +137,7 @@ func (h *ContactHandler) DeleteContact(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "contact not found")
 		}
-		h.logger.Error("failed to delete contact", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete contact", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

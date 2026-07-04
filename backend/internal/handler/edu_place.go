@@ -37,14 +37,13 @@ func (h *EduPlaceHandler) GetUserEduPlaces(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	places, total, err := h.service.GetEduPlacesByUserID(c.Context(), userID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get edu places", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get edu places", err)
 	}
 	return c.JSON(model.Page[*model.EduPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
@@ -57,14 +56,13 @@ func (h *EduPlaceHandler) GetMyEduPlaces(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	places, total, err := h.service.GetEduPlacesByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get edu places", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get edu places", err)
 	}
 	return c.JSON(model.Page[*model.EduPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
@@ -76,14 +74,13 @@ func (h *EduPlaceHandler) CreateEduPlace(c fiber.Ctx) error {
 	}
 
 	var req model.EduPlaceRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	place, err := h.service.CreateEduPlace(c.Context(), cuUser.ID, req)
 	if err != nil {
-		h.logger.Error("failed to create edu place", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to create edu place", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(place)
 }
@@ -100,8 +97,8 @@ func (h *EduPlaceHandler) UpdateEduPlace(c fiber.Ctx) error {
 	}
 
 	var req model.EduPlaceRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	place, err := h.service.UpdateEduPlace(c.Context(), cuUser.ID, id, req)
@@ -109,8 +106,7 @@ func (h *EduPlaceHandler) UpdateEduPlace(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "edu place not found")
 		}
-		h.logger.Error("failed to update edu place", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to update edu place", err)
 	}
 	return c.JSON(place)
 }
@@ -130,8 +126,7 @@ func (h *EduPlaceHandler) DeleteEduPlace(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "edu place not found")
 		}
-		h.logger.Error("failed to delete edu place", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete edu place", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

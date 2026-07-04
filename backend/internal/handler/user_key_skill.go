@@ -36,14 +36,13 @@ func (h *UserKeySkillHandler) GetUserKeySkills(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	skills, total, err := h.service.GetUserKeySkills(c.Context(), userID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get user key skills", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get user key skills", err)
 	}
 	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
@@ -56,14 +55,13 @@ func (h *UserKeySkillHandler) GetMyKeySkills(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	skills, total, err := h.service.GetUserKeySkills(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get user key skills", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get user key skills", err)
 	}
 	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
@@ -84,8 +82,7 @@ func (h *UserKeySkillHandler) AddMyKeySkill(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrInvalidRefID) || errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "key skill not found")
 		}
-		h.logger.Error("failed to add user key skill", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to add user key skill", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(skill)
 }
@@ -105,8 +102,7 @@ func (h *UserKeySkillHandler) DeleteMyKeySkill(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "key skill not assigned")
 		}
-		h.logger.Error("failed to delete user key skill", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete user key skill", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

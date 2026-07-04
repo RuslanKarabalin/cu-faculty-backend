@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 
+	"faculty/internal/apierr"
 	"faculty/internal/cuclient"
 
 	"github.com/gofiber/fiber/v3"
@@ -15,14 +16,14 @@ func Auth(client *cuclient.Client, publicPaths map[string]struct{}) fiber.Handle
 		}
 		cookie := c.Cookies(cuclient.CookieName)
 		if cookie == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "bff.cookie not provided"})
+			return apierr.WriteCode(c, fiber.StatusUnauthorized, apierr.CodeUnauthorized, "authentication cookie not provided")
 		}
 		cuUser, err := client.Authorize(c.Context(), cookie)
 		if err != nil {
 			if errors.Is(err, cuclient.ErrUnauthorized) {
-				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "bff.cookie rejected by CU"})
+				return apierr.WriteCode(c, fiber.StatusUnauthorized, apierr.CodeUnauthorized, "authentication cookie rejected by upstream")
 			}
-			return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "upstream error"})
+			return apierr.WriteCode(c, fiber.StatusBadGateway, apierr.CodeUpstream, "authentication upstream is unavailable")
 		}
 		SetCuUser(c, cuUser)
 		return c.Next()

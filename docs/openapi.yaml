@@ -1371,6 +1371,21 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    UnprocessableEntity:
+      description: Request was well-formed but a field failed validation
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    PayloadTooLarge:
+      description: Request body exceeded the size limit
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     InternalError:
       description: Internal server error
       content:
@@ -1380,9 +1395,29 @@ components:
   schemas:
     Error:
       type: object
+      description: >
+        Normalized error envelope returned by every error response. "error" is a
+        human-readable message (not for programmatic use); "code" is a stable,
+        machine-readable identifier clients may branch on.
       properties:
-        error: { type: string }
-      required: [error]
+        error: { type: string, example: "announcement not found" }
+        code:
+          type: string
+          example: not_found
+          enum:
+            - bad_request
+            - validation_error
+            - unauthorized
+            - forbidden
+            - not_found
+            - conflict
+            - already_exists
+            - invalid_reference
+            - payload_too_large
+            - upstream_error
+            - unavailable
+            - internal_error
+      required: [error, code]
 
     PageMeta:
       type: object

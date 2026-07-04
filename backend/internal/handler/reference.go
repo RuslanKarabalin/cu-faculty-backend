@@ -35,14 +35,13 @@ func NewReferenceHandler(service referenceService, logger *zap.Logger) *Referenc
 func listReference[T any](c fiber.Ctx, h *ReferenceHandler, name string, fn func(ctx context.Context, limit, offset int) ([]T, int, error)) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	items, total, err := fn(c.Context(), limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get "+name, zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get "+name, err)
 	}
 	return c.JSON(model.Page[T]{Data: items, Total: total, Limit: limit, Offset: offset})
 }

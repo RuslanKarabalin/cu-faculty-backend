@@ -49,14 +49,13 @@ func (h *NewsHandler) attachURLs(ctx context.Context, n *model.News) {
 func (h *NewsHandler) GetNews(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	news, total, err := h.service.GetNews(c.Context(), limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get news", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get news", err)
 	}
 	for _, n := range news {
 		h.attachURLs(c.Context(), n)
@@ -77,14 +76,13 @@ func (h *NewsHandler) GetMyNews(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	news, total, err := h.service.GetNewsByAuthorID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get news", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get news", err)
 	}
 	for _, n := range news {
 		h.attachURLs(c.Context(), n)
@@ -113,8 +111,7 @@ func (h *NewsHandler) GetNewsByID(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "news not found")
 		}
-		h.logger.Error("failed to get news by id", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get news by id", err)
 	}
 	h.attachURLs(c.Context(), news)
 	return c.JSON(news)
@@ -133,8 +130,7 @@ func (h *NewsHandler) CreateNews(c fiber.Ctx) error {
 
 	news, err := h.service.CreateNews(c.Context(), cuUser.ID, req)
 	if err != nil {
-		h.logger.Error("failed to create news", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to create news", err)
 	}
 
 	news, err = h.applyPhoto(c, cuUser.ID, news)
@@ -173,8 +169,7 @@ func (h *NewsHandler) UpdateNews(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "news not found")
 		}
-		h.logger.Error("failed to update news", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to update news", err)
 	}
 
 	news, err = h.applyPhoto(c, cuUser.ID, news)
@@ -201,8 +196,7 @@ func (h *NewsHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, news *model.Ne
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, respondError(c, fiber.StatusNotFound, "news not found")
 		}
-		h.logger.Error("failed to set news photo", zap.Error(err))
-		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return nil, unexpectedError(c, h.logger, "failed to set news photo", err)
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	return updated, nil
@@ -224,8 +218,7 @@ func (h *NewsHandler) DeleteNews(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "news not found")
 		}
-		h.logger.Error("failed to delete news", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete news", err)
 	}
 	if photoKey != nil {
 		deletePhoto(c.Context(), h.storage, h.logger, *photoKey)

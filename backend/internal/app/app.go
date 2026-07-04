@@ -17,8 +17,11 @@ import (
 	"faculty/internal/db"
 	"faculty/internal/storage"
 
+	"faculty/internal/handler"
+
 	fiberzap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
@@ -123,9 +126,11 @@ func buildPgDSN(cfg *config.Config) string {
 
 func newFiber(logger *zap.Logger) *fiber.App {
 	f := fiber.New(fiber.Config{
-		BodyLimit:   maxBodyBytes,
-		JSONEncoder: jsonMarshalNoEscape,
+		BodyLimit:    maxBodyBytes,
+		JSONEncoder:  jsonMarshalNoEscape,
+		ErrorHandler: handler.ErrorHandler(logger),
 	})
+	f.Use(recover.New())
 	f.Use(fiberzap.New(fiberzap.Config{Logger: logger}))
 	return f
 }

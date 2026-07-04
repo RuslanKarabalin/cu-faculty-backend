@@ -14,10 +14,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func respondError(c fiber.Ctx, status int, msg string) error {
-	return c.Status(status).JSON(fiber.Map{"error": msg})
-}
-
 type photoPresigner interface {
 	PresignDownload(ctx context.Context, key string) (string, error)
 }
@@ -30,6 +26,26 @@ type photoUploader interface {
 	Upload(ctx context.Context, key, contentType string, body io.Reader, size int64) error
 }
 
+type requestValidator interface {
+	Validate() error
+}
+
+func validateBound(c fiber.Ctx, out any) error {
+	if v, ok := out.(requestValidator); ok {
+		if err := v.Validate(); err != nil {
+			return respondValidation(c, err.Error())
+		}
+	}
+	return nil
+}
+
+func bindJSON(c fiber.Ctx, out any) error {
+	if err := c.Bind().JSON(out); err != nil {
+		return respondBindError(c)
+	}
+	return validateBound(c, out)
+}
+
 func bindMultipartData(c fiber.Ctx, out any) error {
 	data := c.FormValue("data")
 	if data == "" {
@@ -38,7 +54,7 @@ func bindMultipartData(c fiber.Ctx, out any) error {
 	if err := json.Unmarshal([]byte(data), out); err != nil {
 		return respondError(c, fiber.StatusBadRequest, "invalid data part")
 	}
-	return nil
+	return validateBound(c, out)
 }
 
 func bindOptionalMultipartData(c fiber.Ctx, out any) (bool, error) {
@@ -48,6 +64,9 @@ func bindOptionalMultipartData(c fiber.Ctx, out any) (bool, error) {
 	}
 	if err := json.Unmarshal([]byte(data), out); err != nil {
 		return false, respondError(c, fiber.StatusBadRequest, "invalid data part")
+	}
+	if err := validateBound(c, out); err != nil {
+		return false, err
 	}
 	return true, nil
 }

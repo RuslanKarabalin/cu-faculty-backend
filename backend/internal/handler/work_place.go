@@ -37,14 +37,13 @@ func (h *WorkPlaceHandler) GetUserWorkPlaces(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	places, total, err := h.service.GetWorkPlacesByUserID(c.Context(), userID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get work places", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get work places", err)
 	}
 	return c.JSON(model.Page[*model.WorkPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
@@ -57,14 +56,13 @@ func (h *WorkPlaceHandler) GetMyWorkPlaces(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	places, total, err := h.service.GetWorkPlacesByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get work places", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get work places", err)
 	}
 	return c.JSON(model.Page[*model.WorkPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
@@ -76,14 +74,13 @@ func (h *WorkPlaceHandler) CreateWorkPlace(c fiber.Ctx) error {
 	}
 
 	var req model.WorkPlaceRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	place, err := h.service.CreateWorkPlace(c.Context(), cuUser.ID, req)
 	if err != nil {
-		h.logger.Error("failed to create work place", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to create work place", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(place)
 }
@@ -100,8 +97,8 @@ func (h *WorkPlaceHandler) UpdateWorkPlace(c fiber.Ctx) error {
 	}
 
 	var req model.WorkPlaceRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
 
 	place, err := h.service.UpdateWorkPlace(c.Context(), cuUser.ID, id, req)
@@ -109,8 +106,7 @@ func (h *WorkPlaceHandler) UpdateWorkPlace(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "work place not found")
 		}
-		h.logger.Error("failed to update work place", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to update work place", err)
 	}
 	return c.JSON(place)
 }
@@ -130,8 +126,7 @@ func (h *WorkPlaceHandler) DeleteWorkPlace(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "work place not found")
 		}
-		h.logger.Error("failed to delete work place", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete work place", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

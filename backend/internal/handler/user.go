@@ -87,8 +87,7 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 			h.logger.Error("invalid data from CU API", zap.Error(err))
 			return respondError(c, fiber.StatusBadGateway, "invalid data from upstream")
 		}
-		h.logger.Error("failed to register user", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to register user", err)
 	}
 
 	user, err = h.applyPhoto(c, user)
@@ -114,8 +113,7 @@ func (h *UserHandler) updateUser(c fiber.Ctx, id uuid.UUID, req model.UpdateUser
 		if errors.Is(err, repository.ErrInvalidRefID) {
 			return nil, respondError(c, fiber.StatusBadRequest, "invalid status id")
 		}
-		h.logger.Error("failed to update current user", zap.Error(err))
-		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return nil, unexpectedError(c, h.logger, "failed to update current user", err)
 	}
 	return user, nil
 }
@@ -126,8 +124,7 @@ func (h *UserHandler) getUser(c fiber.Ctx, id uuid.UUID) (*model.User, error) {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, respondError(c, fiber.StatusNotFound, "user not found")
 		}
-		h.logger.Error("failed to get current user", zap.Error(err))
-		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return nil, unexpectedError(c, h.logger, "failed to get current user", err)
 	}
 	return user, nil
 }
@@ -147,8 +144,7 @@ func (h *UserHandler) applyPhoto(c fiber.Ctx, user *model.User) (*model.User, er
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, respondError(c, fiber.StatusNotFound, "user not found")
 		}
-		h.logger.Error("failed to set user photo", zap.Error(err))
-		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return nil, unexpectedError(c, h.logger, "failed to set user photo", err)
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	return updated, nil
@@ -210,8 +206,7 @@ func (h *UserHandler) GetStudentByID(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "user not found")
 		}
-		h.logger.Error("failed to get user by id", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get user by id", err)
 	}
 	h.attachPhotoURL(c.Context(), user)
 	return c.JSON(user)
@@ -220,14 +215,13 @@ func (h *UserHandler) GetStudentByID(c fiber.Ctx) error {
 func (h *UserHandler) GetUsers(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	users, total, err := h.userService.GetAllUsers(c.Context(), limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get users", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get users", err)
 	}
 	for _, u := range users {
 		h.attachPhotoURL(c.Context(), u)

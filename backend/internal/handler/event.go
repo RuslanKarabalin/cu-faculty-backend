@@ -49,14 +49,13 @@ func (h *EventHandler) attachURLs(ctx context.Context, e *model.Event) {
 func (h *EventHandler) GetEvents(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	events, total, err := h.service.GetEvents(c.Context(), limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get events", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get events", err)
 	}
 	for _, e := range events {
 		h.attachURLs(c.Context(), e)
@@ -77,14 +76,13 @@ func (h *EventHandler) GetMyEvents(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	events, total, err := h.service.GetEventsByAuthorID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get events", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get events", err)
 	}
 	for _, e := range events {
 		h.attachURLs(c.Context(), e)
@@ -113,8 +111,7 @@ func (h *EventHandler) GetEventByID(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "event not found")
 		}
-		h.logger.Error("failed to get event by id", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get event by id", err)
 	}
 	h.attachURLs(c.Context(), event)
 	return c.JSON(event)
@@ -133,8 +130,7 @@ func (h *EventHandler) CreateEvent(c fiber.Ctx) error {
 
 	event, err := h.service.CreateEvent(c.Context(), cuUser.ID, req)
 	if err != nil {
-		h.logger.Error("failed to create event", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to create event", err)
 	}
 
 	event, err = h.applyPhoto(c, cuUser.ID, event)
@@ -173,8 +169,7 @@ func (h *EventHandler) UpdateEvent(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "event not found")
 		}
-		h.logger.Error("failed to update event", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to update event", err)
 	}
 
 	event, err = h.applyPhoto(c, cuUser.ID, event)
@@ -201,8 +196,7 @@ func (h *EventHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, event *model.
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, respondError(c, fiber.StatusNotFound, "event not found")
 		}
-		h.logger.Error("failed to set event photo", zap.Error(err))
-		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return nil, unexpectedError(c, h.logger, "failed to set event photo", err)
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	return updated, nil
@@ -224,8 +218,7 @@ func (h *EventHandler) DeleteEvent(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "event not found")
 		}
-		h.logger.Error("failed to delete event", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete event", err)
 	}
 	if photoKey != nil {
 		deletePhoto(c.Context(), h.storage, h.logger, *photoKey)

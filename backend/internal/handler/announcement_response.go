@@ -45,8 +45,7 @@ func (h *AnnouncementResponseHandler) RespondToAnnouncement(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrInvalidRefID) || errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "announcement not found")
 		}
-		h.logger.Error("failed to respond to announcement", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to respond to announcement", err)
 	}
 	if announcement.Author != nil {
 		announcement.Author.PhotoURL = presignPhoto(c.Context(), h.storage, h.logger, announcement.Author.PhotoS3Key)
@@ -69,8 +68,7 @@ func (h *AnnouncementResponseHandler) DeleteMyResponse(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "response not found")
 		}
-		h.logger.Error("failed to delete announcement response", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete announcement response", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -83,14 +81,13 @@ func (h *AnnouncementResponseHandler) GetResponders(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	users, total, err := h.service.GetResponders(c.Context(), announcementID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get announcement responders", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get announcement responders", err)
 	}
 	for _, u := range users {
 		u.PhotoURL = presignPhoto(c.Context(), h.storage, h.logger, u.PhotoS3Key)
@@ -106,14 +103,13 @@ func (h *AnnouncementResponseHandler) GetMyResponses(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	announcements, total, err := h.service.GetMyResponses(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get announcement responses", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get announcement responses", err)
 	}
 	for _, a := range announcements {
 		if a.Author != nil {

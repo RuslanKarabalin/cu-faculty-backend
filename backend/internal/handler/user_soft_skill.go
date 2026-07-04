@@ -36,14 +36,13 @@ func (h *UserSoftSkillHandler) GetUserSoftSkills(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	skills, total, err := h.service.GetUserSoftSkills(c.Context(), userID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get user soft skills", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get user soft skills", err)
 	}
 	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
@@ -56,14 +55,13 @@ func (h *UserSoftSkillHandler) GetMySoftSkills(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondError(c, fiber.StatusBadRequest, err.Error())
+		return respondBindError(c)
 	}
 	limit, offset := q.Normalize()
 
 	skills, total, err := h.service.GetUserSoftSkills(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		h.logger.Error("failed to get user soft skills", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to get user soft skills", err)
 	}
 	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
@@ -84,8 +82,7 @@ func (h *UserSoftSkillHandler) AddMySoftSkill(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrInvalidRefID) || errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "soft skill not found")
 		}
-		h.logger.Error("failed to add user soft skill", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to add user soft skill", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(skill)
 }
@@ -105,8 +102,7 @@ func (h *UserSoftSkillHandler) DeleteMySoftSkill(c fiber.Ctx) error {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "soft skill not assigned")
 		}
-		h.logger.Error("failed to delete user soft skill", zap.Error(err))
-		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return unexpectedError(c, h.logger, "failed to delete user soft skill", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
