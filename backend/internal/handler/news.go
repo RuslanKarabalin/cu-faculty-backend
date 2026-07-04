@@ -20,7 +20,7 @@ type newsService interface {
 	CreateNews(ctx context.Context, authorID uuid.UUID, req model.CreateNewsRequest) (*model.News, error)
 	UpdateNews(ctx context.Context, authorID, id uuid.UUID, req model.UpdateNewsRequest) (*model.News, error)
 	SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, *string, error)
-	DeleteNews(ctx context.Context, authorID, id uuid.UUID) error
+	DeleteNews(ctx context.Context, authorID, id uuid.UUID) (*string, error)
 }
 
 type newsPhotoStorage interface {
@@ -197,6 +197,7 @@ func (h *NewsHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, news *model.Ne
 
 	updated, oldKey, err := h.service.SetPhoto(c.Context(), authorID, news.ID, key)
 	if err != nil {
+		deletePhoto(c.Context(), h.storage, h.logger, key)
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, respondError(c, fiber.StatusNotFound, "news not found")
 		}
@@ -218,12 +219,16 @@ func (h *NewsHandler) DeleteNews(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid news id")
 	}
 
-	if err := h.service.DeleteNews(c.Context(), cuUser.ID, id); err != nil {
+	photoKey, err := h.service.DeleteNews(c.Context(), cuUser.ID, id)
+	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "news not found")
 		}
 		h.logger.Error("failed to delete news", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+	}
+	if photoKey != nil {
+		deletePhoto(c.Context(), h.storage, h.logger, *photoKey)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

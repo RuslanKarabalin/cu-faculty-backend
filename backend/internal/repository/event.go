@@ -63,15 +63,16 @@ func (r *Repository) UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUI
 	return oldKey, nil
 }
 
-func (r *Repository) DeleteEvent(ctx context.Context, id, authorID uuid.UUID) error {
-	tag, err := r.db.Exec(ctx, `delete from events where id = $1 and author_id = $2`, id, authorID)
+func (r *Repository) DeleteEvent(ctx context.Context, id, authorID uuid.UUID) (*string, error) {
+	var photoKey *string
+	err := r.db.QueryRow(ctx, `delete from events where id = $1 and author_id = $2 returning photo_s3_key`, id, authorID).Scan(&photoKey)
 	if err != nil {
-		return fmt.Errorf("failed to delete event: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to delete event: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return photoKey, nil
 }
 
 func (r *Repository) GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error) {

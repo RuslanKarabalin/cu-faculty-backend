@@ -60,15 +60,16 @@ func (r *Repository) UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID
 	return oldKey, nil
 }
 
-func (r *Repository) DeleteNews(ctx context.Context, id, authorID uuid.UUID) error {
-	tag, err := r.db.Exec(ctx, `delete from news where id = $1 and author_id = $2`, id, authorID)
+func (r *Repository) DeleteNews(ctx context.Context, id, authorID uuid.UUID) (*string, error) {
+	var photoKey *string
+	err := r.db.QueryRow(ctx, `delete from news where id = $1 and author_id = $2 returning photo_s3_key`, id, authorID).Scan(&photoKey)
 	if err != nil {
-		return fmt.Errorf("failed to delete news: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to delete news: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return photoKey, nil
 }
 
 func (r *Repository) GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News, error) {

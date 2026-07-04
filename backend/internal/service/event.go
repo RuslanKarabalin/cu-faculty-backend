@@ -12,7 +12,7 @@ type eventRepository interface {
 	CreateEvent(ctx context.Context, params model.CreateEventParams) (uuid.UUID, error)
 	UpdateEvent(ctx context.Context, params model.UpdateEventParams) error
 	UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error)
-	DeleteEvent(ctx context.Context, id, authorID uuid.UUID) error
+	DeleteEvent(ctx context.Context, id, authorID uuid.UUID) (*string, error)
 	GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error)
 	GetVisibleEventByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Event, error)
 	GetEvents(ctx context.Context, limit, offset int) ([]*model.Event, int, error)
@@ -113,6 +113,6 @@ func (s *EventService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key
 	return event, oldKey, nil
 }
 
-func (s *EventService) DeleteEvent(ctx context.Context, authorID, id uuid.UUID) error {
+func (s *EventService) DeleteEvent(ctx context.Context, authorID, id uuid.UUID) (*string, error) {
 	return s.repo.DeleteEvent(ctx, id, authorID)
 }

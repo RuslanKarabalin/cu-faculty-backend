@@ -20,7 +20,7 @@ type eventService interface {
 	CreateEvent(ctx context.Context, authorID uuid.UUID, req model.CreateEventRequest) (*model.Event, error)
 	UpdateEvent(ctx context.Context, authorID, id uuid.UUID, req model.UpdateEventRequest) (*model.Event, error)
 	SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.Event, *string, error)
-	DeleteEvent(ctx context.Context, authorID, id uuid.UUID) error
+	DeleteEvent(ctx context.Context, authorID, id uuid.UUID) (*string, error)
 }
 
 type eventPhotoStorage interface {
@@ -197,6 +197,7 @@ func (h *EventHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, event *model.
 
 	updated, oldKey, err := h.service.SetPhoto(c.Context(), authorID, event.ID, key)
 	if err != nil {
+		deletePhoto(c.Context(), h.storage, h.logger, key)
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, respondError(c, fiber.StatusNotFound, "event not found")
 		}
@@ -218,12 +219,16 @@ func (h *EventHandler) DeleteEvent(c fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "invalid event id")
 	}
 
-	if err := h.service.DeleteEvent(c.Context(), cuUser.ID, id); err != nil {
+	photoKey, err := h.service.DeleteEvent(c.Context(), cuUser.ID, id)
+	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "event not found")
 		}
 		h.logger.Error("failed to delete event", zap.Error(err))
 		return respondError(c, fiber.StatusInternalServerError, "internal server error")
+	}
+	if photoKey != nil {
+		deletePhoto(c.Context(), h.storage, h.logger, *photoKey)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

@@ -143,6 +143,7 @@ func (h *UserHandler) applyPhoto(c fiber.Ctx, user *model.User) (*model.User, er
 
 	updated, oldKey, err := h.userService.SetPhoto(c.Context(), user.ID, key)
 	if err != nil {
+		deletePhoto(c.Context(), h.storage, h.logger, key)
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, respondError(c, fiber.StatusNotFound, "user not found")
 		}

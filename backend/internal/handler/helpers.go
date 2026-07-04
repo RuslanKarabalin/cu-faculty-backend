@@ -87,6 +87,15 @@ func deleteReplacedPhoto(ctx context.Context, storage photoDeleter, logger *zap.
 	}
 }
 
+func deletePhoto(ctx context.Context, storage photoDeleter, logger *zap.Logger, key string) {
+	if key == "" {
+		return
+	}
+	if err := storage.Delete(ctx, key); err != nil {
+		logger.Warn("failed to delete orphaned photo", zap.String("key", key), zap.Error(err))
+	}
+}
+
 func presignPhoto(ctx context.Context, storage photoPresigner, logger *zap.Logger, key *string) *string {
 	if key == nil {
 		return nil
