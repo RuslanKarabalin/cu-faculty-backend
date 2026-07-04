@@ -87,6 +87,22 @@ func (r *Repository) GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News
 	return n, nil
 }
 
+func (r *Repository) GetVisibleNewsByID(ctx context.Context, id, viewerID uuid.UUID) (*model.News, error) {
+	query := newsSelectColumns + `
+	where n.id = $1 and (n.is_draft = false or n.author_id = $2)
+	`
+
+	n := &model.News{Author: &model.User{}}
+	err := r.db.QueryRow(ctx, query, id, viewerID).Scan(newsScanTargets(n)...)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get news by id: %w", err)
+	}
+	return n, nil
+}
+
 func (r *Repository) GetNews(ctx context.Context, limit, offset int) ([]*model.News, int, error) {
 	var total int
 	if err := r.db.QueryRow(ctx, `select count(*) from news where is_draft = false`).Scan(&total); err != nil {

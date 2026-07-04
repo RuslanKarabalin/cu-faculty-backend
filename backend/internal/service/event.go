@@ -14,6 +14,7 @@ type eventRepository interface {
 	UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error)
 	DeleteEvent(ctx context.Context, id, authorID uuid.UUID) error
 	GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error)
+	GetVisibleEventByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Event, error)
 	GetEvents(ctx context.Context, limit, offset int) ([]*model.Event, int, error)
 	GetEventsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Event, int, error)
 }
@@ -26,8 +27,8 @@ func NewEventService(repo eventRepository) *EventService {
 	return &EventService{repo: repo}
 }
 
-func (s *EventService) GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error) {
-	return s.repo.GetEventByID(ctx, id)
+func (s *EventService) GetEventByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Event, error) {
+	return s.repo.GetVisibleEventByID(ctx, id, viewerID)
 }
 
 func (s *EventService) GetEvents(ctx context.Context, limit, offset int) ([]*model.Event, int, error) {

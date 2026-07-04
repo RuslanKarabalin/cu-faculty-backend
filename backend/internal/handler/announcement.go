@@ -13,7 +13,7 @@ import (
 )
 
 type announcementService interface {
-	GetAnnouncementByID(ctx context.Context, id uuid.UUID) (*model.Announcement, error)
+	GetAnnouncementByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Announcement, error)
 	GetAnnouncements(ctx context.Context, limit, offset int) ([]*model.Announcement, int, error)
 	GetAnnouncementsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Announcement, int, error)
 	CreateAnnouncement(ctx context.Context, authorID uuid.UUID, req model.CreateAnnouncementRequest) (*model.Announcement, error)
@@ -99,12 +99,17 @@ func (h *AnnouncementHandler) GetMyAnnouncements(c fiber.Ctx) error {
 }
 
 func (h *AnnouncementHandler) GetAnnouncementByID(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return respondError(c, fiber.StatusBadRequest, "invalid announcement id")
 	}
 
-	announcement, err := h.service.GetAnnouncementByID(c.Context(), id)
+	announcement, err := h.service.GetAnnouncementByID(c.Context(), id, cuUser.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "announcement not found")

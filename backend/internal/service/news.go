@@ -16,6 +16,7 @@ type newsRepository interface {
 	UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error)
 	DeleteNews(ctx context.Context, id, authorID uuid.UUID) error
 	GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News, error)
+	GetVisibleNewsByID(ctx context.Context, id, viewerID uuid.UUID) (*model.News, error)
 	GetNews(ctx context.Context, limit, offset int) ([]*model.News, int, error)
 	GetNewsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.News, int, error)
 }
@@ -28,8 +29,8 @@ func NewNewsService(repo newsRepository) *NewsService {
 	return &NewsService{repo: repo}
 }
 
-func (s *NewsService) GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News, error) {
-	return s.repo.GetNewsByID(ctx, id)
+func (s *NewsService) GetNewsByID(ctx context.Context, id, viewerID uuid.UUID) (*model.News, error) {
+	return s.repo.GetVisibleNewsByID(ctx, id, viewerID)
 }
 
 func (s *NewsService) GetNews(ctx context.Context, limit, offset int) ([]*model.News, int, error) {

@@ -70,6 +70,22 @@ func (r *Repository) GetAnnouncementByID(ctx context.Context, id uuid.UUID) (*mo
 	return a, nil
 }
 
+func (r *Repository) GetVisibleAnnouncementByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Announcement, error) {
+	query := announcementSelectColumns + `
+	where a.id = $1 and (a.is_archived = false or a.author_id = $2)
+	`
+
+	a := &model.Announcement{Author: &model.User{}}
+	err := r.db.QueryRow(ctx, query, id, viewerID).Scan(announcementScanTargets(a)...)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get announcement by id: %w", err)
+	}
+	return a, nil
+}
+
 func (r *Repository) GetAnnouncements(ctx context.Context, limit, offset int) ([]*model.Announcement, int, error) {
 	var total int
 	if err := r.db.QueryRow(ctx, `select count(*) from announcements where is_archived = false`).Scan(&total); err != nil {

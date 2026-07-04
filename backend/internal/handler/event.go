@@ -14,7 +14,7 @@ import (
 )
 
 type eventService interface {
-	GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error)
+	GetEventByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Event, error)
 	GetEvents(ctx context.Context, limit, offset int) ([]*model.Event, int, error)
 	GetEventsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Event, int, error)
 	CreateEvent(ctx context.Context, authorID uuid.UUID, req model.CreateEventRequest) (*model.Event, error)
@@ -98,12 +98,17 @@ func (h *EventHandler) GetMyEvents(c fiber.Ctx) error {
 }
 
 func (h *EventHandler) GetEventByID(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return respondError(c, fiber.StatusBadRequest, "invalid event id")
 	}
 
-	event, err := h.service.GetEventByID(c.Context(), id)
+	event, err := h.service.GetEventByID(c.Context(), id, cuUser.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "event not found")
@@ -162,7 +167,7 @@ func (h *EventHandler) UpdateEvent(c fiber.Ctx) error {
 	if present {
 		event, err = h.service.UpdateEvent(c.Context(), cuUser.ID, id, req)
 	} else {
-		event, err = h.service.GetEventByID(c.Context(), id)
+		event, err = h.service.GetEventByID(c.Context(), id, cuUser.ID)
 	}
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {

@@ -13,6 +13,7 @@ type announcementRepository interface {
 	UpdateAnnouncement(ctx context.Context, params model.UpdateAnnouncementParams) error
 	DeleteAnnouncement(ctx context.Context, id, authorID uuid.UUID) error
 	GetAnnouncementByID(ctx context.Context, id uuid.UUID) (*model.Announcement, error)
+	GetVisibleAnnouncementByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Announcement, error)
 	GetAnnouncements(ctx context.Context, limit, offset int) ([]*model.Announcement, int, error)
 	GetAnnouncementsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Announcement, int, error)
 }
@@ -25,8 +26,8 @@ func NewAnnouncementService(repo announcementRepository) *AnnouncementService {
 	return &AnnouncementService{repo: repo}
 }
 
-func (s *AnnouncementService) GetAnnouncementByID(ctx context.Context, id uuid.UUID) (*model.Announcement, error) {
-	return s.repo.GetAnnouncementByID(ctx, id)
+func (s *AnnouncementService) GetAnnouncementByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Announcement, error) {
+	return s.repo.GetVisibleAnnouncementByID(ctx, id, viewerID)
 }
 
 func (s *AnnouncementService) GetAnnouncements(ctx context.Context, limit, offset int) ([]*model.Announcement, int, error) {

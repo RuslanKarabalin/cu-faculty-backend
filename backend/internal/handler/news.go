@@ -14,7 +14,7 @@ import (
 )
 
 type newsService interface {
-	GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News, error)
+	GetNewsByID(ctx context.Context, id, viewerID uuid.UUID) (*model.News, error)
 	GetNews(ctx context.Context, limit, offset int) ([]*model.News, int, error)
 	GetNewsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.News, int, error)
 	CreateNews(ctx context.Context, authorID uuid.UUID, req model.CreateNewsRequest) (*model.News, error)
@@ -98,12 +98,17 @@ func (h *NewsHandler) GetMyNews(c fiber.Ctx) error {
 }
 
 func (h *NewsHandler) GetNewsByID(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return respondError(c, fiber.StatusBadRequest, "invalid news id")
 	}
 
-	news, err := h.service.GetNewsByID(c.Context(), id)
+	news, err := h.service.GetNewsByID(c.Context(), id, cuUser.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(c, fiber.StatusNotFound, "news not found")
@@ -162,7 +167,7 @@ func (h *NewsHandler) UpdateNews(c fiber.Ctx) error {
 	if present {
 		news, err = h.service.UpdateNews(c.Context(), cuUser.ID, id, req)
 	} else {
-		news, err = h.service.GetNewsByID(c.Context(), id)
+		news, err = h.service.GetNewsByID(c.Context(), id, cuUser.ID)
 	}
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {

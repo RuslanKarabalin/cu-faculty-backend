@@ -90,6 +90,22 @@ func (r *Repository) GetEventByID(ctx context.Context, id uuid.UUID) (*model.Eve
 	return e, nil
 }
 
+func (r *Repository) GetVisibleEventByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Event, error) {
+	query := eventSelectColumns + `
+	where e.id = $1 and (e.is_draft = false or e.author_id = $2)
+	`
+
+	e := &model.Event{Author: &model.User{}}
+	err := r.db.QueryRow(ctx, query, id, viewerID).Scan(eventScanTargets(e)...)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get event by id: %w", err)
+	}
+	return e, nil
+}
+
 func (r *Repository) GetEvents(ctx context.Context, limit, offset int) ([]*model.Event, int, error) {
 	var total int
 	if err := r.db.QueryRow(ctx, `select count(*) from events where is_draft = false`).Scan(&total); err != nil {
