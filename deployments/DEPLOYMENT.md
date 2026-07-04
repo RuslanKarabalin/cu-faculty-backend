@@ -137,8 +137,6 @@ sudo kubectl get pvc -n dev
 Все поды должны быть `Running`/`Ready`. Приложение доступно по
 `http://<IP_СЕРВЕРА>`.
 
----
-
 ## 7. Обновление конфигурации
 
 ### Изменить env (.env)
@@ -158,9 +156,21 @@ sudo kubectl rollout restart statefulset/postgres -n dev
 sudo kubectl rollout restart deployment/cu-faculty-backend -n dev
 ```
 
----
+## 8. Миграции БД
 
-## 8. GitLab CI/CD
+### Полный сброс (все данные БД будут удалены)
+
+```bash
+sudo kubectl delete statefulset postgres -n dev
+sudo kubectl delete pvc data-postgres-0 -n dev
+
+sudo kubectl apply -f k8s/postgres.yaml
+sudo kubectl rollout status statefulset/postgres -n dev
+
+sudo kubectl rollout restart deployment/cu-faculty-backend -n dev
+```
+
+## 9. GitLab CI/CD
 
 ### Получить KUBE_CONFIG
 
