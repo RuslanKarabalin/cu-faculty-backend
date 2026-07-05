@@ -34,7 +34,7 @@ paths:
         places from CU) and returns 201. On subsequent calls returns the existing
         user with 200. Identity comes entirely from the `bff.cookie` session; the
         only accepted body is an optional `photo` image part that sets (or
-        replaces) the user's photo. No profile fields are read here — use
+        replaces) the user's photo. No profile fields are read here - use
         `PUT /api/me` to edit those.
       operationId: registerStudent
       requestBody:

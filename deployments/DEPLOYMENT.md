@@ -93,6 +93,10 @@ sed -e "s|rpc_secret = \"\"|rpc_secret = \"$RPC_SECRET\"|" \
 sudo kubectl apply -f k8s/dev.yaml
 ```
 
+Backend не накатывает миграции при старте - сразу после первого деплоя
+(и когда база ещё пустая) нужно применить схему, иначе запросы будут падать.
+См. раздел 8 «Миграции БД».
+
 ## 5. Инициализация Garage (выполнить один раз)
 
 После первого запуска нужно собрать layout кластера и создать bucket с ключом
@@ -158,6 +162,28 @@ sudo kubectl rollout restart deployment/cu-faculty-backend -n dev
 
 ## 8. Миграции БД
 
+Backend не накатывает миграции при старте - их нужно применять отдельным
+шагом: вручную через Job (ниже) или джобой `migrate:dev` в CI (раздел 9).
+Запускать при первом деплое и всякий раз, когда в релизе есть новые миграции.
+
+### Ручной прогон через Job
+
+`k8s/migrate-job.yaml` запускает тот же образ backend с командой `migrate`:
+контейнер накатывает миграции и завершается. Конфиг (доступ к БД) берётся из
+Secret `cu-faculty-backend-env`. Плейсхолдер `IMAGE_PLACEHOLDER` нужно заменить
+на конкретный образ:
+
+```bash
+sed "s|IMAGE_PLACEHOLDER|registry.gitlab.com/cu-faculty/backend:latest|g" \
+  k8s/migrate-job.yaml | sudo kubectl apply -f -
+
+sudo kubectl wait --for=condition=complete job/cu-faculty-migrate -n dev --timeout=180s
+sudo kubectl logs job/cu-faculty-migrate -n dev
+```
+
+Job чистит сам себя через `ttlSecondsAfterFinished` (10 минут). Повторный запуск
+безопасен - goose пропускает уже применённые миграции.
+
 ### Полный сброс (все данные БД будут удалены)
 
 ```bash
@@ -166,6 +192,10 @@ sudo kubectl delete pvc data-postgres-0 -n dev
 
 sudo kubectl apply -f k8s/postgres.yaml
 sudo kubectl rollout status statefulset/postgres -n dev
+
+sed "s|IMAGE_PLACEHOLDER|registry.gitlab.com/cu-faculty/backend:latest|g" \
+  k8s/migrate-job.yaml | sudo kubectl apply -f -
+sudo kubectl wait --for=condition=complete job/cu-faculty-migrate -n dev --timeout=180s
 
 sudo kubectl rollout restart deployment/cu-faculty-backend -n dev
 ```

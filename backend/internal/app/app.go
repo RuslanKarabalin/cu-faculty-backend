@@ -59,11 +59,6 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	goose.SetLogger(zap.NewStdLog(logger))
-	if err := db.RunMigrations(dbPool); err != nil {
-		return nil, err
-	}
-
 	storageClient, err := storage.New(context.Background(), storage.Config{
 		Endpoint:       cfg.S3Endpoint,
 		PublicEndpoint: cfg.S3PublicEndpoint,
@@ -89,6 +84,32 @@ func New() (*App, error) {
 	a.registerRoutes()
 
 	return a, nil
+}
+
+func Migrate() error {
+	cfg, err := config.ReadConfig()
+	if err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	logger, err := zap.NewProduction()
+	if err != nil {
+		return fmt.Errorf("init logger: %w", err)
+	}
+	defer func() { _ = logger.Sync() }()
+
+	dbPool, err := newDBPool(cfg)
+	if err != nil {
+		return err
+	}
+	defer dbPool.Close()
+
+	goose.SetLogger(zap.NewStdLog(logger))
+	if err := db.RunMigrations(dbPool); err != nil {
+		return err
+	}
+	logger.Info("migrations applied")
+	return nil
 }
 
 func newDBPool(cfg *config.Config) (*pgxpool.Pool, error) {

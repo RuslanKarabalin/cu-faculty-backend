@@ -6,6 +6,7 @@ workflow:
 stages:
   - test
   - build
+  - migrate
   - deploy
 
 variables:
@@ -62,6 +63,45 @@ build:
     - kubectl rollout status deployment/$K8S_DEPLOYMENT_NAME
         --namespace=$K8S_NAMESPACE
         --timeout=120s
+
+migrate:dev:
+  stage: migrate
+  needs: [build]
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
+    - chmod 600 ~/.kube/config
+  script:
+    - kubectl delete job cu-faculty-migrate --namespace=$K8S_NAMESPACE --ignore-not-found
+    - sed "s|IMAGE_PLACEHOLDER|$IMAGE_NAME:$IMAGE_TAG|g" deployments/k8s/migrate-job.yaml
+        | kubectl apply --namespace=$K8S_NAMESPACE -f -
+    - |
+      for i in $(seq 1 60); do
+        succeeded=$(kubectl get job cu-faculty-migrate --namespace=$K8S_NAMESPACE -o jsonpath='{.status.succeeded}')
+        failed=$(kubectl get job cu-faculty-migrate --namespace=$K8S_NAMESPACE -o jsonpath='{.status.failed}')
+        if [ "$succeeded" = "1" ]; then echo "migrations applied"; break; fi
+        if [ "$failed" = "1" ]; then
+          echo "migration job failed"
+          kubectl logs job/cu-faculty-migrate --namespace=$K8S_NAMESPACE || true
+          exit 1
+        fi
+        sleep 3
+      done
+      if [ "$succeeded" != "1" ]; then
+        echo "migration job did not complete in time"
+        kubectl logs job/cu-faculty-migrate --namespace=$K8S_NAMESPACE || true
+        exit 1
+      fi
+    - kubectl logs job/cu-faculty-migrate --namespace=$K8S_NAMESPACE
+  variables:
+    K8S_NAMESPACE: dev
+  environment:
+    name: dev
+  rules:
+    - when: manual
 
 deploy:dev:
   extends: .dev_deploy_base
