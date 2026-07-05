@@ -716,6 +716,64 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/me/saved-users:
+    get:
+      tags: [Me]
+      summary: List my saved users
+      operationId: getMySavedUsers
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged saved users
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/saved-users/{userId}:
+    post:
+      tags: [Me]
+      summary: Save a user
+      description: >
+        Idempotent. Bookmarks another user for the current user. Returns the saved
+        user. Saving yourself is rejected with 400.
+      operationId: addMySavedUser
+      parameters:
+        - $ref: "#/components/parameters/SavedUserId"
+      responses:
+        "201":
+          description: Saved user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400":
+          description: Bad request or attempt to save yourself
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Referenced user does not exist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Remove a saved user
+      operationId: deleteMySavedUser
+      parameters:
+        - $ref: "#/components/parameters/SavedUserId"
+      responses:
+        "204": { description: Removed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
   /api/announcements:
     get:
       tags: [Announcements]
@@ -1346,6 +1404,11 @@ components:
       schema: { type: integer }
     ContactId:
       name: contactId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SavedUserId:
+      name: userId
       in: path
       required: true
       schema: { type: string, format: uuid }

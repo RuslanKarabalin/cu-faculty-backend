@@ -43,6 +43,7 @@ func (a *App) registerRoutes() {
 	eventHandler := handler.NewEventHandler(service.NewEventService(repo), a.Storage, a.Logger)
 	announcementResponseHandler := handler.NewAnnouncementResponseHandler(service.NewAnnouncementResponseService(repo), a.Storage, a.Logger)
 	eventResponseHandler := handler.NewEventResponseHandler(service.NewEventResponseService(repo), a.Storage, a.Logger)
+	savedUserHandler := handler.NewSavedUserHandler(service.NewSavedUserService(repo), a.Storage, a.Logger)
 
 	a.Fiber.Get("/health", a.health)
 
@@ -97,6 +98,10 @@ func (a *App) registerRoutes() {
 	me.Get("/soft-skills", userSoftSkillHandler.GetMySoftSkills)
 	me.Post("/soft-skills/:skillId", userSoftSkillHandler.AddMySoftSkill)
 	me.Delete("/soft-skills/:skillId", userSoftSkillHandler.DeleteMySoftSkill)
+
+	me.Get("/saved-users", savedUserHandler.GetMySavedUsers)
+	me.Post("/saved-users/:userId", savedUserHandler.AddMySavedUser)
+	me.Delete("/saved-users/:userId", savedUserHandler.DeleteMySavedUser)
 
 	announcements := api.Group("/announcements")
 	announcements.Get("/", announcementHandler.GetAnnouncements)
