@@ -19,6 +19,19 @@ type User struct {
 	Role       string    `json:"role"`
 }
 
+type UserRelation string
+
+const (
+	UserRelationSaved   UserRelation = "saved"
+	UserRelationContact UserRelation = "contact"
+	UserRelationOther   UserRelation = "other"
+)
+
+type UserSearchResult struct {
+	*User
+	Relation UserRelation `json:"relation"`
+}
+
 type CuUserResp struct {
 	ID        uuid.UUID `json:"id"`
 	FirstName string    `json:"firstName"`

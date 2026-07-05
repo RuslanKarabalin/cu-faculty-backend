@@ -82,6 +82,31 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/students/search:
+    get:
+      tags: [Students]
+      summary: Search students by first and last name
+      description: >
+        Case-insensitive substring match against first name, last name, and the
+        full name ("first last"). Results exclude the current user and are ranked
+        by relationship to the caller: saved users first, then contacts, then all
+        other users; within each group they are ordered by name. Each result
+        carries a `relation` field indicating which group it fell into.
+      operationId: searchStudents
+      parameters:
+        - $ref: "#/components/parameters/SearchQuery"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged, ranked search results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserSearchResultPage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
   /api/students/{id}:
     get:
       tags: [Students]
@@ -1377,6 +1402,12 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    SearchQuery:
+      name: q
+      in: query
+      required: true
+      description: Search term matched against first name, last name, and full name.
+      schema: { type: string, minLength: 1 }
     ResourceId:
       name: id
       in: path
@@ -1506,6 +1537,17 @@ components:
         status: { type: string, nullable: true, maxLength: 127, description: Resolved status content }
         role: { type: string, enum: [user, admin] }
       required: [id, firstName, lastName, birthdate, role]
+
+    UserSearchResult:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          properties:
+            relation:
+              type: string
+              description: How the user relates to the caller; also determines ranking.
+              enum: [saved, contact, other]
+          required: [relation]
 
     EduPlace:
       type: object
@@ -1763,6 +1805,14 @@ components:
         - type: object
           properties:
             data: { type: array, items: { $ref: "#/components/schemas/User" } }
+          required: [data]
+
+    UserSearchResultPage:
+      allOf:
+        - $ref: "#/components/schemas/PageMeta"
+        - type: object
+          properties:
+            data: { type: array, items: { $ref: "#/components/schemas/UserSearchResult" } }
           required: [data]
 
     EduPlacePage:

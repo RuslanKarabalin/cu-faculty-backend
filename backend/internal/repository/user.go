@@ -93,6 +93,92 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	return users, total, nil
 }
 
+func (r *Repository) SearchUsers(ctx context.Context, userID uuid.UUID, search string, limit, offset int) ([]*model.UserSearchResult, int, error) {
+	pattern := "%" + search + "%"
+
+	filter := `
+	where u.role = 'user'
+		and u.id <> $1
+		and (
+			u.first_name ilike $2
+			or u.last_name ilike $2
+			or (u.first_name || ' ' || u.last_name) ilike $2
+		)
+	`
+
+	var total int
+	if err := r.db.QueryRow(ctx, `select count(*) from users u `+filter, userID, pattern).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count user search: %w", err)
+	}
+
+	selectQuery := `
+	select
+		u.id
+		, u.photo_s3_key
+		, u.first_name
+		, u.last_name
+		, u.bio
+		, u.birth_date
+		, u.speciality
+		, st.content
+		, u.role
+		, case
+			when su.saved_user_id is not null then 0
+			when c.contact_id is not null then 1
+			else 2
+		end as rank
+	from users u
+	left join statuses st on st.id = u.status_id
+	left join saved_users su on su.user_id = $1 and su.saved_user_id = u.id
+	left join contacts c on c.user_id = $1 and c.contact_id = u.id
+	` + filter + `
+	order by rank, u.last_name, u.first_name, u.id
+	limit $3 offset $4
+	`
+
+	rows, err := r.db.Query(ctx, selectQuery, userID, pattern, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to search users: %w", err)
+	}
+	defer rows.Close()
+
+	results := make([]*model.UserSearchResult, 0)
+	for rows.Next() {
+		u := &model.User{}
+		var rank int
+		if err := rows.Scan(
+			&u.ID,
+			&u.PhotoS3Key,
+			&u.FirstName,
+			&u.LastName,
+			&u.Bio,
+			&u.BirthDate,
+			&u.Speciality,
+			&u.Status,
+			&u.Role,
+			&rank,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan user search result: %w", err)
+		}
+		results = append(results, &model.UserSearchResult{User: u, Relation: relationForRank(rank)})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
+	}
+	return results, total, nil
+}
+
+func relationForRank(rank int) model.UserRelation {
+	switch rank {
+	case 0:
+		return model.UserRelationSaved
+	case 1:
+		return model.UserRelationContact
+	default:
+		return model.UserRelationOther
+	}
+}
+
 func (r *Repository) UpdateUser(ctx context.Context, params model.UpdateUserParams) error {
 	query := `
 	update users
