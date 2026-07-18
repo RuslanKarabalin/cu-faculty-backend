@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -202,7 +203,8 @@ func (r *Repository) SearchUsers(ctx context.Context, viewerID uuid.UUID, p mode
 func (r *Repository) GetProfileCompletenessData(ctx context.Context, id uuid.UUID) (*model.ProfileCompletenessData, error) {
 	query := `
 	select
-		u.photo_s3_key is not null
+		u.completed_at
+		, u.photo_s3_key is not null
 		, coalesce(btrim(u.speciality), '') <> ''
 		, coalesce(btrim(u.bio), '') <> ''
 		, u.birth_date is not null
@@ -217,6 +219,7 @@ func (r *Repository) GetProfileCompletenessData(ctx context.Context, id uuid.UUI
 
 	d := &model.ProfileCompletenessData{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
+		&d.CompletedAt,
 		&d.HasPhoto,
 		&d.HasSpeciality,
 		&d.HasBio,
@@ -234,6 +237,19 @@ func (r *Repository) GetProfileCompletenessData(ctx context.Context, id uuid.UUI
 		return nil, fmt.Errorf("failed to get profile completeness data: %w", err)
 	}
 	return d, nil
+}
+
+func (r *Repository) SetUserCompletedAt(ctx context.Context, id uuid.UUID, completedAt *time.Time) error {
+	query := `update users set completed_at = $2 where id = $1`
+
+	tag, err := r.db.Exec(ctx, query, id, completedAt)
+	if err != nil {
+		return wrapPgError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func relationForRank(rank int) model.UserRelation {

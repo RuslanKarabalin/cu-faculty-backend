@@ -8,6 +8,7 @@ type CuEduPlaceResp struct {
 		Level     string `json:"level"`
 		StartDate string `json:"startDate"`
 	} `json:"educationProgram"`
+	Course int `json:"course"`
 }
 
 type CreateEduPlaceParams struct {

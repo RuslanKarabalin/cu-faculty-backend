@@ -150,6 +150,7 @@ type UpdateUserParams struct {
 }
 
 type ProfileCompletenessData struct {
+	CompletedAt     *time.Time
 	HasPhoto        bool
 	HasSpeciality   bool
 	HasBio          bool
@@ -170,7 +171,7 @@ const (
 	completenessPerEduPlace  = 5
 	completenessPerSkill     = 5
 	completenessPerWorkPlace = 15
-	completenessMax          = 100
+	CompletenessMax          = 100
 )
 
 func (d ProfileCompletenessData) Percent() int {
@@ -191,8 +192,8 @@ func (d ProfileCompletenessData) Percent() int {
 	total += completenessPerEduPlace * d.EduPlacesCount
 	total += completenessPerSkill * (d.KeySkillsCount + d.SoftSkillsCount)
 	total += completenessPerWorkPlace * d.WorkPlacesCount
-	if total > completenessMax {
-		total = completenessMax
+	if total > CompletenessMax {
+		total = CompletenessMax
 	}
 	return total
 }

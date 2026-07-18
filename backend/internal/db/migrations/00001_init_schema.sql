@@ -86,6 +86,7 @@ create table "users" (
     , speciality varchar(63)
     , status_id int references statuses(id)
     , role user_role not null
+    , completed_at timestamptz
 );
 
 create table "socials" (

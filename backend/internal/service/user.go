@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"faculty/internal/model"
 
@@ -21,6 +22,7 @@ type userRepository interface {
 	UpdateUser(ctx context.Context, params model.UpdateUserParams) error
 	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) (*string, error)
 	GetProfileCompletenessData(ctx context.Context, id uuid.UUID) (*model.ProfileCompletenessData, error)
+	SetUserCompletedAt(ctx context.Context, id uuid.UUID, completedAt *time.Time) error
 }
 
 type UserService struct {
@@ -60,7 +62,20 @@ func (s *UserService) GetProfileCompleteness(ctx context.Context, id uuid.UUID) 
 	if err != nil {
 		return nil, err
 	}
-	return &model.ProfileCompleteness{Percent: data.Percent()}, nil
+
+	percent := data.Percent()
+	switch {
+	case percent == model.CompletenessMax && data.CompletedAt == nil:
+		now := time.Now()
+		if err := s.repo.SetUserCompletedAt(ctx, id, &now); err != nil {
+			return nil, err
+		}
+	case percent != model.CompletenessMax && data.CompletedAt != nil:
+		if err := s.repo.SetUserCompletedAt(ctx, id, nil); err != nil {
+			return nil, err
+		}
+	}
+	return &model.ProfileCompleteness{Percent: percent}, nil
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error) {

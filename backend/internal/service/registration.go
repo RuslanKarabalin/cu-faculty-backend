@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,9 +91,11 @@ func buildEduPlaceParams(cuEduPlaces []model.CuEduPlaceResp) ([]model.CreateEduP
 		if err != nil {
 			return nil, ErrInvalidUpstreamData
 		}
+		level := strconv.Itoa(e.Course)
 		params = append(params, model.CreateEduPlaceParams{
 			UniversityId:   cuUniversityID,
 			Grade:          strings.ToLower(e.EducationProgram.Level),
+			Level:          &level,
 			Specialization: e.EducationProgram.Name,
 			StartYear:      t.Year(),
 			IsStudyingNow:  true,
