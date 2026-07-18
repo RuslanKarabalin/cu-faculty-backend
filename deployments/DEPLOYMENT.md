@@ -200,6 +200,22 @@ sudo kubectl wait --for=condition=complete job/cu-faculty-migrate -n dev --timeo
 sudo kubectl rollout restart deployment/cu-faculty-backend -n dev
 ```
 
+Очистка s3:
+
+```bash
+kubectl -n dev run s3-clean --rm -it --restart=Never --image=minio/mc \
+  --overrides='{
+    "spec": {"containers": [{
+      "name": "s3-clean",
+      "image": "minio/mc",
+      "command": ["sh","-c",
+        "mc alias set g http://garage:3900 $S3_ACCESS_KEY $S3_SECRET_KEY && mc ls --recursive g/cu-faculty/ && mc rm --recursive --force g/cu-faculty/"],
+      "envFrom": [{"secretRef": {"name": "cu-faculty-backend-env"}}],
+      "stdin": true, "tty": true
+    }]}
+  }'
+```
+
 ## 9. GitLab CI/CD
 
 ### Получить KUBE_CONFIG
