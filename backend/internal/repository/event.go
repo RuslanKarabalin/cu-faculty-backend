@@ -43,6 +43,34 @@ func (r *Repository) UpsertExternalEvent(ctx context.Context, params model.Upser
 	return nil
 }
 
+func (r *Repository) SyncExternalEvents(ctx context.Context, events []model.UpsertExternalEventParams) (int, error) {
+	err := r.RunInTx(ctx, func(tx *Repository) error {
+		keep := make([]int64, 0, len(events))
+		for _, e := range events {
+			if err := tx.UpsertExternalEvent(ctx, e); err != nil {
+				return err
+			}
+			keep = append(keep, e.ExternalID)
+		}
+		if _, err := tx.deleteExternalEventsNotIn(ctx, keep); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return len(events), nil
+}
+
+func (r *Repository) deleteExternalEventsNotIn(ctx context.Context, keepIDs []int64) (int64, error) {
+	tag, err := r.db.Exec(ctx, `delete from events where external_id is not null and external_id <> all($1)`, keepIDs)
+	if err != nil {
+		return 0, wrapPgError(err)
+	}
+	return tag.RowsAffected(), nil
+}
+
 func (r *Repository) UpdateEvent(ctx context.Context, params model.UpdateEventParams) error {
 	query := `
 	update events

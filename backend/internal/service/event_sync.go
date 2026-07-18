@@ -25,7 +25,7 @@ const (
 )
 
 type eventSyncRepository interface {
-	UpsertExternalEvent(ctx context.Context, params model.UpsertExternalEventParams) error
+	SyncExternalEvents(ctx context.Context, events []model.UpsertExternalEventParams) (int, error)
 }
 
 type eventSyncClient interface {
@@ -49,19 +49,16 @@ func (s *EventSyncService) Sync(ctx context.Context, cookie string) (int, error)
 
 	now := time.Now()
 	offset := 0
-	processed := 0
+	var events []model.UpsertExternalEventParams
 
 	for {
 		resp, err := s.cu.ListPublicEvents(ctx, cookie, syncPageSize, offset, now)
 		if err != nil {
-			return processed, fmt.Errorf("fetch cu events: %w", err)
+			return 0, fmt.Errorf("fetch cu events: %w", err)
 		}
 
 		for _, item := range resp.Items {
-			if err := s.repo.UpsertExternalEvent(ctx, mapCuEvent(item, authorID)); err != nil {
-				return processed, fmt.Errorf("upsert event %d: %w", item.ID, err)
-			}
-			processed++
+			events = append(events, mapCuEvent(item, authorID))
 		}
 
 		offset += len(resp.Items)
@@ -70,6 +67,10 @@ func (s *EventSyncService) Sync(ctx context.Context, cookie string) (int, error)
 		}
 	}
 
+	processed, err := s.repo.SyncExternalEvents(ctx, events)
+	if err != nil {
+		return 0, fmt.Errorf("sync external events: %w", err)
+	}
 	return processed, nil
 }
 
