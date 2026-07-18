@@ -49,13 +49,13 @@ func (h *NewsHandler) attachURLs(ctx context.Context, n *model.News) {
 func (h *NewsHandler) GetNews(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	news, total, err := h.service.GetNews(c.Context(), limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get news", err)
+		return unexpectedError(h.logger, "failed to get news", err)
 	}
 	for _, n := range news {
 		h.attachURLs(c.Context(), n)
@@ -76,13 +76,13 @@ func (h *NewsHandler) GetMyNews(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	news, total, err := h.service.GetNewsByAuthorID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get news", err)
+		return unexpectedError(h.logger, "failed to get news", err)
 	}
 	for _, n := range news {
 		h.attachURLs(c.Context(), n)
@@ -103,15 +103,15 @@ func (h *NewsHandler) GetNewsByID(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid news id")
+		return respondError(fiber.StatusBadRequest, "invalid news id")
 	}
 
 	news, err := h.service.GetNewsByID(c.Context(), id, cuUser.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "news not found")
+			return respondError(fiber.StatusNotFound, "news not found")
 		}
-		return unexpectedError(c, h.logger, "failed to get news by id", err)
+		return unexpectedError(h.logger, "failed to get news by id", err)
 	}
 	h.attachURLs(c.Context(), news)
 	return c.JSON(news)
@@ -130,7 +130,7 @@ func (h *NewsHandler) CreateNews(c fiber.Ctx) error {
 
 	news, err := h.service.CreateNews(c.Context(), cuUser.ID, req)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to create news", err)
+		return unexpectedError(h.logger, "failed to create news", err)
 	}
 
 	news, err = h.applyPhoto(c, cuUser.ID, news)
@@ -150,7 +150,7 @@ func (h *NewsHandler) UpdateNews(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid news id")
+		return respondError(fiber.StatusBadRequest, "invalid news id")
 	}
 
 	var req model.UpdateNewsRequest
@@ -167,9 +167,9 @@ func (h *NewsHandler) UpdateNews(c fiber.Ctx) error {
 	}
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "news not found")
+			return respondError(fiber.StatusNotFound, "news not found")
 		}
-		return unexpectedError(c, h.logger, "failed to update news", err)
+		return unexpectedError(h.logger, "failed to update news", err)
 	}
 
 	news, err = h.applyPhoto(c, cuUser.ID, news)
@@ -194,9 +194,9 @@ func (h *NewsHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, news *model.Ne
 	if err != nil {
 		deletePhoto(c.Context(), h.storage, h.logger, key)
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, respondError(c, fiber.StatusNotFound, "news not found")
+			return nil, respondError(fiber.StatusNotFound, "news not found")
 		}
-		return nil, unexpectedError(c, h.logger, "failed to set news photo", err)
+		return nil, unexpectedError(h.logger, "failed to set news photo", err)
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	return updated, nil
@@ -210,15 +210,15 @@ func (h *NewsHandler) DeleteNews(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid news id")
+		return respondError(fiber.StatusBadRequest, "invalid news id")
 	}
 
 	photoKey, err := h.service.DeleteNews(c.Context(), cuUser.ID, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "news not found")
+			return respondError(fiber.StatusNotFound, "news not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete news", err)
+		return unexpectedError(h.logger, "failed to delete news", err)
 	}
 	if photoKey != nil {
 		deletePhoto(c.Context(), h.storage, h.logger, *photoKey)

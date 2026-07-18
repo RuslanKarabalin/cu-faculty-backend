@@ -37,15 +37,15 @@ func (h *PostResponseHandler) RespondToPost(c fiber.Ctx) error {
 
 	postID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid post id")
+		return respondError(fiber.StatusBadRequest, "invalid post id")
 	}
 
 	post, err := h.service.Respond(c.Context(), cuUser.ID, postID)
 	if err != nil {
 		if errors.Is(err, repository.ErrInvalidRefID) || errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "post not found")
+			return respondError(fiber.StatusNotFound, "post not found")
 		}
-		return unexpectedError(c, h.logger, "failed to respond to post", err)
+		return unexpectedError(h.logger, "failed to respond to post", err)
 	}
 	if post.Author != nil {
 		post.Author.PhotoURL = presignPhoto(c.Context(), h.storage, h.logger, post.Author.PhotoS3Key)
@@ -61,14 +61,14 @@ func (h *PostResponseHandler) DeleteMyResponse(c fiber.Ctx) error {
 
 	postID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid post id")
+		return respondError(fiber.StatusBadRequest, "invalid post id")
 	}
 
 	if err := h.service.DeleteResponse(c.Context(), cuUser.ID, postID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "response not found")
+			return respondError(fiber.StatusNotFound, "response not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete post response", err)
+		return unexpectedError(h.logger, "failed to delete post response", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -76,18 +76,18 @@ func (h *PostResponseHandler) DeleteMyResponse(c fiber.Ctx) error {
 func (h *PostResponseHandler) GetResponders(c fiber.Ctx) error {
 	postID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid post id")
+		return respondError(fiber.StatusBadRequest, "invalid post id")
 	}
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	users, total, err := h.service.GetResponders(c.Context(), postID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get post responders", err)
+		return unexpectedError(h.logger, "failed to get post responders", err)
 	}
 	for _, u := range users {
 		u.PhotoURL = presignPhoto(c.Context(), h.storage, h.logger, u.PhotoS3Key)
@@ -103,13 +103,13 @@ func (h *PostResponseHandler) GetMyResponses(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	posts, total, err := h.service.GetMyResponses(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get post responses", err)
+		return unexpectedError(h.logger, "failed to get post responses", err)
 	}
 	for _, a := range posts {
 		if a.Author != nil {

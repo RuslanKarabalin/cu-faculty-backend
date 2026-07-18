@@ -32,18 +32,18 @@ func NewSocialHandler(service socialService, logger *zap.Logger) *SocialHandler 
 func (h *SocialHandler) GetUserSocials(c fiber.Ctx) error {
 	userID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid user id")
+		return respondError(fiber.StatusBadRequest, "invalid user id")
 	}
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	socials, total, err := h.service.GetSocialsByUserID(c.Context(), userID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get socials", err)
+		return unexpectedError(h.logger, "failed to get socials", err)
 	}
 	return c.JSON(model.Page[*model.Social]{Data: socials, Total: total, Limit: limit, Offset: offset})
 }
@@ -56,13 +56,13 @@ func (h *SocialHandler) GetMySocials(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	socials, total, err := h.service.GetSocialsByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get socials", err)
+		return unexpectedError(h.logger, "failed to get socials", err)
 	}
 	return c.JSON(model.Page[*model.Social]{Data: socials, Total: total, Limit: limit, Offset: offset})
 }
@@ -80,7 +80,7 @@ func (h *SocialHandler) CreateSocial(c fiber.Ctx) error {
 
 	social, err := h.service.CreateSocial(c.Context(), cuUser.ID, req)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to create social", err)
+		return unexpectedError(h.logger, "failed to create social", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(social)
 }
@@ -93,7 +93,7 @@ func (h *SocialHandler) UpdateSocial(c fiber.Ctx) error {
 
 	id, err := strconv.Atoi(c.Params("socialId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid social id")
+		return respondError(fiber.StatusBadRequest, "invalid social id")
 	}
 
 	var req model.SocialRequest
@@ -104,9 +104,9 @@ func (h *SocialHandler) UpdateSocial(c fiber.Ctx) error {
 	social, err := h.service.UpdateSocial(c.Context(), cuUser.ID, id, req)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "social not found")
+			return respondError(fiber.StatusNotFound, "social not found")
 		}
-		return unexpectedError(c, h.logger, "failed to update social", err)
+		return unexpectedError(h.logger, "failed to update social", err)
 	}
 	return c.JSON(social)
 }
@@ -119,14 +119,14 @@ func (h *SocialHandler) DeleteSocial(c fiber.Ctx) error {
 
 	id, err := strconv.Atoi(c.Params("socialId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid social id")
+		return respondError(fiber.StatusBadRequest, "invalid social id")
 	}
 
 	if err := h.service.DeleteSocial(c.Context(), cuUser.ID, id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "social not found")
+			return respondError(fiber.StatusNotFound, "social not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete social", err)
+		return unexpectedError(h.logger, "failed to delete social", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

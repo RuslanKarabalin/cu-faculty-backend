@@ -54,13 +54,13 @@ func (h *ContactHandler) GetMyContacts(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	contacts, total, err := h.service.GetContactsByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get contacts", err)
+		return unexpectedError(h.logger, "failed to get contacts", err)
 	}
 	for _, contact := range contacts {
 		h.attachPhotoURL(c.Context(), contact.User)
@@ -83,13 +83,13 @@ func (h *ContactHandler) CreateContact(c fiber.Ctx) error {
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrSelfContact):
-			return respondValidation(c, err.Error())
+			return respondValidation(err.Error())
 		case errors.Is(err, repository.ErrDuplicate):
-			return respondError(c, fiber.StatusConflict, "contact already exists")
+			return respondError(fiber.StatusConflict, "contact already exists")
 		case errors.Is(err, repository.ErrInvalidRefID):
-			return respondError(c, fiber.StatusNotFound, "user not found")
+			return respondError(fiber.StatusNotFound, "user not found")
 		}
-		return unexpectedError(c, h.logger, "failed to create contact", err)
+		return unexpectedError(h.logger, "failed to create contact", err)
 	}
 	h.attachPhotoURL(c.Context(), contact.User)
 	return c.Status(fiber.StatusCreated).JSON(contact)
@@ -103,7 +103,7 @@ func (h *ContactHandler) UpdateContact(c fiber.Ctx) error {
 
 	contactID, err := uuid.Parse(c.Params("contactId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid contact id")
+		return respondError(fiber.StatusBadRequest, "invalid contact id")
 	}
 
 	var req model.UpdateContactRequest
@@ -114,9 +114,9 @@ func (h *ContactHandler) UpdateContact(c fiber.Ctx) error {
 	contact, err := h.service.UpdateContact(c.Context(), cuUser.ID, contactID, req)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "contact not found")
+			return respondError(fiber.StatusNotFound, "contact not found")
 		}
-		return unexpectedError(c, h.logger, "failed to update contact", err)
+		return unexpectedError(h.logger, "failed to update contact", err)
 	}
 	h.attachPhotoURL(c.Context(), contact.User)
 	return c.JSON(contact)
@@ -130,14 +130,14 @@ func (h *ContactHandler) DeleteContact(c fiber.Ctx) error {
 
 	contactID, err := uuid.Parse(c.Params("contactId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid contact id")
+		return respondError(fiber.StatusBadRequest, "invalid contact id")
 	}
 
 	if err := h.service.DeleteContact(c.Context(), cuUser.ID, contactID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "contact not found")
+			return respondError(fiber.StatusNotFound, "contact not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete contact", err)
+		return unexpectedError(h.logger, "failed to delete contact", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

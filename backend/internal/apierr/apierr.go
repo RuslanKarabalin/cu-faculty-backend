@@ -22,6 +22,22 @@ type Response struct {
 	Code  string `json:"code"`
 }
 
+type Error struct {
+	Status  int
+	Code    string
+	Message string
+}
+
+func (e *Error) Error() string { return e.Message }
+
+func New(status int, msg string) *Error {
+	return &Error{Status: status, Code: CodeForStatus(status), Message: msg}
+}
+
+func NewCode(status int, code, msg string) *Error {
+	return &Error{Status: status, Code: code, Message: msg}
+}
+
 func CodeForStatus(status int) string {
 	switch status {
 	case fiber.StatusBadRequest:

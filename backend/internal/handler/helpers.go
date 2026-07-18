@@ -30,10 +30,10 @@ type requestValidator interface {
 	Validate() error
 }
 
-func validateBound(c fiber.Ctx, out any) error {
+func validateBound(out any) error {
 	if v, ok := out.(requestValidator); ok {
 		if err := v.Validate(); err != nil {
-			return respondValidation(c, err.Error())
+			return respondValidation(err.Error())
 		}
 	}
 	return nil
@@ -41,20 +41,20 @@ func validateBound(c fiber.Ctx, out any) error {
 
 func bindJSON(c fiber.Ctx, out any) error {
 	if err := c.Bind().JSON(out); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
-	return validateBound(c, out)
+	return validateBound(out)
 }
 
 func bindMultipartData(c fiber.Ctx, out any) error {
 	data := c.FormValue("data")
 	if data == "" {
-		return respondError(c, fiber.StatusBadRequest, "data part is required")
+		return respondError(fiber.StatusBadRequest, "data part is required")
 	}
 	if err := json.Unmarshal([]byte(data), out); err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid data part")
+		return respondError(fiber.StatusBadRequest, "invalid data part")
 	}
-	return validateBound(c, out)
+	return validateBound(out)
 }
 
 func bindOptionalMultipartData(c fiber.Ctx, out any) (bool, error) {
@@ -63,9 +63,9 @@ func bindOptionalMultipartData(c fiber.Ctx, out any) (bool, error) {
 		return false, nil
 	}
 	if err := json.Unmarshal([]byte(data), out); err != nil {
-		return false, respondError(c, fiber.StatusBadRequest, "invalid data part")
+		return false, respondError(fiber.StatusBadRequest, "invalid data part")
 	}
-	if err := validateBound(c, out); err != nil {
+	if err := validateBound(out); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -79,20 +79,20 @@ func uploadOptionalPhoto(c fiber.Ctx, storage photoUploader, logger *zap.Logger,
 
 	contentType := fileHeader.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "image/") {
-		return "", respondError(c, fiber.StatusBadRequest, "photo must be an image")
+		return "", respondError(fiber.StatusBadRequest, "photo must be an image")
 	}
 
 	file, err := fileHeader.Open()
 	if err != nil {
 		logger.Error("failed to open uploaded photo", zap.Error(err))
-		return "", respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return "", respondError(fiber.StatusInternalServerError, "internal server error")
 	}
 	defer func() { _ = file.Close() }()
 
 	key := keyPrefix + uuid.NewString()
 	if err := storage.Upload(c.Context(), key, contentType, file, fileHeader.Size); err != nil {
 		logger.Error("failed to upload photo", zap.Error(err))
-		return "", respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return "", respondError(fiber.StatusInternalServerError, "internal server error")
 	}
 	return key, nil
 }
@@ -131,7 +131,7 @@ func currentUser(c fiber.Ctx, logger *zap.Logger) (*model.CuUserResp, error) {
 	cuUser, ok := middleware.GetCuUser(c)
 	if !ok {
 		logger.Error("cu user missing from context on authenticated route")
-		return nil, respondError(c, fiber.StatusInternalServerError, "internal server error")
+		return nil, respondError(fiber.StatusInternalServerError, "internal server error")
 	}
 	return cuUser, nil
 }

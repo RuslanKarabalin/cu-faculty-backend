@@ -50,13 +50,13 @@ func (h *PostHandler) attachAuthorPhotoURL(ctx context.Context, u *model.User) {
 func (h *PostHandler) GetPosts(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	posts, total, err := h.service.GetPosts(c.Context(), limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get posts", err)
+		return unexpectedError(h.logger, "failed to get posts", err)
 	}
 	for _, a := range posts {
 		h.attachAuthorPhotoURL(c.Context(), a.Author)
@@ -77,13 +77,13 @@ func (h *PostHandler) GetMyPosts(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	posts, total, err := h.service.GetPostsByAuthorID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get posts", err)
+		return unexpectedError(h.logger, "failed to get posts", err)
 	}
 	for _, a := range posts {
 		h.attachAuthorPhotoURL(c.Context(), a.Author)
@@ -104,15 +104,15 @@ func (h *PostHandler) GetPostByID(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid post id")
+		return respondError(fiber.StatusBadRequest, "invalid post id")
 	}
 
 	post, err := h.service.GetPostByID(c.Context(), id, cuUser.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "post not found")
+			return respondError(fiber.StatusNotFound, "post not found")
 		}
-		return unexpectedError(c, h.logger, "failed to get post by id", err)
+		return unexpectedError(h.logger, "failed to get post by id", err)
 	}
 	h.attachAuthorPhotoURL(c.Context(), post.Author)
 	return c.JSON(post)
@@ -131,7 +131,7 @@ func (h *PostHandler) CreatePost(c fiber.Ctx) error {
 
 	post, err := h.service.CreatePost(c.Context(), cuUser.ID, req)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to create post", err)
+		return unexpectedError(h.logger, "failed to create post", err)
 	}
 	h.attachAuthorPhotoURL(c.Context(), post.Author)
 	return c.Status(fiber.StatusCreated).JSON(post)
@@ -145,7 +145,7 @@ func (h *PostHandler) UpdatePost(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid post id")
+		return respondError(fiber.StatusBadRequest, "invalid post id")
 	}
 
 	var req model.UpdatePostRequest
@@ -156,9 +156,9 @@ func (h *PostHandler) UpdatePost(c fiber.Ctx) error {
 	post, err := h.service.UpdatePost(c.Context(), cuUser.ID, id, req)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "post not found")
+			return respondError(fiber.StatusNotFound, "post not found")
 		}
-		return unexpectedError(c, h.logger, "failed to update post", err)
+		return unexpectedError(h.logger, "failed to update post", err)
 	}
 	h.attachAuthorPhotoURL(c.Context(), post.Author)
 	return c.JSON(post)
@@ -172,14 +172,14 @@ func (h *PostHandler) DeletePost(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid post id")
+		return respondError(fiber.StatusBadRequest, "invalid post id")
 	}
 
 	if err := h.service.DeletePost(c.Context(), cuUser.ID, id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "post not found")
+			return respondError(fiber.StatusNotFound, "post not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete post", err)
+		return unexpectedError(h.logger, "failed to delete post", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

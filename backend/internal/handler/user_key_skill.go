@@ -31,18 +31,18 @@ func NewUserKeySkillHandler(service userKeySkillService, logger *zap.Logger) *Us
 func (h *UserKeySkillHandler) GetUserKeySkills(c fiber.Ctx) error {
 	userID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid user id")
+		return respondError(fiber.StatusBadRequest, "invalid user id")
 	}
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	skills, total, err := h.service.GetUserKeySkills(c.Context(), userID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get user key skills", err)
+		return unexpectedError(h.logger, "failed to get user key skills", err)
 	}
 	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
@@ -55,13 +55,13 @@ func (h *UserKeySkillHandler) GetMyKeySkills(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	skills, total, err := h.service.GetUserKeySkills(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get user key skills", err)
+		return unexpectedError(h.logger, "failed to get user key skills", err)
 	}
 	return c.JSON(model.Page[*model.Skill]{Data: skills, Total: total, Limit: limit, Offset: offset})
 }
@@ -74,15 +74,15 @@ func (h *UserKeySkillHandler) AddMyKeySkill(c fiber.Ctx) error {
 
 	skillID, err := strconv.Atoi(c.Params("skillId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid skill id")
+		return respondError(fiber.StatusBadRequest, "invalid skill id")
 	}
 
 	skill, err := h.service.AddUserKeySkill(c.Context(), cuUser.ID, skillID)
 	if err != nil {
 		if errors.Is(err, repository.ErrInvalidRefID) || errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "key skill not found")
+			return respondError(fiber.StatusNotFound, "key skill not found")
 		}
-		return unexpectedError(c, h.logger, "failed to add user key skill", err)
+		return unexpectedError(h.logger, "failed to add user key skill", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(skill)
 }
@@ -95,14 +95,14 @@ func (h *UserKeySkillHandler) DeleteMyKeySkill(c fiber.Ctx) error {
 
 	skillID, err := strconv.Atoi(c.Params("skillId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid skill id")
+		return respondError(fiber.StatusBadRequest, "invalid skill id")
 	}
 
 	if err := h.service.DeleteUserKeySkill(c.Context(), cuUser.ID, skillID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "key skill not assigned")
+			return respondError(fiber.StatusNotFound, "key skill not assigned")
 		}
-		return unexpectedError(c, h.logger, "failed to delete user key skill", err)
+		return unexpectedError(h.logger, "failed to delete user key skill", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

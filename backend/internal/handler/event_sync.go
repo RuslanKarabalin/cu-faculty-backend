@@ -25,7 +25,7 @@ func NewEventSyncHandler(service eventSyncService, logger *zap.Logger) *EventSyn
 func (h *EventSyncHandler) TriggerSync(c fiber.Ctx) error {
 	processed, err := h.service.Sync(c.Context(), c.Cookies(cuclient.CookieName))
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to sync events", err)
+		return unexpectedError(h.logger, "failed to sync events", err)
 	}
 	return c.JSON(fiber.Map{"processed": processed})
 }

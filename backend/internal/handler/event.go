@@ -49,13 +49,13 @@ func (h *EventHandler) attachURLs(ctx context.Context, e *model.Event) {
 func (h *EventHandler) GetEvents(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	events, total, err := h.service.GetEvents(c.Context(), limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get events", err)
+		return unexpectedError(h.logger, "failed to get events", err)
 	}
 	for _, e := range events {
 		h.attachURLs(c.Context(), e)
@@ -76,13 +76,13 @@ func (h *EventHandler) GetMyEvents(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	events, total, err := h.service.GetEventsByAuthorID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get events", err)
+		return unexpectedError(h.logger, "failed to get events", err)
 	}
 	for _, e := range events {
 		h.attachURLs(c.Context(), e)
@@ -103,15 +103,15 @@ func (h *EventHandler) GetEventByID(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid event id")
+		return respondError(fiber.StatusBadRequest, "invalid event id")
 	}
 
 	event, err := h.service.GetEventByID(c.Context(), id, cuUser.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "event not found")
+			return respondError(fiber.StatusNotFound, "event not found")
 		}
-		return unexpectedError(c, h.logger, "failed to get event by id", err)
+		return unexpectedError(h.logger, "failed to get event by id", err)
 	}
 	h.attachURLs(c.Context(), event)
 	return c.JSON(event)
@@ -130,7 +130,7 @@ func (h *EventHandler) CreateEvent(c fiber.Ctx) error {
 
 	event, err := h.service.CreateEvent(c.Context(), cuUser.ID, req)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to create event", err)
+		return unexpectedError(h.logger, "failed to create event", err)
 	}
 
 	event, err = h.applyPhoto(c, cuUser.ID, event)
@@ -150,7 +150,7 @@ func (h *EventHandler) UpdateEvent(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid event id")
+		return respondError(fiber.StatusBadRequest, "invalid event id")
 	}
 
 	var req model.UpdateEventRequest
@@ -167,9 +167,9 @@ func (h *EventHandler) UpdateEvent(c fiber.Ctx) error {
 	}
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "event not found")
+			return respondError(fiber.StatusNotFound, "event not found")
 		}
-		return unexpectedError(c, h.logger, "failed to update event", err)
+		return unexpectedError(h.logger, "failed to update event", err)
 	}
 
 	event, err = h.applyPhoto(c, cuUser.ID, event)
@@ -194,9 +194,9 @@ func (h *EventHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, event *model.
 	if err != nil {
 		deletePhoto(c.Context(), h.storage, h.logger, key)
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, respondError(c, fiber.StatusNotFound, "event not found")
+			return nil, respondError(fiber.StatusNotFound, "event not found")
 		}
-		return nil, unexpectedError(c, h.logger, "failed to set event photo", err)
+		return nil, unexpectedError(h.logger, "failed to set event photo", err)
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	return updated, nil
@@ -210,15 +210,15 @@ func (h *EventHandler) DeleteEvent(c fiber.Ctx) error {
 
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid event id")
+		return respondError(fiber.StatusBadRequest, "invalid event id")
 	}
 
 	photoKey, err := h.service.DeleteEvent(c.Context(), cuUser.ID, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "event not found")
+			return respondError(fiber.StatusNotFound, "event not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete event", err)
+		return unexpectedError(h.logger, "failed to delete event", err)
 	}
 	if photoKey != nil {
 		deletePhoto(c.Context(), h.storage, h.logger, *photoKey)

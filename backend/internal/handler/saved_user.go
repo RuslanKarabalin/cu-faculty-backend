@@ -43,13 +43,13 @@ func (h *SavedUserHandler) GetMySavedUsers(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	users, total, err := h.service.GetSavedUsers(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get saved users", err)
+		return unexpectedError(h.logger, "failed to get saved users", err)
 	}
 	for _, u := range users {
 		h.attachPhotoURL(c.Context(), u)
@@ -65,19 +65,19 @@ func (h *SavedUserHandler) AddMySavedUser(c fiber.Ctx) error {
 
 	savedUserID, err := uuid.Parse(c.Params("userId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid user id")
+		return respondError(fiber.StatusBadRequest, "invalid user id")
 	}
 
 	if savedUserID == cuUser.ID {
-		return respondError(c, fiber.StatusBadRequest, "cannot save yourself")
+		return respondError(fiber.StatusBadRequest, "cannot save yourself")
 	}
 
 	user, err := h.service.AddSavedUser(c.Context(), cuUser.ID, savedUserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrInvalidRefID) || errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "user not found")
+			return respondError(fiber.StatusNotFound, "user not found")
 		}
-		return unexpectedError(c, h.logger, "failed to add saved user", err)
+		return unexpectedError(h.logger, "failed to add saved user", err)
 	}
 	h.attachPhotoURL(c.Context(), user)
 	return c.Status(fiber.StatusCreated).JSON(user)
@@ -91,14 +91,14 @@ func (h *SavedUserHandler) DeleteMySavedUser(c fiber.Ctx) error {
 
 	savedUserID, err := uuid.Parse(c.Params("userId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid user id")
+		return respondError(fiber.StatusBadRequest, "invalid user id")
 	}
 
 	if err := h.service.DeleteSavedUser(c.Context(), cuUser.ID, savedUserID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "saved user not found")
+			return respondError(fiber.StatusNotFound, "saved user not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete saved user", err)
+		return unexpectedError(h.logger, "failed to delete saved user", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

@@ -32,18 +32,18 @@ func NewWorkPlaceHandler(service workPlaceService, logger *zap.Logger) *WorkPlac
 func (h *WorkPlaceHandler) GetUserWorkPlaces(c fiber.Ctx) error {
 	userID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid user id")
+		return respondError(fiber.StatusBadRequest, "invalid user id")
 	}
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	places, total, err := h.service.GetWorkPlacesByUserID(c.Context(), userID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get work places", err)
+		return unexpectedError(h.logger, "failed to get work places", err)
 	}
 	return c.JSON(model.Page[*model.WorkPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
@@ -56,13 +56,13 @@ func (h *WorkPlaceHandler) GetMyWorkPlaces(c fiber.Ctx) error {
 
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	places, total, err := h.service.GetWorkPlacesByUserID(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get work places", err)
+		return unexpectedError(h.logger, "failed to get work places", err)
 	}
 	return c.JSON(model.Page[*model.WorkPlace]{Data: places, Total: total, Limit: limit, Offset: offset})
 }
@@ -80,7 +80,7 @@ func (h *WorkPlaceHandler) CreateWorkPlace(c fiber.Ctx) error {
 
 	place, err := h.service.CreateWorkPlace(c.Context(), cuUser.ID, req)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to create work place", err)
+		return unexpectedError(h.logger, "failed to create work place", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(place)
 }
@@ -93,7 +93,7 @@ func (h *WorkPlaceHandler) UpdateWorkPlace(c fiber.Ctx) error {
 
 	id, err := strconv.Atoi(c.Params("workId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid work place id")
+		return respondError(fiber.StatusBadRequest, "invalid work place id")
 	}
 
 	var req model.WorkPlaceRequest
@@ -104,9 +104,9 @@ func (h *WorkPlaceHandler) UpdateWorkPlace(c fiber.Ctx) error {
 	place, err := h.service.UpdateWorkPlace(c.Context(), cuUser.ID, id, req)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "work place not found")
+			return respondError(fiber.StatusNotFound, "work place not found")
 		}
-		return unexpectedError(c, h.logger, "failed to update work place", err)
+		return unexpectedError(h.logger, "failed to update work place", err)
 	}
 	return c.JSON(place)
 }
@@ -119,14 +119,14 @@ func (h *WorkPlaceHandler) DeleteWorkPlace(c fiber.Ctx) error {
 
 	id, err := strconv.Atoi(c.Params("workId"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid work place id")
+		return respondError(fiber.StatusBadRequest, "invalid work place id")
 	}
 
 	if err := h.service.DeleteWorkPlace(c.Context(), cuUser.ID, id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "work place not found")
+			return respondError(fiber.StatusNotFound, "work place not found")
 		}
-		return unexpectedError(c, h.logger, "failed to delete work place", err)
+		return unexpectedError(h.logger, "failed to delete work place", err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

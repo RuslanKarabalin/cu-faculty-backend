@@ -16,14 +16,14 @@ func Auth(client *cuclient.Client, publicPaths map[string]struct{}) fiber.Handle
 		}
 		cookie := c.Cookies(cuclient.CookieName)
 		if cookie == "" {
-			return apierr.WriteCode(c, fiber.StatusUnauthorized, apierr.CodeUnauthorized, "authentication cookie not provided")
+			return apierr.NewCode(fiber.StatusUnauthorized, apierr.CodeUnauthorized, "authentication cookie not provided")
 		}
 		cuUser, err := client.Authorize(c.Context(), cookie)
 		if err != nil {
 			if errors.Is(err, cuclient.ErrUnauthorized) {
-				return apierr.WriteCode(c, fiber.StatusUnauthorized, apierr.CodeUnauthorized, "authentication cookie rejected by upstream")
+				return apierr.NewCode(fiber.StatusUnauthorized, apierr.CodeUnauthorized, "authentication cookie rejected by upstream")
 			}
-			return apierr.WriteCode(c, fiber.StatusBadGateway, apierr.CodeUpstream, "authentication upstream is unavailable")
+			return apierr.NewCode(fiber.StatusBadGateway, apierr.CodeUpstream, "authentication upstream is unavailable")
 		}
 		SetCuUser(c, cuUser)
 		return c.Next()

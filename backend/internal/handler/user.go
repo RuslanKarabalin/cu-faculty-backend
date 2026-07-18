@@ -79,7 +79,7 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 
 	if cuUserResp.ID == (uuid.UUID{}) || cuUserResp.FirstName == "" || cuUserResp.LastName == "" || cuUserResp.BirthDate == "" {
 		h.logger.Error("incomplete user data from CU API")
-		return respondError(c, fiber.StatusBadGateway, "incomplete user data from upstream")
+		return respondError(fiber.StatusBadGateway, "incomplete user data from upstream")
 	}
 
 	cookie := c.Cookies(cuclient.CookieName)
@@ -87,9 +87,9 @@ func (h *UserHandler) Register(c fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidBirthDate) || errors.Is(err, service.ErrInvalidUpstreamData) {
 			h.logger.Error("invalid data from CU API", zap.Error(err))
-			return respondError(c, fiber.StatusBadGateway, "invalid data from upstream")
+			return respondError(fiber.StatusBadGateway, "invalid data from upstream")
 		}
-		return unexpectedError(c, h.logger, "failed to register user", err)
+		return unexpectedError(h.logger, "failed to register user", err)
 	}
 
 	user, err = h.applyPhoto(c, user)
@@ -110,12 +110,12 @@ func (h *UserHandler) updateUser(c fiber.Ctx, id uuid.UUID, req model.UpdateUser
 	user, err := h.userService.UpdateUser(c.Context(), id, req)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, respondError(c, fiber.StatusNotFound, "user not found")
+			return nil, respondError(fiber.StatusNotFound, "user not found")
 		}
 		if errors.Is(err, repository.ErrInvalidRefID) {
-			return nil, respondError(c, fiber.StatusBadRequest, "invalid status id")
+			return nil, respondError(fiber.StatusBadRequest, "invalid status id")
 		}
-		return nil, unexpectedError(c, h.logger, "failed to update current user", err)
+		return nil, unexpectedError(h.logger, "failed to update current user", err)
 	}
 	return user, nil
 }
@@ -124,9 +124,9 @@ func (h *UserHandler) getUser(c fiber.Ctx, id uuid.UUID) (*model.User, error) {
 	user, err := h.userService.GetUserByID(c.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, respondError(c, fiber.StatusNotFound, "user not found")
+			return nil, respondError(fiber.StatusNotFound, "user not found")
 		}
-		return nil, unexpectedError(c, h.logger, "failed to get current user", err)
+		return nil, unexpectedError(h.logger, "failed to get current user", err)
 	}
 	return user, nil
 }
@@ -144,9 +144,9 @@ func (h *UserHandler) applyPhoto(c fiber.Ctx, user *model.User) (*model.User, er
 	if err != nil {
 		deletePhoto(c.Context(), h.storage, h.logger, key)
 		if errors.Is(err, repository.ErrNotFound) {
-			return nil, respondError(c, fiber.StatusNotFound, "user not found")
+			return nil, respondError(fiber.StatusNotFound, "user not found")
 		}
-		return nil, unexpectedError(c, h.logger, "failed to set user photo", err)
+		return nil, unexpectedError(h.logger, "failed to set user photo", err)
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	return updated, nil
@@ -206,9 +206,9 @@ func (h *UserHandler) GetMyCompleteness(c fiber.Ctx) error {
 	completeness, err := h.userService.GetProfileCompleteness(c.Context(), cuUser.ID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "user not found")
+			return respondError(fiber.StatusNotFound, "user not found")
 		}
-		return unexpectedError(c, h.logger, "failed to get profile completeness", err)
+		return unexpectedError(h.logger, "failed to get profile completeness", err)
 	}
 	return c.JSON(completeness)
 }
@@ -216,15 +216,15 @@ func (h *UserHandler) GetMyCompleteness(c fiber.Ctx) error {
 func (h *UserHandler) GetStudentByID(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return respondError(c, fiber.StatusBadRequest, "invalid id")
+		return respondError(fiber.StatusBadRequest, "invalid id")
 	}
 
 	user, err := h.userService.GetUserByID(c.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return respondError(c, fiber.StatusNotFound, "user not found")
+			return respondError(fiber.StatusNotFound, "user not found")
 		}
-		return unexpectedError(c, h.logger, "failed to get user by id", err)
+		return unexpectedError(h.logger, "failed to get user by id", err)
 	}
 	h.attachPhotoURL(c.Context(), user)
 	return c.JSON(user)
@@ -244,7 +244,7 @@ func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
 
 	results, total, err := h.userService.SearchUsers(c.Context(), cuUser.ID, params)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to search users", err)
+		return unexpectedError(h.logger, "failed to search users", err)
 	}
 	for _, res := range results {
 		h.attachPhotoURL(c.Context(), res.User)
@@ -260,13 +260,13 @@ func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
 func (h *UserHandler) GetUsers(c fiber.Ctx) error {
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
+		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
 	users, total, err := h.userService.GetAllUsers(c.Context(), limit, offset)
 	if err != nil {
-		return unexpectedError(c, h.logger, "failed to get users", err)
+		return unexpectedError(h.logger, "failed to get users", err)
 	}
 	for _, u := range users {
 		h.attachPhotoURL(c.Context(), u)
