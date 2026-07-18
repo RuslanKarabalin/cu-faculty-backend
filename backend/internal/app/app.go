@@ -190,6 +190,10 @@ func (a *App) startEventSync(ctx context.Context) {
 		a.Logger.Info("event sync scheduler disabled")
 		return
 	}
+	if a.Config.CuServiceCookie == "" {
+		a.Logger.Warn("event sync scheduler disabled: CU_SERVICE_COOKIE is not set")
+		return
+	}
 
 	go func() {
 		a.runEventSync(ctx)
@@ -211,7 +215,7 @@ func (a *App) runEventSync(ctx context.Context) {
 	syncCtx, cancel := context.WithTimeout(ctx, eventSyncTimeout)
 	defer cancel()
 
-	processed, err := a.EventSync.Sync(syncCtx)
+	processed, err := a.EventSync.Sync(syncCtx, a.Config.CuServiceCookie)
 	if err != nil {
 		a.Logger.Error("event sync failed", zap.Error(err))
 		return

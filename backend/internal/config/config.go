@@ -26,6 +26,7 @@ type Config struct {
 	S3UsePathStyle    bool
 	S3PresignTTL      time.Duration
 	EventSyncInterval time.Duration
+	CuServiceCookie   string
 }
 
 func ReadConfig() (*Config, error) {
@@ -57,6 +58,7 @@ func ReadConfig() (*Config, error) {
 		S3UsePathStyle:    viper.GetBool("S3_USE_PATH_STYLE"),
 		S3PresignTTL:      viper.GetDuration("S3_PRESIGN_TTL"),
 		EventSyncInterval: viper.GetDuration("EVENT_SYNC_INTERVAL"),
+		CuServiceCookie:   viper.GetString("CU_SERVICE_COOKIE"),
 	}
 
 	var errs []error

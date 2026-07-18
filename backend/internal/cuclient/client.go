@@ -54,7 +54,7 @@ func (c *Client) get(ctx context.Context, cookie string, segments ...string) ([]
 	return io.ReadAll(io.LimitReader(httpResp.Body, 1<<20))
 }
 
-func (c *Client) postJSON(ctx context.Context, payload any, segments ...string) ([]byte, error) {
+func (c *Client) postJSON(ctx context.Context, cookie string, payload any, segments ...string) ([]byte, error) {
 	endpoint, err := url.JoinPath(c.baseURL, segments...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build URL: %w", err)
@@ -70,6 +70,9 @@ func (c *Client) postJSON(ctx context.Context, payload any, segments ...string) 
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if cookie != "" {
+		req.AddCookie(&http.Cookie{Name: CookieName, Value: cookie})
+	}
 
 	httpResp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -84,7 +87,7 @@ func (c *Client) postJSON(ctx context.Context, payload any, segments ...string) 
 	return io.ReadAll(io.LimitReader(httpResp.Body, maxRespBytes))
 }
 
-func (c *Client) ListPublicEvents(ctx context.Context, limit, offset int, endDateGTE time.Time) (*model.CuEventListResponse, error) {
+func (c *Client) ListPublicEvents(ctx context.Context, cookie string, limit, offset int, endDateGTE time.Time) (*model.CuEventListResponse, error) {
 	reqBody := model.CuEventListRequest{
 		Paging: model.CuEventPaging{
 			Limit:   limit,
@@ -96,7 +99,7 @@ func (c *Client) ListPublicEvents(ctx context.Context, limit, offset int, endDat
 		},
 	}
 
-	body, err := c.postJSON(ctx, reqBody, "api", "event-builder", "public", "events", "list")
+	body, err := c.postJSON(ctx, cookie, reqBody, "api", "event-builder", "public", "events", "list")
 	if err != nil {
 		return nil, err
 	}

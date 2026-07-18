@@ -29,7 +29,7 @@ type eventSyncRepository interface {
 }
 
 type eventSyncClient interface {
-	ListPublicEvents(ctx context.Context, limit, offset int, endDateGTE time.Time) (*model.CuEventListResponse, error)
+	ListPublicEvents(ctx context.Context, cookie string, limit, offset int, endDateGTE time.Time) (*model.CuEventListResponse, error)
 }
 
 type EventSyncService struct {
@@ -41,7 +41,7 @@ func NewEventSyncService(repo eventSyncRepository, cu eventSyncClient) *EventSyn
 	return &EventSyncService{repo: repo, cu: cu}
 }
 
-func (s *EventSyncService) Sync(ctx context.Context) (int, error) {
+func (s *EventSyncService) Sync(ctx context.Context, cookie string) (int, error) {
 	authorID, err := uuid.Parse(SystemAuthorID)
 	if err != nil {
 		return 0, fmt.Errorf("parse system author id: %w", err)
@@ -52,7 +52,7 @@ func (s *EventSyncService) Sync(ctx context.Context) (int, error) {
 	processed := 0
 
 	for {
-		resp, err := s.cu.ListPublicEvents(ctx, syncPageSize, offset, now)
+		resp, err := s.cu.ListPublicEvents(ctx, cookie, syncPageSize, offset, now)
 		if err != nil {
 			return processed, fmt.Errorf("fetch cu events: %w", err)
 		}
