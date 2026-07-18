@@ -168,6 +168,43 @@ func (r *Repository) SearchUsers(ctx context.Context, userID uuid.UUID, search s
 	return results, total, nil
 }
 
+func (r *Repository) GetProfileCompletenessData(ctx context.Context, id uuid.UUID) (*model.ProfileCompletenessData, error) {
+	query := `
+	select
+		u.photo_s3_key is not null
+		, coalesce(btrim(u.speciality), '') <> ''
+		, coalesce(btrim(u.bio), '') <> ''
+		, u.birth_date is not null
+		, (select count(*) from socials where user_id = u.id)
+		, (select count(*) from edu_places where user_id = u.id)
+		, (select count(*) from work_places where user_id = u.id)
+		, (select count(*) from user_key_skills where user_id = u.id)
+		, (select count(*) from user_soft_skills where user_id = u.id)
+	from users u
+	where u.id = $1
+	`
+
+	d := &model.ProfileCompletenessData{}
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&d.HasPhoto,
+		&d.HasSpeciality,
+		&d.HasBio,
+		&d.HasBirthDate,
+		&d.SocialsCount,
+		&d.EduPlacesCount,
+		&d.WorkPlacesCount,
+		&d.KeySkillsCount,
+		&d.SoftSkillsCount,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get profile completeness data: %w", err)
+	}
+	return d, nil
+}
+
 func relationForRank(rank int) model.UserRelation {
 	switch rank {
 	case 0:

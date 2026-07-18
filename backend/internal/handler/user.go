@@ -22,6 +22,7 @@ type userService interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error)
 	SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error)
+	GetProfileCompleteness(ctx context.Context, id uuid.UUID) (*model.ProfileCompleteness, error)
 }
 
 type registrationService interface {
@@ -195,6 +196,22 @@ func (h *UserHandler) UpdateMe(c fiber.Ctx) error {
 
 	h.attachPhotoURL(c.Context(), user)
 	return c.JSON(user)
+}
+
+func (h *UserHandler) GetMyCompleteness(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
+	completeness, err := h.userService.GetProfileCompleteness(c.Context(), cuUser.ID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return respondError(c, fiber.StatusNotFound, "user not found")
+		}
+		return unexpectedError(c, h.logger, "failed to get profile completeness", err)
+	}
+	return c.JSON(completeness)
 }
 
 func (h *UserHandler) GetStudentByID(c fiber.Ctx) error {

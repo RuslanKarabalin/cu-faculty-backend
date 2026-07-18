@@ -58,3 +58,55 @@ type UpdateUserParams struct {
 	Speciality *string
 	StatusID   *int
 }
+
+type ProfileCompletenessData struct {
+	HasPhoto        bool
+	HasSpeciality   bool
+	HasBio          bool
+	HasBirthDate    bool
+	SocialsCount    int
+	EduPlacesCount  int
+	WorkPlacesCount int
+	KeySkillsCount  int
+	SoftSkillsCount int
+}
+
+const (
+	completenessPhoto        = 15
+	completenessSpeciality   = 15
+	completenessBio          = 10
+	completenessBirthDate    = 5
+	completenessPerSocial    = 5
+	completenessPerEduPlace  = 5
+	completenessPerSkill     = 5
+	completenessPerWorkPlace = 15
+	completenessMax          = 100
+)
+
+func (d ProfileCompletenessData) Percent() int {
+	total := 0
+	if d.HasPhoto {
+		total += completenessPhoto
+	}
+	if d.HasSpeciality {
+		total += completenessSpeciality
+	}
+	if d.HasBio {
+		total += completenessBio
+	}
+	if d.HasBirthDate {
+		total += completenessBirthDate
+	}
+	total += completenessPerSocial * d.SocialsCount
+	total += completenessPerEduPlace * d.EduPlacesCount
+	total += completenessPerSkill * (d.KeySkillsCount + d.SoftSkillsCount)
+	total += completenessPerWorkPlace * d.WorkPlacesCount
+	if total > completenessMax {
+		total = completenessMax
+	}
+	return total
+}
+
+type ProfileCompleteness struct {
+	Percent int `json:"percent"`
+}

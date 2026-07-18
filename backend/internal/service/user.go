@@ -20,6 +20,7 @@ type userRepository interface {
 	SearchUsers(ctx context.Context, userID uuid.UUID, search string, limit, offset int) ([]*model.UserSearchResult, int, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserParams) error
 	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) (*string, error)
+	GetProfileCompletenessData(ctx context.Context, id uuid.UUID) (*model.ProfileCompletenessData, error)
 }
 
 type UserService struct {
@@ -52,6 +53,14 @@ func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*
 		return nil, nil, err
 	}
 	return user, oldKey, nil
+}
+
+func (s *UserService) GetProfileCompleteness(ctx context.Context, id uuid.UUID) (*model.ProfileCompleteness, error) {
+	data, err := s.repo.GetProfileCompletenessData(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &model.ProfileCompleteness{Percent: data.Percent()}, nil
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error) {

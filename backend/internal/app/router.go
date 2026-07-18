@@ -61,6 +61,7 @@ func (a *App) registerRoutes() {
 
 	me.Get("/", userHandler.GetMe)
 	me.Put("/", userHandler.UpdateMe)
+	me.Get("/completeness", userHandler.GetMyCompleteness)
 
 	me.Post("/edu-places", eduPlaceHandler.CreateEduPlace)
 	me.Get("/edu-places", eduPlaceHandler.GetMyEduPlaces)

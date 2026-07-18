@@ -265,6 +265,25 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/me/completeness:
+    get:
+      tags: [Me]
+      summary: Get the current user's profile completeness
+      description: >
+        Returns the profile completeness as a percentage (0–100). Weights:
+        photo 15, speciality 15, bio 10, birth date 5, each social / education
+        place / key skill / soft skill 5, each work place 15. Capped at 100.
+      operationId: getMyCompleteness
+      responses:
+        "200":
+          description: Profile completeness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileCompleteness" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
   /api/me/edu-places:
     get:
       tags: [Me]
@@ -1674,6 +1693,12 @@ components:
         bio: { type: string, nullable: true, maxLength: 255 }
         speciality: { type: string, nullable: true, maxLength: 63 }
         statusId: { type: integer, nullable: true }
+
+    ProfileCompleteness:
+      type: object
+      required: [percent]
+      properties:
+        percent: { type: integer, minimum: 0, maximum: 100, description: "Profile completeness percentage" }
 
     CreateNewsData:
       type: object
