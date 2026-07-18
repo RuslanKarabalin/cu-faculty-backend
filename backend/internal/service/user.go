@@ -17,7 +17,7 @@ var (
 type userRepository interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
-	SearchUsers(ctx context.Context, userID uuid.UUID, search string, limit, offset int) ([]*model.UserSearchResult, int, error)
+	SearchUsers(ctx context.Context, viewerID uuid.UUID, params model.SearchUsersParams) ([]*model.UserSearchResult, int, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserParams) error
 	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) (*string, error)
 	GetProfileCompletenessData(ctx context.Context, id uuid.UUID) (*model.ProfileCompletenessData, error)
@@ -39,8 +39,8 @@ func (s *UserService) GetAllUsers(ctx context.Context, limit, offset int) ([]*mo
 	return s.repo.GetAllUsers(ctx, limit, offset)
 }
 
-func (s *UserService) SearchUsers(ctx context.Context, userID uuid.UUID, search string, limit, offset int) ([]*model.UserSearchResult, int, error) {
-	return s.repo.SearchUsers(ctx, userID, search, limit, offset)
+func (s *UserService) SearchUsers(ctx context.Context, viewerID uuid.UUID, params model.SearchUsersParams) ([]*model.UserSearchResult, int, error) {
+	return s.repo.SearchUsers(ctx, viewerID, params)
 }
 
 func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error) {

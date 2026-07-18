@@ -83,20 +83,27 @@ paths:
         "500": { $ref: "#/components/responses/InternalError" }
 
   /api/students/search:
-    get:
+    post:
       tags: [Students]
-      summary: Search students by first and last name
+      summary: Search students by name and filters
       description: >
-        Case-insensitive substring match against first name, last name, and the
-        full name ("first last"). Results exclude the current user and are ranked
-        by relationship to the caller: saved users first, then contacts, then all
-        other users; within each group they are ordered by name. Each result
-        carries a `relation` field indicating which group it fell into.
+        Filtered student search. All fields in the body are optional and are
+        combined with AND; an empty body ("reset filters") returns every student.
+        `q` is a case-insensitive substring match against first name, last name,
+        and the full name ("first last"). `companies` matches students who have a
+        work place at ANY of the given companies (case-insensitive). `keySkillIds`
+        and `softSkillIds` require the student to have ALL of the listed skills.
+        `speciality` matches the profile speciality case-insensitively. `statusId`
+        matches the student status. Results exclude the current user and are
+        ranked by relationship to the caller: saved users first, then contacts,
+        then everyone else; within each group ordered by name. Each result carries
+        a `relation` field indicating which group it fell into.
       operationId: searchStudents
-      parameters:
-        - $ref: "#/components/parameters/SearchQuery"
-        - $ref: "#/components/parameters/Limit"
-        - $ref: "#/components/parameters/Offset"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SearchStudentsRequest" }
       responses:
         "200":
           description: Paged, ranked search results
@@ -1447,12 +1454,6 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
-    SearchQuery:
-      name: q
-      in: query
-      required: true
-      description: Search term matched against first name, last name, and full name.
-      schema: { type: string, minLength: 1 }
     ResourceId:
       name: id
       in: path
@@ -1725,6 +1726,28 @@ components:
       required: [percent]
       properties:
         percent: { type: integer, minimum: 0, maximum: 100, description: "Profile completeness percentage" }
+
+    SearchStudentsRequest:
+      type: object
+      description: Student search filters. All fields optional; combined with AND.
+      properties:
+        q: { type: string, nullable: true, description: "Case-insensitive substring match on first/last/full name" }
+        statusId: { type: integer, nullable: true, description: "Filter by student status id (omit for all)" }
+        speciality: { type: string, nullable: true, description: "Case-insensitive exact match on profile speciality" }
+        companies:
+          type: array
+          description: "Match students with a work place at ANY of these companies (case-insensitive)"
+          items: { type: string }
+        keySkillIds:
+          type: array
+          description: "Match students who have ALL of these hard skills"
+          items: { type: integer }
+        softSkillIds:
+          type: array
+          description: "Match students who have ALL of these soft skills"
+          items: { type: integer }
+        limit: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        offset: { type: integer, minimum: 0, default: 0 }
 
     CreateNewsData:
       type: object

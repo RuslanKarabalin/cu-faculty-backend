@@ -52,7 +52,7 @@ func (a *App) registerRoutes() {
 
 	students.Post("/register", userHandler.Register)
 	students.Get("/", userHandler.GetUsers)
-	students.Get("/search", userHandler.SearchUsers)
+	students.Post("/search", userHandler.SearchUsers)
 	students.Get("/:id", userHandler.GetStudentByID)
 	students.Get("/:id/edu-places", eduPlaceHandler.GetUserEduPlaces)
 	students.Get("/:id/work-places", workPlaceHandler.GetUserWorkPlaces)

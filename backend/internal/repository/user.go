@@ -5,6 +5,8 @@ import (
 	"errors"
 	"faculty/internal/model"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -93,23 +95,53 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	return users, total, nil
 }
 
-func (r *Repository) SearchUsers(ctx context.Context, userID uuid.UUID, search string, limit, offset int) ([]*model.UserSearchResult, int, error) {
-	pattern := "%" + search + "%"
+func (r *Repository) SearchUsers(ctx context.Context, viewerID uuid.UUID, p model.SearchUsersParams) ([]*model.UserSearchResult, int, error) {
+	var args []any
+	argN := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
 
-	filter := `
-	where u.role = 'user'
-		and u.id <> $1
-		and (
-			u.first_name ilike $2
-			or u.last_name ilike $2
-			or (u.first_name || ' ' || u.last_name) ilike $2
-		)
-	`
+	viewer := argN(viewerID)
+
+	conds := []string{
+		"u.role = 'user'",
+		"u.id <> " + viewer,
+	}
+
+	if p.Query != nil {
+		pat := argN("%" + *p.Query + "%")
+		conds = append(conds, "(u.first_name ilike "+pat+
+			" or u.last_name ilike "+pat+
+			" or (u.first_name || ' ' || u.last_name) ilike "+pat+")")
+	}
+	if p.StatusID != nil {
+		conds = append(conds, "u.status_id = "+argN(*p.StatusID))
+	}
+	if p.Speciality != nil {
+		conds = append(conds, "lower(u.speciality) = lower("+argN(*p.Speciality)+")")
+	}
+	if len(p.Companies) > 0 {
+		conds = append(conds, "exists (select 1 from work_places wp where wp.user_id = u.id and lower(wp.company_name) = any("+argN(p.Companies)+"))")
+	}
+	if len(p.KeySkillIDs) > 0 {
+		ids := argN(p.KeySkillIDs)
+		conds = append(conds, "(select count(distinct uks.key_skill_id) from user_key_skills uks where uks.user_id = u.id and uks.key_skill_id = any("+ids+")) = "+argN(len(p.KeySkillIDs)))
+	}
+	if len(p.SoftSkillIDs) > 0 {
+		ids := argN(p.SoftSkillIDs)
+		conds = append(conds, "(select count(distinct uss.soft_skill_id) from user_soft_skills uss where uss.user_id = u.id and uss.soft_skill_id = any("+ids+")) = "+argN(len(p.SoftSkillIDs)))
+	}
+
+	where := "\nwhere " + strings.Join(conds, "\n\tand ") + "\n"
 
 	var total int
-	if err := r.db.QueryRow(ctx, `select count(*) from users u `+filter, userID, pattern).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `select count(*) from users u`+where, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count user search: %w", err)
 	}
+
+	limitPh := argN(p.Limit)
+	offsetPh := argN(p.Offset)
 
 	selectQuery := `
 	select
@@ -129,14 +161,13 @@ func (r *Repository) SearchUsers(ctx context.Context, userID uuid.UUID, search s
 		end as rank
 	from users u
 	left join statuses st on st.id = u.status_id
-	left join saved_users su on su.user_id = $1 and su.saved_user_id = u.id
-	left join contacts c on c.user_id = $1 and c.contact_id = u.id
-	` + filter + `
+	left join saved_users su on su.user_id = ` + viewer + ` and su.saved_user_id = u.id
+	left join contacts c on c.user_id = ` + viewer + ` and c.contact_id = u.id` + where + `
 	order by rank, u.last_name, u.first_name, u.id
-	limit $3 offset $4
+	limit ` + limitPh + ` offset ` + offsetPh + `
 	`
 
-	rows, err := r.db.Query(ctx, selectQuery, userID, pattern, limit, offset)
+	rows, err := r.db.Query(ctx, selectQuery, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to search users: %w", err)
 	}

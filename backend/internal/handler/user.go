@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 
 	"faculty/internal/cuclient"
 	"faculty/internal/model"
@@ -18,7 +17,7 @@ import (
 
 type userService interface {
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
-	SearchUsers(ctx context.Context, userID uuid.UUID, search string, limit, offset int) ([]*model.UserSearchResult, int, error)
+	SearchUsers(ctx context.Context, viewerID uuid.UUID, params model.SearchUsersParams) ([]*model.UserSearchResult, int, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error)
 	SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error)
@@ -237,18 +236,13 @@ func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
 		return err
 	}
 
-	search := strings.TrimSpace(c.Query("q"))
-	if search == "" {
-		return respondError(c, fiber.StatusBadRequest, "query parameter q is required")
+	var req model.SearchUsersRequest
+	if err := bindJSON(c, &req); err != nil {
+		return err
 	}
+	params := req.Normalize()
 
-	var q model.PageQuery
-	if err := c.Bind().Query(&q); err != nil {
-		return respondBindError(c)
-	}
-	limit, offset := q.Normalize()
-
-	results, total, err := h.userService.SearchUsers(c.Context(), cuUser.ID, search, limit, offset)
+	results, total, err := h.userService.SearchUsers(c.Context(), cuUser.ID, params)
 	if err != nil {
 		return unexpectedError(c, h.logger, "failed to search users", err)
 	}
@@ -258,8 +252,8 @@ func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
 	return c.JSON(model.Page[*model.UserSearchResult]{
 		Data:   results,
 		Total:  total,
-		Limit:  limit,
-		Offset: offset,
+		Limit:  params.Limit,
+		Offset: params.Offset,
 	})
 }
 
