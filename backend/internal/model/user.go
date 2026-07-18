@@ -83,8 +83,6 @@ func trimToPtr(s *string) *string {
 	return &trimmed
 }
 
-// normalizeCompanies trims, lowercases and dedups company names for
-// case-insensitive matching against work_places.company_name.
 func normalizeCompanies(values []string) []string {
 	seen := make(map[string]struct{}, len(values))
 	out := make([]string, 0, len(values))
