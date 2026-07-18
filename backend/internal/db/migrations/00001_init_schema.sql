@@ -121,7 +121,7 @@ create table "edu_places" (
     , unique (user_id, university_id, start_year)
 );
 
-create table "announcements" (
+create table "posts" (
     id uuid primary key default gen_random_uuid()
     , author_id uuid references users(id) on delete cascade
     , title varchar(63) not null
@@ -183,10 +183,10 @@ create table "saved_users" (
     , check (user_id <> saved_user_id)
 );
 
-create table "announcement_responses" (
+create table "post_responses" (
     user_id uuid references users(id) on delete cascade
-    , announcement_id uuid references announcements(id) on delete cascade
-    , primary key (user_id, announcement_id)
+    , post_id uuid references posts(id) on delete cascade
+    , primary key (user_id, post_id)
 );
 
 create table "event_responses" (
@@ -200,14 +200,14 @@ values('00000000-0000-0000-0000-000000000001', 'Central', 'University', '1970-01
 
 -- +goose Down
 drop table if exists "event_responses";
-drop table if exists "announcement_responses";
+drop table if exists "post_responses";
 drop table if exists "saved_users";
 drop table if exists "contacts";
 drop table if exists "user_soft_skills";
 drop table if exists "user_key_skills";
 drop table if exists "events";
 drop table if exists "news";
-drop table if exists "announcements";
+drop table if exists "posts";
 drop table if exists "edu_places";
 drop table if exists "work_places";
 drop table if exists "socials";

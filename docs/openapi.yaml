@@ -19,7 +19,7 @@ security:
 tags:
   - name: Students
   - name: Me
-  - name: Announcements
+  - name: Posts
   - name: News
   - name: Events
   - name: Reference
@@ -588,20 +588,20 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
-  /api/me/announcements:
+  /api/me/posts:
     get:
       tags: [Me]
-      summary: List announcements I authored
-      operationId: getMyAnnouncements
+      summary: List posts I authored
+      operationId: getMyPosts
       parameters:
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
       responses:
         "200":
-          description: Paged announcements
+          description: Paged posts
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AnnouncementPage" }
+              schema: { $ref: "#/components/schemas/PostPage" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
 
@@ -639,20 +639,20 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
 
-  /api/me/announcement-responses:
+  /api/me/post-responses:
     get:
       tags: [Me]
-      summary: List announcements I responded to
-      operationId: getMyAnnouncementResponses
+      summary: List posts I responded to
+      operationId: getMyPostResponses
       parameters:
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
       responses:
         "200":
-          description: Paged announcements
+          description: Paged posts
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AnnouncementPage" }
+              schema: { $ref: "#/components/schemas/PostPage" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
 
@@ -825,83 +825,83 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
-  /api/announcements:
+  /api/posts:
     get:
-      tags: [Announcements]
-      summary: List announcements
-      operationId: listAnnouncements
+      tags: [Posts]
+      summary: List posts
+      operationId: listPosts
       parameters:
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
       responses:
         "200":
-          description: Paged announcements
+          description: Paged posts
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AnnouncementPage" }
+              schema: { $ref: "#/components/schemas/PostPage" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
     post:
-      tags: [Announcements]
-      summary: Create an announcement
-      operationId: createAnnouncement
+      tags: [Posts]
+      summary: Create an post
+      operationId: createPost
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/CreateAnnouncementRequest" }
+            schema: { $ref: "#/components/schemas/CreatePostRequest" }
       responses:
         "201":
-          description: Created announcement
+          description: Created post
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Announcement" }
+              schema: { $ref: "#/components/schemas/Post" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
 
-  /api/announcements/{id}:
+  /api/posts/{id}:
     get:
-      tags: [Announcements]
-      summary: Get an announcement
-      operationId: getAnnouncement
+      tags: [Posts]
+      summary: Get an post
+      operationId: getPost
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       responses:
         "200":
-          description: Announcement
+          description: Post
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Announcement" }
+              schema: { $ref: "#/components/schemas/Post" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
     put:
-      tags: [Announcements]
-      summary: Update an announcement (author only)
-      operationId: updateAnnouncement
+      tags: [Posts]
+      summary: Update an post (author only)
+      operationId: updatePost
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/UpdateAnnouncementRequest" }
+            schema: { $ref: "#/components/schemas/UpdatePostRequest" }
       responses:
         "200":
-          description: Updated announcement
+          description: Updated post
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Announcement" }
+              schema: { $ref: "#/components/schemas/Post" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
     delete:
-      tags: [Announcements]
-      summary: Delete an announcement (author only)
-      operationId: deleteAnnouncement
+      tags: [Posts]
+      summary: Delete an post (author only)
+      operationId: deletePost
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       responses:
@@ -911,11 +911,11 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
-  /api/announcements/{id}/responses:
+  /api/posts/{id}/responses:
     get:
-      tags: [Announcements]
-      summary: List responders to an announcement
-      operationId: getAnnouncementResponders
+      tags: [Posts]
+      summary: List responders to an post
+      operationId: getPostResponders
       parameters:
         - $ref: "#/components/parameters/ResourceId"
         - $ref: "#/components/parameters/Limit"
@@ -930,26 +930,26 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
     post:
-      tags: [Announcements]
-      summary: Respond to an announcement
-      description: Idempotent. Fails if the announcement is missing or archived.
-      operationId: respondToAnnouncement
+      tags: [Posts]
+      summary: Respond to an post
+      description: Idempotent. Fails if the post is missing or archived.
+      operationId: respondToPost
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       responses:
         "201":
-          description: Announcement responded to
+          description: Post responded to
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Announcement" }
+              schema: { $ref: "#/components/schemas/Post" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
     delete:
-      tags: [Announcements]
-      summary: Remove my response to an announcement
-      operationId: deleteMyAnnouncementResponse
+      tags: [Posts]
+      summary: Remove my response to an post
+      operationId: deleteMyPostResponse
       parameters:
         - $ref: "#/components/parameters/ResourceId"
       responses:
@@ -1540,7 +1540,7 @@ components:
         human-readable message (not for programmatic use); "code" is a stable,
         machine-readable identifier clients may branch on.
       properties:
-        error: { type: string, example: "announcement not found" }
+        error: { type: string, example: "post not found" }
         code:
           type: string
           example: not_found
@@ -1687,7 +1687,7 @@ components:
         name: { type: string, maxLength: 63 }
       required: [id, name]
 
-    Announcement:
+    Post:
       type: object
       properties:
         id: { type: string, format: uuid }
@@ -1698,14 +1698,14 @@ components:
         author: { $ref: "#/components/schemas/User" }
       required: [id, title, content, isArchived, createdAt, author]
 
-    CreateAnnouncementRequest:
+    CreatePostRequest:
       type: object
       properties:
         title: { type: string, maxLength: 63 }
         content: { type: string, maxLength: 255 }
       required: [title, content]
 
-    UpdateAnnouncementRequest:
+    UpdatePostRequest:
       type: object
       properties:
         title: { type: string, maxLength: 63 }
@@ -1929,12 +1929,12 @@ components:
             data: { type: array, items: { $ref: "#/components/schemas/Skill" } }
           required: [data]
 
-    AnnouncementPage:
+    PostPage:
       allOf:
         - $ref: "#/components/schemas/PageMeta"
         - type: object
           properties:
-            data: { type: array, items: { $ref: "#/components/schemas/Announcement" } }
+            data: { type: array, items: { $ref: "#/components/schemas/Post" } }
           required: [data]
 
     NewsPage:

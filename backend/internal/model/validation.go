@@ -95,14 +95,14 @@ func (r UpdateUserRequest) Validate() error {
 	return f.result()
 }
 
-func (r CreateAnnouncementRequest) Validate() error {
+func (r CreatePostRequest) Validate() error {
 	var f fieldErrors
 	f.requiredMax("title", r.Title, maxShortTitleLen)
 	f.requiredMax("content", r.Content, maxContentLen)
 	return f.result()
 }
 
-func (r UpdateAnnouncementRequest) Validate() error {
+func (r UpdatePostRequest) Validate() error {
 	var f fieldErrors
 	f.requiredMax("title", r.Title, maxShortTitleLen)
 	f.requiredMax("content", r.Content, maxContentLen)

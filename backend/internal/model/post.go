@@ -6,13 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type CreateAnnouncementParams struct {
+type CreatePostParams struct {
 	AuthorID uuid.UUID
 	Title    string
 	Content  string
 }
 
-type UpdateAnnouncementParams struct {
+type UpdatePostParams struct {
 	ID         uuid.UUID
 	AuthorID   uuid.UUID
 	Title      string
@@ -20,18 +20,18 @@ type UpdateAnnouncementParams struct {
 	IsArchived bool
 }
 
-type CreateAnnouncementRequest struct {
+type CreatePostRequest struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
 
-type UpdateAnnouncementRequest struct {
+type UpdatePostRequest struct {
 	Title      string `json:"title"`
 	Content    string `json:"content"`
 	IsArchived bool   `json:"isArchived"`
 }
 
-type Announcement struct {
+type Post struct {
 	ID         uuid.UUID `json:"id"`
 	Title      string    `json:"title"`
 	Content    string    `json:"content"`
