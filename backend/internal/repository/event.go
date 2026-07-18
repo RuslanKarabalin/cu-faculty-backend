@@ -24,6 +24,25 @@ func (r *Repository) CreateEvent(ctx context.Context, params model.CreateEventPa
 	return id, nil
 }
 
+func (r *Repository) UpsertExternalEvent(ctx context.Context, params model.UpsertExternalEventParams) error {
+	query := `
+	insert into events(external_id, author_id, title, content, place, category, starts_at, registration_link, is_draft)
+	values($1, $2, $3, $4, $5, $6, $7, $8, false)
+	on conflict (external_id) do update set
+		title = excluded.title
+		, content = excluded.content
+		, place = excluded.place
+		, category = excluded.category
+		, starts_at = excluded.starts_at
+		, registration_link = excluded.registration_link
+	`
+
+	if _, err := r.db.Exec(ctx, query, params.ExternalID, params.AuthorID, params.Title, params.Content, params.Place, params.Category, params.StartsAt, params.RegistrationLink); err != nil {
+		return wrapPgError(err)
+	}
+	return nil
+}
+
 func (r *Repository) UpdateEvent(ctx context.Context, params model.UpdateEventParams) error {
 	query := `
 	update events

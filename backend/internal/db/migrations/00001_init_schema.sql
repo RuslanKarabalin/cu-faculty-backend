@@ -35,6 +35,8 @@ create type "event_category" as enum (
     'networking'
     , 'professional'
     , 'partner'
+    , 'offline'
+    , 'online'
 );
 
 create table "statuses" (
@@ -140,6 +142,7 @@ create table "news" (
 
 create table "events" (
     id uuid primary key default gen_random_uuid()
+    , external_id bigint unique
     , author_id uuid references users(id) on delete cascade
     , photo_s3_key varchar(255)
     , title varchar(127) not null
@@ -190,6 +193,9 @@ create table "event_responses" (
     , event_id uuid references events(id) on delete cascade
     , primary key (user_id, event_id)
 );
+
+insert into users(id, first_name, last_name, birth_date, role)
+values('00000000-0000-0000-0000-000000000001', 'Central', 'University', '1970-01-01', 'admin');
 
 -- +goose Down
 drop table if exists "event_responses";

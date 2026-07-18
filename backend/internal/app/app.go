@@ -15,6 +15,7 @@ import (
 	"faculty/internal/config"
 	"faculty/internal/cuclient"
 	"faculty/internal/db"
+	"faculty/internal/service"
 	"faculty/internal/storage"
 
 	"faculty/internal/handler"
@@ -28,19 +29,21 @@ import (
 )
 
 const (
-	dbPingTimeout   = 5 * time.Second
-	shutdownTimeout = 30 * time.Second
-	httpReqTimeout  = 10 * time.Second
-	maxBodyBytes    = 10 * 1024 * 1024
+	dbPingTimeout    = 5 * time.Second
+	shutdownTimeout  = 30 * time.Second
+	httpReqTimeout   = 10 * time.Second
+	maxBodyBytes     = 10 * 1024 * 1024
+	eventSyncTimeout = 5 * time.Minute
 )
 
 type App struct {
-	Fiber    *fiber.App
-	Config   *config.Config
-	DB       *pgxpool.Pool
-	Logger   *zap.Logger
-	CuClient *cuclient.Client
-	Storage  *storage.Client
+	Fiber     *fiber.App
+	Config    *config.Config
+	DB        *pgxpool.Pool
+	Logger    *zap.Logger
+	CuClient  *cuclient.Client
+	Storage   *storage.Client
+	EventSync *service.EventSyncService
 }
 
 func New() (*App, error) {
@@ -170,6 +173,8 @@ func (a *App) Run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	a.startEventSync(ctx)
+
 	go func() {
 		<-ctx.Done()
 		a.Logger.Info("shutting down...")
@@ -177,6 +182,41 @@ func (a *App) Run() error {
 	}()
 
 	return a.Fiber.Listen(a.Config.Addr, fiber.ListenConfig{DisableStartupMessage: true})
+}
+
+func (a *App) startEventSync(ctx context.Context) {
+	interval := a.Config.EventSyncInterval
+	if interval <= 0 {
+		a.Logger.Info("event sync scheduler disabled")
+		return
+	}
+
+	go func() {
+		a.runEventSync(ctx)
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.runEventSync(ctx)
+			}
+		}
+	}()
+}
+
+func (a *App) runEventSync(ctx context.Context) {
+	syncCtx, cancel := context.WithTimeout(ctx, eventSyncTimeout)
+	defer cancel()
+
+	processed, err := a.EventSync.Sync(syncCtx)
+	if err != nil {
+		a.Logger.Error("event sync failed", zap.Error(err))
+		return
+	}
+	a.Logger.Info("event sync completed", zap.Int("processed", processed))
 }
 
 func (a *App) Close() {

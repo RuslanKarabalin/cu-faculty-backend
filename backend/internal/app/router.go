@@ -41,6 +41,9 @@ func (a *App) registerRoutes() {
 	eventResponseHandler := handler.NewEventResponseHandler(service.NewEventResponseService(repo), a.Storage, a.Logger)
 	savedUserHandler := handler.NewSavedUserHandler(service.NewSavedUserService(repo), a.Storage, a.Logger)
 
+	a.EventSync = service.NewEventSyncService(repo, a.CuClient)
+	eventSyncHandler := handler.NewEventSyncHandler(a.EventSync, a.Logger)
+
 	a.Fiber.Get("/health", a.health)
 
 	api := a.Fiber.Group("/api")
@@ -121,6 +124,7 @@ func (a *App) registerRoutes() {
 	events := api.Group("/events")
 	events.Get("/", eventHandler.GetEvents)
 	events.Post("/", eventHandler.CreateEvent)
+	events.Post("/sync", eventSyncHandler.TriggerSync)
 	events.Get("/:id", eventHandler.GetEventByID)
 	events.Put("/:id", eventHandler.UpdateEvent)
 	events.Delete("/:id", eventHandler.DeleteEvent)

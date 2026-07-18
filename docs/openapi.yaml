@@ -1099,6 +1099,30 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/events/sync:
+    post:
+      tags: [Events]
+      summary: Import events from the Central University API
+      description: >
+        Manually triggers the same import that runs on a schedule: fetches
+        current and upcoming events from the CU event-builder API and upserts
+        them into the events table (deduplicated by their CU id). Imported
+        events are authored by the system "Central University" user and
+        categorized as `online`/`offline` based on the CU event format.
+      operationId: syncEvents
+      responses:
+        "200":
+          description: Import finished
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [processed]
+                properties:
+                  processed: { type: integer, description: "Number of events imported/updated" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
   /api/events/{id}:
     get:
       tags: [Events]
