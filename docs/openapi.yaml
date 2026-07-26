@@ -272,6 +272,20 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/me/photo:
+    delete:
+      tags: [Me]
+      summary: Delete the current user's photo
+      description: >
+        Clears the user's photo and removes the stored object. Idempotent:
+        returns 204 whether or not a photo was set.
+      operationId: deleteMyPhoto
+      responses:
+        "204": { description: Photo deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
   /api/me/completeness:
     get:
       tags: [Me]
@@ -1063,6 +1077,25 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/news/{id}/photo:
+    delete:
+      tags: [News]
+      summary: Delete a news item's photo (author only)
+      description: >
+        Clears the photo of the news item and removes the stored object. The
+        news item itself is kept. Idempotent: returns 204 whether or not a photo
+        was set. Returns 404 if the news item does not exist or belongs to
+        another author.
+      operationId: deleteNewsPhoto
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204": { description: Photo deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
   /api/events:
     get:
       tags: [Events]
@@ -1188,6 +1221,24 @@ paths:
         - $ref: "#/components/parameters/ResourceId"
       responses:
         "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/events/{id}/photo:
+    delete:
+      tags: [Events]
+      summary: Delete an event's photo (author only)
+      description: >
+        Clears the photo of the event and removes the stored object. The event
+        itself is kept. Idempotent: returns 204 whether or not a photo was set.
+        Returns 404 if the event does not exist or belongs to another author.
+      operationId: deleteEventPhoto
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204": { description: Photo deleted }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }

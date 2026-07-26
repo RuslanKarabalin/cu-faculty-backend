@@ -20,7 +20,7 @@ type userRepository interface {
 	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
 	SearchUsers(ctx context.Context, viewerID uuid.UUID, params model.SearchUsersParams) ([]*model.UserSearchResult, int, error)
 	UpdateUser(ctx context.Context, params model.UpdateUserParams) error
-	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key string) (*string, error)
+	UpdateUserPhoto(ctx context.Context, id uuid.UUID, key *string) (*string, error)
 	GetProfileCompletenessData(ctx context.Context, id uuid.UUID) (*model.ProfileCompletenessData, error)
 	SetUserCompletedAt(ctx context.Context, id uuid.UUID, completedAt *time.Time) error
 }
@@ -46,7 +46,7 @@ func (s *UserService) SearchUsers(ctx context.Context, viewerID uuid.UUID, param
 }
 
 func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error) {
-	oldKey, err := s.repo.UpdateUserPhoto(ctx, id, key)
+	oldKey, err := s.repo.UpdateUserPhoto(ctx, id, &key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -55,6 +55,12 @@ func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*
 		return nil, nil, err
 	}
 	return user, oldKey, nil
+}
+
+// DeletePhoto clears the user's photo and returns the key that was stored, if
+// any, so the caller can remove the object from storage.
+func (s *UserService) DeletePhoto(ctx context.Context, id uuid.UUID) (*string, error) {
+	return s.repo.UpdateUserPhoto(ctx, id, nil)
 }
 
 func (s *UserService) GetProfileCompleteness(ctx context.Context, id uuid.UUID) (*model.ProfileCompleteness, error) {

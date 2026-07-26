@@ -13,7 +13,7 @@ const defaultPublishDays = 7
 type newsRepository interface {
 	CreateNews(ctx context.Context, params model.CreateNewsParams) (uuid.UUID, error)
 	UpdateNews(ctx context.Context, params model.UpdateNewsParams) error
-	UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error)
+	UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key *string) (*string, error)
 	DeleteNews(ctx context.Context, id, authorID uuid.UUID) (*string, error)
 	GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News, error)
 	GetVisibleNewsByID(ctx context.Context, id, viewerID uuid.UUID) (*model.News, error)
@@ -89,7 +89,7 @@ func (s *NewsService) UpdateNews(ctx context.Context, authorID, id uuid.UUID, re
 }
 
 func (s *NewsService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, *string, error) {
-	oldKey, err := s.repo.UpdateNewsPhoto(ctx, id, authorID, key)
+	oldKey, err := s.repo.UpdateNewsPhoto(ctx, id, authorID, &key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,6 +98,12 @@ func (s *NewsService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key 
 		return nil, nil, err
 	}
 	return news, oldKey, nil
+}
+
+// DeletePhoto clears the news photo and returns the key that was stored, if
+// any, so the caller can remove the object from storage.
+func (s *NewsService) DeletePhoto(ctx context.Context, authorID, id uuid.UUID) (*string, error) {
+	return s.repo.UpdateNewsPhoto(ctx, id, authorID, nil)
 }
 
 func (s *NewsService) DeleteNews(ctx context.Context, authorID, id uuid.UUID) (*string, error) {

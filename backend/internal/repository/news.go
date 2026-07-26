@@ -44,7 +44,9 @@ func (r *Repository) UpdateNews(ctx context.Context, params model.UpdateNewsPara
 	return nil
 }
 
-func (r *Repository) UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error) {
+// UpdateNewsPhoto sets the news photo key and returns the key it replaced.
+// A nil key clears the photo.
+func (r *Repository) UpdateNewsPhoto(ctx context.Context, id, authorID uuid.UUID, key *string) (*string, error) {
 	query := `
 	with old as (select photo_s3_key from news where id = $1 and author_id = $2)
 	update news set photo_s3_key = $3 where id = $1 and author_id = $2

@@ -64,6 +64,7 @@ func (a *App) registerRoutes() {
 
 	me.Get("/", userHandler.GetMe)
 	me.Put("/", userHandler.UpdateMe)
+	me.Delete("/photo", userHandler.DeleteMyPhoto)
 	me.Get("/completeness", userHandler.GetMyCompleteness)
 
 	me.Post("/edu-places", eduPlaceHandler.CreateEduPlace)
@@ -120,6 +121,7 @@ func (a *App) registerRoutes() {
 	news.Get("/:id", newsHandler.GetNewsByID)
 	news.Put("/:id", newsHandler.UpdateNews)
 	news.Delete("/:id", newsHandler.DeleteNews)
+	news.Delete("/:id/photo", newsHandler.DeleteNewsPhoto)
 
 	events := api.Group("/events")
 	events.Get("/", eventHandler.GetEvents)
@@ -128,6 +130,7 @@ func (a *App) registerRoutes() {
 	events.Get("/:id", eventHandler.GetEventByID)
 	events.Put("/:id", eventHandler.UpdateEvent)
 	events.Delete("/:id", eventHandler.DeleteEvent)
+	events.Delete("/:id/photo", eventHandler.DeleteEventPhoto)
 	events.Get("/:id/responses", eventResponseHandler.GetResponders)
 	events.Post("/:id/responses", eventResponseHandler.RespondToEvent)
 	events.Delete("/:id/responses", eventResponseHandler.DeleteMyResponse)

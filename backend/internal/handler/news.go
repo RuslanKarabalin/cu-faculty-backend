@@ -20,6 +20,7 @@ type newsService interface {
 	CreateNews(ctx context.Context, authorID uuid.UUID, req model.CreateNewsRequest) (*model.News, error)
 	UpdateNews(ctx context.Context, authorID, id uuid.UUID, req model.UpdateNewsRequest) (*model.News, error)
 	SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.News, *string, error)
+	DeletePhoto(ctx context.Context, authorID, id uuid.UUID) (*string, error)
 	DeleteNews(ctx context.Context, authorID, id uuid.UUID) (*string, error)
 }
 
@@ -200,6 +201,30 @@ func (h *NewsHandler) applyPhoto(c fiber.Ctx, authorID uuid.UUID, news *model.Ne
 	}
 	deleteReplacedPhoto(c.Context(), h.storage, h.logger, oldKey, key)
 	return updated, nil
+}
+
+func (h *NewsHandler) DeleteNewsPhoto(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return respondError(fiber.StatusBadRequest, "invalid news id")
+	}
+
+	oldKey, err := h.service.DeletePhoto(c.Context(), cuUser.ID, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return respondError(fiber.StatusNotFound, "news not found")
+		}
+		return unexpectedError(h.logger, "failed to delete news photo", err)
+	}
+	if oldKey != nil {
+		deletePhoto(c.Context(), h.storage, h.logger, *oldKey)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (h *NewsHandler) DeleteNews(c fiber.Ctx) error {

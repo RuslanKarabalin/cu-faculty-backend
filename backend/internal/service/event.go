@@ -11,7 +11,7 @@ import (
 type eventRepository interface {
 	CreateEvent(ctx context.Context, params model.CreateEventParams) (uuid.UUID, error)
 	UpdateEvent(ctx context.Context, params model.UpdateEventParams) error
-	UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key string) (*string, error)
+	UpdateEventPhoto(ctx context.Context, id, authorID uuid.UUID, key *string) (*string, error)
 	DeleteEvent(ctx context.Context, id, authorID uuid.UUID) (*string, error)
 	GetEventByID(ctx context.Context, id uuid.UUID) (*model.Event, error)
 	GetVisibleEventByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Event, error)
@@ -102,7 +102,7 @@ func (s *EventService) UpdateEvent(ctx context.Context, authorID, id uuid.UUID, 
 }
 
 func (s *EventService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key string) (*model.Event, *string, error) {
-	oldKey, err := s.repo.UpdateEventPhoto(ctx, id, authorID, key)
+	oldKey, err := s.repo.UpdateEventPhoto(ctx, id, authorID, &key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -111,6 +111,12 @@ func (s *EventService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key
 		return nil, nil, err
 	}
 	return event, oldKey, nil
+}
+
+// DeletePhoto clears the event photo and returns the key that was stored, if
+// any, so the caller can remove the object from storage.
+func (s *EventService) DeletePhoto(ctx context.Context, authorID, id uuid.UUID) (*string, error) {
+	return s.repo.UpdateEventPhoto(ctx, id, authorID, nil)
 }
 
 func (s *EventService) DeleteEvent(ctx context.Context, authorID, id uuid.UUID) (*string, error) {

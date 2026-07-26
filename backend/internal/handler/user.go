@@ -21,6 +21,7 @@ type userService interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error)
 	SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error)
+	DeletePhoto(ctx context.Context, id uuid.UUID) (*string, error)
 	GetProfileCompleteness(ctx context.Context, id uuid.UUID) (*model.ProfileCompleteness, error)
 }
 
@@ -195,6 +196,25 @@ func (h *UserHandler) UpdateMe(c fiber.Ctx) error {
 
 	h.attachPhotoURL(c.Context(), user)
 	return c.JSON(user)
+}
+
+func (h *UserHandler) DeleteMyPhoto(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
+	oldKey, err := h.userService.DeletePhoto(c.Context(), cuUser.ID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return respondError(fiber.StatusNotFound, "user not found")
+		}
+		return unexpectedError(h.logger, "failed to delete user photo", err)
+	}
+	if oldKey != nil {
+		deletePhoto(c.Context(), h.storage, h.logger, *oldKey)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (h *UserHandler) GetMyCompleteness(c fiber.Ctx) error {
