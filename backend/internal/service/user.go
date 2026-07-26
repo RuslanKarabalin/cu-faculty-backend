@@ -57,8 +57,6 @@ func (s *UserService) SetPhoto(ctx context.Context, id uuid.UUID, key string) (*
 	return user, oldKey, nil
 }
 
-// DeletePhoto clears the user's photo and returns the key that was stored, if
-// any, so the caller can remove the object from storage.
 func (s *UserService) DeletePhoto(ctx context.Context, id uuid.UUID) (*string, error) {
 	return s.repo.UpdateUserPhoto(ctx, id, nil)
 }

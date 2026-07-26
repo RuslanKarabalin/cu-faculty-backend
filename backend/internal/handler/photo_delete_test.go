@@ -17,8 +17,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// fakePhotoStorage records the keys it was asked to delete. Its method set
-// satisfies photoStorage, newsPhotoStorage and eventPhotoStorage alike.
 type fakePhotoStorage struct {
 	deleted []string
 	err     error
@@ -37,8 +35,6 @@ func (s *fakePhotoStorage) Delete(_ context.Context, key string) error {
 	return s.err
 }
 
-// The embedded interfaces leave every method we do not exercise nil, so an
-// accidental call panics instead of silently succeeding.
 type fakeUserService struct {
 	userService
 	key *string
@@ -69,8 +65,6 @@ func (s *fakeEventService) DeletePhoto(context.Context, uuid.UUID, uuid.UUID) (*
 	return s.key, s.err
 }
 
-// authedApp mounts h on method+path with a CU user already in the context, the
-// way the real auth middleware would leave it.
 func authedApp(t *testing.T, method, path string, h fiber.Handler) *fiber.App {
 	t.Helper()
 	app := fiber.New(fiber.Config{ErrorHandler: ErrorHandler(zap.NewNop())})
@@ -82,8 +76,6 @@ func authedApp(t *testing.T, method, path string, h fiber.Handler) *fiber.App {
 	return app
 }
 
-// photoDeleteCase is shared by all three entities: the wiring differs, the
-// contract does not.
 type photoDeleteCase struct {
 	name        string
 	key         *string
@@ -199,8 +191,6 @@ func TestDeletePhotoRejectsInvalidID(t *testing.T) {
 	}
 }
 
-// Удаление объекта из S3 — best-effort: запись в БД уже зафиксирована, и
-// откатывать её из-за недоступного хранилища нельзя. Клиент получает 204.
 func TestDeletePhotoIgnoresStorageFailure(t *testing.T) {
 	storage := &fakePhotoStorage{err: errors.New("s3 unavailable")}
 	h := NewUserHandler(&fakeUserService{key: new("photos/1/x")}, nil, storage, zap.NewNop())
@@ -212,7 +202,6 @@ func TestDeletePhotoIgnoresStorageFailure(t *testing.T) {
 	assertDeleted(t, storage.deleted, []string{"photos/1/x"})
 }
 
-// Без пользователя в контексте ручка не должна дойти до сервиса.
 func TestDeleteMyPhotoRequiresUser(t *testing.T) {
 	storage := &fakePhotoStorage{}
 	h := NewUserHandler(&fakeUserService{key: new("photos/1/x")}, nil, storage, zap.NewNop())

@@ -113,8 +113,6 @@ func (s *EventService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key
 	return event, oldKey, nil
 }
 
-// DeletePhoto clears the event photo and returns the key that was stored, if
-// any, so the caller can remove the object from storage.
 func (s *EventService) DeletePhoto(ctx context.Context, authorID, id uuid.UUID) (*string, error) {
 	return s.repo.UpdateEventPhoto(ctx, id, authorID, nil)
 }

@@ -100,8 +100,6 @@ func (s *NewsService) SetPhoto(ctx context.Context, authorID, id uuid.UUID, key 
 	return news, oldKey, nil
 }
 
-// DeletePhoto clears the news photo and returns the key that was stored, if
-// any, so the caller can remove the object from storage.
 func (s *NewsService) DeletePhoto(ctx context.Context, authorID, id uuid.UUID) (*string, error) {
 	return s.repo.UpdateNewsPhoto(ctx, id, authorID, nil)
 }
