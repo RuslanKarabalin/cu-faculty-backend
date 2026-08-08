@@ -73,6 +73,7 @@ func (r *Repository) GetContact(ctx context.Context, userID, contactID uuid.UUID
 		, u.speciality
 		, st.content
 		, u.role
+		, u.deleted_at
 	from contacts c
 	join users u on u.id = c.contact_id
 	left join statuses st on st.id = u.status_id
@@ -91,12 +92,16 @@ func (r *Repository) GetContact(ctx context.Context, userID, contactID uuid.UUID
 		&contact.User.Speciality,
 		&contact.User.Status,
 		&contact.User.Role,
+		&contact.User.DeletedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get contact: %w", err)
+	}
+	if contact.User.IsDeleted() {
+		model.RedactForDeletedAccount(contact.User)
 	}
 	return contact, nil
 }
@@ -119,6 +124,7 @@ func (r *Repository) GetContactsByUserID(ctx context.Context, userID uuid.UUID, 
 		, u.speciality
 		, st.content
 		, u.role
+		, u.deleted_at
 	from contacts c
 	join users u on u.id = c.contact_id
 	left join statuses st on st.id = u.status_id
@@ -147,8 +153,12 @@ func (r *Repository) GetContactsByUserID(ctx context.Context, userID uuid.UUID, 
 			&contact.User.Speciality,
 			&contact.User.Status,
 			&contact.User.Role,
+			&contact.User.DeletedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan contact: %w", err)
+		}
+		if contact.User.IsDeleted() {
+			model.RedactForDeletedAccount(contact.User)
 		}
 		contacts = append(contacts, contact)
 	}

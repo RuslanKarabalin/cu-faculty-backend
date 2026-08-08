@@ -32,10 +32,10 @@ paths:
       description: >
         Idempotent. On first call creates the local user (and imports education
         places from CU) and returns 201. On subsequent calls returns the existing
-        user with 200. Identity comes entirely from the `bff.cookie` session; the
-        only accepted body is an optional `photo` image part that sets (or
-        replaces) the user's photo. No profile fields are read here - use
-        `PUT /api/me` to edit those.
+        user with 200. Soft-deleted accounts receive 403 with code `account_deleted`.
+        Identity comes entirely from the `bff.cookie` session; the only accepted
+        body is an optional `photo` image part that sets (or replaces) the user's
+        photo. No profile fields are read here - use `PUT /api/me` to edit those.
       operationId: registerStudent
       requestBody:
         required: false
@@ -61,6 +61,7 @@ paths:
               schema: { $ref: "#/components/schemas/User" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AccountDeleted" }
         "404": { $ref: "#/components/responses/NotFound" }
         "502": { $ref: "#/components/responses/BadGateway" }
         "500": { $ref: "#/components/responses/InternalError" }
@@ -227,6 +228,36 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalError" }
 
+  /api/students/{id}/complaints:
+    post:
+      tags: [Students]
+      summary: Report a student
+      description: >
+        Sends the complaint to the moderation mailbox as an email; nothing is stored.
+        Reporting yourself is rejected with 400. Returns 404 when the target account
+        is soft-deleted or has blocked the caller. Returns 503 when the SMTP transport
+        is not configured on the server.
+      operationId: complainAboutStudent
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ComplaintRequest" }
+      responses:
+        "202": { description: Complaint accepted and sent }
+        "400":
+          description: Bad request or attempt to report yourself
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
   /api/me:
     get:
       tags: [Me]
@@ -269,6 +300,22 @@ paths:
               schema: { $ref: "#/components/schemas/User" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Soft-delete the current user's profile
+      description: >
+        Marks the faculty account as deleted (`deleted_at`). The account is hidden
+        from search, posts, news and events; contacts and saved users keep a redacted
+        name+speciality card (`deleted: true`). Subsequent API calls from this account
+        return 403 with code `account_deleted`. Hard purge after retention is handled
+        separately.
+      operationId: deleteMe
+      responses:
+        "204": { description: Profile marked as deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AccountDeleted" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
 
@@ -536,7 +583,8 @@ paths:
       summary: Add a contact
       description: >
         Links the current user to another user in both directions. The reverse
-        link is created without a note.
+        link is created without a note. Rejected with 403 if either user has
+        blocked the other.
       operationId: createContact
       requestBody:
         required: true
@@ -555,6 +603,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Blocked relationship prevents adding a contact
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "404":
           description: Referenced contact user does not exist
           content:
@@ -804,7 +857,8 @@ paths:
       summary: Save a user
       description: >
         Idempotent. Bookmarks another user for the current user. Returns the saved
-        user. Saving yourself is rejected with 400.
+        user. Saving yourself is rejected with 400. Rejected with 403 if either
+        user has blocked the other.
       operationId: addMySavedUser
       parameters:
         - $ref: "#/components/parameters/SavedUserId"
@@ -820,6 +874,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Blocked relationship prevents saving the user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "404":
           description: Referenced user does not exist
           content:
@@ -832,6 +891,73 @@ paths:
       operationId: deleteMySavedUser
       parameters:
         - $ref: "#/components/parameters/SavedUserId"
+      responses:
+        "204": { description: Removed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/blocked-users:
+    get:
+      tags: [Me]
+      summary: List my blocked users
+      description: >
+        Lists users blocked by the caller. A block hides the caller's content from
+        the blocked user (posts and nested profile data). The blocked user can still
+        find the blocker in search / profile lookup, but only sees id, name and
+        speciality (`blockedByThem: true`). Mutual contacts and saved links are
+        removed when the block is created.
+      operationId: getMyBlockedUsers
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paged blocked users
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/me/blocked-users/{userId}:
+    post:
+      tags: [Me]
+      summary: Block a user
+      description: >
+        Idempotent. Blocks another user for the current user. Returns the blocked
+        user. Blocking yourself is rejected with 400. Clears mutual contacts and
+        saved-user links. The blocked user can still discover the blocker in search
+        with a redacted profile (`blockedByThem`), cannot add them as a contact or
+        saved user, and cannot see their posts or nested profile endpoints.
+      operationId: addMyBlockedUser
+      parameters:
+        - $ref: "#/components/parameters/BlockedUserId"
+      responses:
+        "201":
+          description: Blocked user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400":
+          description: Bad request or attempt to block yourself
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Referenced user does not exist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Me]
+      summary: Unblock a user
+      operationId: deleteMyBlockedUser
+      parameters:
+        - $ref: "#/components/parameters/BlockedUserId"
       responses:
         "204": { description: Removed }
         "400": { $ref: "#/components/responses/BadRequest" }
@@ -929,6 +1055,9 @@ paths:
     get:
       tags: [Posts]
       summary: List responders to an post
+      description: >
+        Returns 404 when the post is not visible to the caller (archived, author
+        soft-deleted, or author has blocked the caller).
       operationId: getPostResponders
       parameters:
         - $ref: "#/components/parameters/ResourceId"
@@ -942,6 +1071,7 @@ paths:
               schema: { $ref: "#/components/schemas/UserPage" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
     post:
       tags: [Posts]
@@ -972,6 +1102,30 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/posts/{id}/complaints:
+    post:
+      tags: [Posts]
+      summary: Report a post
+      description: >
+        Sends the complaint to the moderation mailbox as an email; nothing is stored.
+        Returns 503 when the SMTP transport is not configured on the server.
+      operationId: complainAboutPost
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ComplaintRequest" }
+      responses:
+        "202": { description: Complaint accepted and sent }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /api/news:
     get:
@@ -1540,6 +1694,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    BlockedUserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
 
   responses:
     BadRequest:
@@ -1549,6 +1708,12 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
     Unauthorized:
       description: Missing or rejected session cookie
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    AccountDeleted:
+      description: >
+        Faculty account is soft-deleted. Error code is `account_deleted`.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -1574,6 +1739,11 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
     PayloadTooLarge:
       description: Request body exceeded the size limit
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServiceUnavailable:
+      description: Feature is not configured on the server
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -1629,11 +1799,22 @@ components:
         firstName: { type: string, maxLength: 31 }
         lastName: { type: string, maxLength: 31 }
         bio: { type: string, nullable: true, maxLength: 255 }
-        birthdate: { type: string, format: date, example: "2000-01-31" }
+        birthdate: { type: string, format: date, nullable: true, example: "2000-01-31" }
         speciality: { type: string, nullable: true, maxLength: 63 }
         status: { type: string, nullable: true, maxLength: 127, description: Resolved status content }
         role: { type: string, enum: [user, admin] }
-      required: [id, firstName, lastName, birthdate, role]
+        blockedByThem:
+          type: boolean
+          description: >
+            True when this user has blocked the caller. In that case only id, name
+            and speciality are populated; photo, bio, birthdate and status are cleared.
+        deleted:
+          type: boolean
+          description: >
+            True when this account is soft-deleted. Still returned in contacts and
+            saved users with only id, name and speciality; hidden from search, posts,
+            news and events.
+      required: [id, firstName, lastName, role]
 
     UserSearchResult:
       allOf:
@@ -1763,6 +1944,14 @@ components:
         content: { type: string, maxLength: 255 }
         isArchived: { type: boolean }
       required: [title, content]
+
+    ComplaintRequest:
+      type: object
+      description: A complaint about a student or a post; delivered by email, never stored.
+      properties:
+        reason: { type: string, maxLength: 127 }
+        text: { type: string, maxLength: 1000 }
+      required: [reason, text]
 
     ProfileData:
       type: object

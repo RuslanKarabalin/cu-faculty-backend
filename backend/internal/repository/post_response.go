@@ -13,7 +13,15 @@ func (r *Repository) AddPostResponse(ctx context.Context, userID, postID uuid.UU
 	insert into post_responses(user_id, post_id)
 	select $1, $2
 	where exists (
-		select 1 from posts where id = $2 and not is_archived
+		select 1 from posts a
+		join users u on u.id = a.author_id
+		where a.id = $2
+			and not a.is_archived
+			and u.deleted_at is null
+			and not exists (
+				select 1 from blocked_users bu
+				where bu.user_id = a.author_id and bu.blocked_user_id = $1
+			)
 	)
 	on conflict do nothing
 	`

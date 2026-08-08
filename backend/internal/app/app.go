@@ -15,6 +15,7 @@ import (
 	"faculty/internal/config"
 	"faculty/internal/cuclient"
 	"faculty/internal/db"
+	"faculty/internal/mailer"
 	"faculty/internal/service"
 	"faculty/internal/storage"
 
@@ -43,6 +44,7 @@ type App struct {
 	Logger    *zap.Logger
 	CuClient  *cuclient.Client
 	Storage   *storage.Client
+	Mailer    *mailer.Client
 	EventSync *service.EventSyncService
 }
 
@@ -76,6 +78,29 @@ func New() (*App, error) {
 		return nil, fmt.Errorf("init storage: %w", err)
 	}
 
+	var mailClient *mailer.Client
+	switch {
+	case cfg.SmtpHost == "" || cfg.SmtpPort == "":
+		logger.Warn("complaints email disabled: SMTP_HOST or SMTP_PORT is not set")
+	case cfg.SmtpFrom == "" && cfg.SmtpUsername == "":
+		logger.Warn("complaints email disabled: SMTP_FROM is not set")
+	case cfg.ComplaintsEmailTo == "":
+		logger.Warn("complaints email disabled: COMPLAINTS_EMAIL_TO is not set")
+	default:
+		mailClient = mailer.New(mailer.Config{
+			Host:          cfg.SmtpHost,
+			Port:          cfg.SmtpPort,
+			Username:      cfg.SmtpUsername,
+			Password:      cfg.SmtpPassword,
+			From:          cfg.SmtpFrom,
+			To:            cfg.ComplaintsEmailTo,
+			AllowInsecure: cfg.SmtpAllowInsecure,
+		})
+		if cfg.FrontendBaseUrl == "" {
+			logger.Warn("complaint emails will contain relative links: FRONTEND_BASE_URL is not set")
+		}
+	}
+
 	a := &App{
 		Fiber:    newFiber(logger),
 		Config:   cfg,
@@ -83,6 +108,7 @@ func New() (*App, error) {
 		Logger:   logger,
 		CuClient: cuclient.New(&http.Client{Timeout: httpReqTimeout}, cfg.CuBaseUrl),
 		Storage:  storageClient,
+		Mailer:   mailClient,
 	}
 	a.registerRoutes()
 

@@ -8,16 +8,51 @@ import (
 )
 
 type User struct {
-	ID         uuid.UUID `json:"id"`
-	PhotoS3Key *string   `json:"-"`
-	PhotoURL   *string   `json:"photoUrl"`
-	FirstName  string    `json:"firstName"`
-	LastName   string    `json:"lastName"`
-	Bio        *string   `json:"bio"`
-	BirthDate  Date      `json:"birthdate"`
-	Speciality *string   `json:"speciality"`
-	Status     *string   `json:"status"`
-	Role       string    `json:"role"`
+	ID            uuid.UUID  `json:"id"`
+	PhotoS3Key    *string    `json:"-"`
+	PhotoURL      *string    `json:"photoUrl"`
+	FirstName     string     `json:"firstName"`
+	LastName      string     `json:"lastName"`
+	Bio           *string    `json:"bio"`
+	BirthDate     Date       `json:"birthdate"`
+	Speciality    *string    `json:"speciality"`
+	Status        *string    `json:"status"`
+	Role          string     `json:"role"`
+	DeletedAt     *time.Time `json:"-"`
+	BlockedByThem bool       `json:"blockedByThem,omitempty"`
+	Deleted       bool       `json:"deleted,omitempty"`
+}
+
+func (u *User) IsDeleted() bool {
+	return u != nil && u.DeletedAt != nil
+}
+
+func redactLimitedProfile(u *User) {
+	u.PhotoS3Key = nil
+	u.PhotoURL = nil
+	u.Bio = nil
+	u.BirthDate = Date{}
+	u.Status = nil
+}
+
+// RedactForBlockedViewer clears everything except id, name and speciality when
+// the profile owner has blocked the viewer.
+func RedactForBlockedViewer(u *User) {
+	if u == nil {
+		return
+	}
+	redactLimitedProfile(u)
+	u.BlockedByThem = true
+}
+
+// RedactForDeletedAccount clears everything except id, name and speciality for a
+// soft-deleted account (e.g. still visible in contacts).
+func RedactForDeletedAccount(u *User) {
+	if u == nil {
+		return
+	}
+	redactLimitedProfile(u)
+	u.Deleted = true
 }
 
 type UserRelation string

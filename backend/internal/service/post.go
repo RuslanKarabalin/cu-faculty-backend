@@ -14,7 +14,7 @@ type postRepository interface {
 	DeletePost(ctx context.Context, id, authorID uuid.UUID) error
 	GetPostByID(ctx context.Context, id uuid.UUID) (*model.Post, error)
 	GetVisiblePostByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Post, error)
-	GetPosts(ctx context.Context, limit, offset int) ([]*model.Post, int, error)
+	GetPosts(ctx context.Context, viewerID uuid.UUID, limit, offset int) ([]*model.Post, int, error)
 	GetPostsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Post, int, error)
 }
 
@@ -30,8 +30,8 @@ func (s *PostService) GetPostByID(ctx context.Context, id, viewerID uuid.UUID) (
 	return s.repo.GetVisiblePostByID(ctx, id, viewerID)
 }
 
-func (s *PostService) GetPosts(ctx context.Context, limit, offset int) ([]*model.Post, int, error) {
-	return s.repo.GetPosts(ctx, limit, offset)
+func (s *PostService) GetPosts(ctx context.Context, viewerID uuid.UUID, limit, offset int) ([]*model.Post, int, error) {
+	return s.repo.GetPosts(ctx, viewerID, limit, offset)
 }
 
 func (s *PostService) GetPostsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Post, int, error) {

@@ -16,12 +16,14 @@ import (
 )
 
 type userService interface {
-	GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error)
+	GetAllUsers(ctx context.Context, viewerID uuid.UUID, limit, offset int) ([]*model.User, int, error)
 	SearchUsers(ctx context.Context, viewerID uuid.UUID, params model.SearchUsersParams) ([]*model.UserSearchResult, int, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
+	GetUserByIDForViewer(ctx context.Context, viewerID, id uuid.UUID) (*model.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, req model.UpdateUserRequest) (*model.User, error)
 	SetPhoto(ctx context.Context, id uuid.UUID, key string) (*model.User, *string, error)
 	DeletePhoto(ctx context.Context, id uuid.UUID) (*string, error)
+	SoftDeleteUser(ctx context.Context, id uuid.UUID) error
 	GetProfileCompleteness(ctx context.Context, id uuid.UUID) (*model.ProfileCompleteness, error)
 }
 
@@ -217,6 +219,21 @@ func (h *UserHandler) DeleteMyPhoto(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+func (h *UserHandler) DeleteMe(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
+	if err := h.userService.SoftDeleteUser(c.Context(), cuUser.ID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return respondError(fiber.StatusNotFound, "user not found")
+		}
+		return unexpectedError(h.logger, "failed to delete user", err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
 func (h *UserHandler) GetMyCompleteness(c fiber.Ctx) error {
 	cuUser, err := currentUser(c, h.logger)
 	if err != nil {
@@ -234,19 +251,26 @@ func (h *UserHandler) GetMyCompleteness(c fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetStudentByID(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return respondError(fiber.StatusBadRequest, "invalid id")
 	}
 
-	user, err := h.userService.GetUserByID(c.Context(), id)
+	user, err := h.userService.GetUserByIDForViewer(c.Context(), cuUser.ID, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return respondError(fiber.StatusNotFound, "user not found")
 		}
 		return unexpectedError(h.logger, "failed to get user by id", err)
 	}
-	h.attachPhotoURL(c.Context(), user)
+	if !user.BlockedByThem {
+		h.attachPhotoURL(c.Context(), user)
+	}
 	return c.JSON(user)
 }
 
@@ -267,7 +291,9 @@ func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
 		return unexpectedError(h.logger, "failed to search users", err)
 	}
 	for _, res := range results {
-		h.attachPhotoURL(c.Context(), res.User)
+		if res.User != nil && !res.User.BlockedByThem {
+			h.attachPhotoURL(c.Context(), res.User)
+		}
 	}
 	return c.JSON(model.Page[*model.UserSearchResult]{
 		Data:   results,
@@ -278,18 +304,25 @@ func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetUsers(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
 		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
-	users, total, err := h.userService.GetAllUsers(c.Context(), limit, offset)
+	users, total, err := h.userService.GetAllUsers(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
 		return unexpectedError(h.logger, "failed to get users", err)
 	}
 	for _, u := range users {
-		h.attachPhotoURL(c.Context(), u)
+		if !u.BlockedByThem {
+			h.attachPhotoURL(c.Context(), u)
+		}
 	}
 	return c.JSON(model.Page[*model.User]{
 		Data:   users,

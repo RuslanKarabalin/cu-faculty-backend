@@ -90,7 +90,9 @@ func (r *Repository) GetNewsByID(ctx context.Context, id uuid.UUID) (*model.News
 
 func (r *Repository) GetVisibleNewsByID(ctx context.Context, id, viewerID uuid.UUID) (*model.News, error) {
 	query := newsSelectColumns + `
-	where n.id = $1 and (n.is_draft = false or n.author_id = $2)
+	where n.id = $1
+		and (n.is_draft = false or n.author_id = $2)
+		and u.deleted_at is null
 	`
 
 	n := &model.News{Author: &model.User{}}
@@ -106,12 +108,17 @@ func (r *Repository) GetVisibleNewsByID(ctx context.Context, id, viewerID uuid.U
 
 func (r *Repository) GetNews(ctx context.Context, limit, offset int) ([]*model.News, int, error) {
 	var total int
-	if err := r.db.QueryRow(ctx, `select count(*) from news where is_draft = false`).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `
+		select count(*) from news n
+		join users u on u.id = n.author_id
+		where n.is_draft = false and u.deleted_at is null
+	`).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count news: %w", err)
 	}
 
 	query := newsSelectColumns + `
 	where n.is_draft = false
+		and u.deleted_at is null
 	order by n.created_at desc, n.id
 	limit $1 offset $2
 	`
