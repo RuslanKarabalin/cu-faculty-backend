@@ -63,7 +63,9 @@ func (h *ContactHandler) GetMyContacts(c fiber.Ctx) error {
 		return unexpectedError(h.logger, "failed to get contacts", err)
 	}
 	for _, contact := range contacts {
-		h.attachPhotoURL(c.Context(), contact.User)
+		if contact.User != nil && !contact.User.Deleted {
+			h.attachPhotoURL(c.Context(), contact.User)
+		}
 	}
 	return c.JSON(model.Page[*model.Contact]{Data: contacts, Total: total, Limit: limit, Offset: offset})
 }
@@ -84,9 +86,11 @@ func (h *ContactHandler) CreateContact(c fiber.Ctx) error {
 		switch {
 		case errors.Is(err, service.ErrSelfContact):
 			return respondValidation(err.Error())
+		case errors.Is(err, service.ErrBlocked):
+			return respondError(fiber.StatusForbidden, "cannot add a blocked user as a contact")
 		case errors.Is(err, repository.ErrDuplicate):
 			return respondError(fiber.StatusConflict, "contact already exists")
-		case errors.Is(err, repository.ErrInvalidRefID):
+		case errors.Is(err, repository.ErrInvalidRefID), errors.Is(err, repository.ErrNotFound):
 			return respondError(fiber.StatusNotFound, "user not found")
 		}
 		return unexpectedError(h.logger, "failed to create contact", err)

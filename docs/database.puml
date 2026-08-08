@@ -74,6 +74,8 @@ entity "users" {
   speciality : varchar(63)
   status_id : int <<FK>>
   * role : user_role <<enum>>
+  completed_at : timestamptz
+  deleted_at : timestamptz
 }
 
 entity "socials" {
@@ -170,6 +172,11 @@ entity "saved_users" {
   * saved_user_id : uuid <<FK>>
 }
 
+entity "blocked_users" {
+  * user_id : uuid <<FK>>
+  * blocked_user_id : uuid <<FK>>
+}
+
 entity "announcement_responses" {
   * user_id : uuid <<FK>>
   * announcement_id : uuid <<FK>>
@@ -201,6 +208,9 @@ users           ||--o{ contacts                 : "contact_id"
 
 users           ||--o{ saved_users              : "user_id"
 users           ||--o{ saved_users              : "saved_user_id"
+
+users           ||--o{ blocked_users            : "user_id"
+users           ||--o{ blocked_users            : "blocked_user_id"
 
 users           ||--o{ announcements            : "author_id"
 announcements   ||--o{ announcement_responses   : "announcement_id"

@@ -14,7 +14,7 @@ import (
 
 type postService interface {
 	GetPostByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Post, error)
-	GetPosts(ctx context.Context, limit, offset int) ([]*model.Post, int, error)
+	GetPosts(ctx context.Context, viewerID uuid.UUID, limit, offset int) ([]*model.Post, int, error)
 	GetPostsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Post, int, error)
 	CreatePost(ctx context.Context, authorID uuid.UUID, req model.CreatePostRequest) (*model.Post, error)
 	UpdatePost(ctx context.Context, authorID, id uuid.UUID, req model.UpdatePostRequest) (*model.Post, error)
@@ -48,13 +48,18 @@ func (h *PostHandler) attachAuthorPhotoURL(ctx context.Context, u *model.User) {
 }
 
 func (h *PostHandler) GetPosts(c fiber.Ctx) error {
+	cuUser, err := currentUser(c, h.logger)
+	if err != nil {
+		return err
+	}
+
 	var q model.PageQuery
 	if err := c.Bind().Query(&q); err != nil {
 		return respondBindError()
 	}
 	limit, offset := q.Normalize()
 
-	posts, total, err := h.service.GetPosts(c.Context(), limit, offset)
+	posts, total, err := h.service.GetPosts(c.Context(), cuUser.ID, limit, offset)
 	if err != nil {
 		return unexpectedError(h.logger, "failed to get posts", err)
 	}

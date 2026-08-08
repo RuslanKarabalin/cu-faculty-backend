@@ -27,6 +27,14 @@ type Config struct {
 	S3PresignTTL      time.Duration
 	EventSyncInterval time.Duration
 	CuServiceCookie   string
+	SmtpHost          string
+	SmtpPort          string
+	SmtpUsername      string
+	SmtpPassword      string
+	SmtpFrom          string
+	SmtpAllowInsecure bool
+	ComplaintsEmailTo string
+	FrontendBaseUrl   string
 }
 
 func ReadConfig() (*Config, error) {
@@ -38,6 +46,8 @@ func ReadConfig() (*Config, error) {
 	viper.SetDefault("S3_USE_PATH_STYLE", true)
 	viper.SetDefault("S3_PRESIGN_TTL", 15*time.Minute)
 	viper.SetDefault("EVENT_SYNC_INTERVAL", time.Hour)
+	viper.SetDefault("COMPLAINTS_EMAIL_TO", "niti.uni@outlook.com")
+	viper.SetDefault("SMTP_ALLOW_INSECURE", false)
 
 	cfg := &Config{
 		Addr:              viper.GetString("APP_PORT"),
@@ -59,6 +69,14 @@ func ReadConfig() (*Config, error) {
 		S3PresignTTL:      viper.GetDuration("S3_PRESIGN_TTL"),
 		EventSyncInterval: viper.GetDuration("EVENT_SYNC_INTERVAL"),
 		CuServiceCookie:   viper.GetString("CU_SERVICE_COOKIE"),
+		SmtpHost:          viper.GetString("SMTP_HOST"),
+		SmtpPort:          viper.GetString("SMTP_PORT"),
+		SmtpUsername:      viper.GetString("SMTP_USERNAME"),
+		SmtpPassword:      viper.GetString("SMTP_PASSWORD"),
+		SmtpFrom:          viper.GetString("SMTP_FROM"),
+		SmtpAllowInsecure: viper.GetBool("SMTP_ALLOW_INSECURE"),
+		ComplaintsEmailTo: viper.GetString("COMPLAINTS_EMAIL_TO"),
+		FrontendBaseUrl:   viper.GetString("FRONTEND_BASE_URL"),
 	}
 
 	var errs []error

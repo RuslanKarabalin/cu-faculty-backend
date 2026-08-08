@@ -49,6 +49,7 @@ func (r *Repository) GetSavedUsers(ctx context.Context, userID uuid.UUID, limit,
 		, u.speciality
 		, st.content
 		, u.role
+		, u.deleted_at
 	from saved_users su
 	join users u on u.id = su.saved_user_id
 	left join statuses st on st.id = u.status_id
@@ -76,8 +77,12 @@ func (r *Repository) GetSavedUsers(ctx context.Context, userID uuid.UUID, limit,
 			&u.Speciality,
 			&u.Status,
 			&u.Role,
+			&u.DeletedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan saved user: %w", err)
+		}
+		if u.IsDeleted() {
+			model.RedactForDeletedAccount(u)
 		}
 		users = append(users, u)
 	}

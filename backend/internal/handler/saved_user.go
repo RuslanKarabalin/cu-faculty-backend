@@ -6,6 +6,7 @@ import (
 
 	"faculty/internal/model"
 	"faculty/internal/repository"
+	"faculty/internal/service"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -52,7 +53,9 @@ func (h *SavedUserHandler) GetMySavedUsers(c fiber.Ctx) error {
 		return unexpectedError(h.logger, "failed to get saved users", err)
 	}
 	for _, u := range users {
-		h.attachPhotoURL(c.Context(), u)
+		if u != nil && !u.Deleted {
+			h.attachPhotoURL(c.Context(), u)
+		}
 	}
 	return c.JSON(model.Page[*model.User]{Data: users, Total: total, Limit: limit, Offset: offset})
 }
@@ -74,6 +77,9 @@ func (h *SavedUserHandler) AddMySavedUser(c fiber.Ctx) error {
 
 	user, err := h.service.AddSavedUser(c.Context(), cuUser.ID, savedUserID)
 	if err != nil {
+		if errors.Is(err, service.ErrBlocked) {
+			return respondError(fiber.StatusForbidden, "cannot save a blocked user")
+		}
 		if errors.Is(err, repository.ErrInvalidRefID) || errors.Is(err, repository.ErrNotFound) {
 			return respondError(fiber.StatusNotFound, "user not found")
 		}

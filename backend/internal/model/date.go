@@ -13,6 +13,9 @@ type Date struct {
 }
 
 func (d Date) MarshalJSON() ([]byte, error) {
+	if d.Time.IsZero() {
+		return []byte("null"), nil
+	}
 	return fmt.Appendf(nil, `"%s"`, d.Format(DateLayout)), nil
 }
 

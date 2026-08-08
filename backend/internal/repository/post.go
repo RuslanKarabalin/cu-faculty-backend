@@ -72,7 +72,13 @@ func (r *Repository) GetPostByID(ctx context.Context, id uuid.UUID) (*model.Post
 
 func (r *Repository) GetVisiblePostByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Post, error) {
 	query := postSelectColumns + `
-	where a.id = $1 and (a.is_archived = false or a.author_id = $2)
+	where a.id = $1
+		and (a.is_archived = false or a.author_id = $2)
+		and u.deleted_at is null
+		and not exists (
+			select 1 from blocked_users bu
+			where bu.user_id = a.author_id and bu.blocked_user_id = $2
+		)
 	`
 
 	a := &model.Post{Author: &model.User{}}
@@ -86,19 +92,33 @@ func (r *Repository) GetVisiblePostByID(ctx context.Context, id, viewerID uuid.U
 	return a, nil
 }
 
-func (r *Repository) GetPosts(ctx context.Context, limit, offset int) ([]*model.Post, int, error) {
+func (r *Repository) GetPosts(ctx context.Context, viewerID uuid.UUID, limit, offset int) ([]*model.Post, int, error) {
 	var total int
-	if err := r.db.QueryRow(ctx, `select count(*) from posts where is_archived = false`).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `
+		select count(*) from posts a
+		join users u on u.id = a.author_id
+		where a.is_archived = false
+			and u.deleted_at is null
+			and not exists (
+				select 1 from blocked_users bu
+				where bu.user_id = a.author_id and bu.blocked_user_id = $1
+			)
+	`, viewerID).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count posts: %w", err)
 	}
 
 	query := postSelectColumns + `
 	where a.is_archived = false
+		and u.deleted_at is null
+		and not exists (
+			select 1 from blocked_users bu
+			where bu.user_id = a.author_id and bu.blocked_user_id = $1
+		)
 	order by a.created_at desc, a.id
-	limit $1 offset $2
+	limit $2 offset $3
 	`
 
-	return r.selectPosts(ctx, total, query, limit, offset)
+	return r.selectPosts(ctx, total, query, viewerID, limit, offset)
 }
 
 func (r *Repository) GetPostsByAuthorID(ctx context.Context, authorID uuid.UUID, limit, offset int) ([]*model.Post, int, error) {

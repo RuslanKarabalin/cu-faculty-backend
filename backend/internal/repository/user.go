@@ -42,9 +42,9 @@ func (r *Repository) UpdateUserPhoto(ctx context.Context, id uuid.UUID, key *str
 	return oldKey, nil
 }
 
-func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*model.User, int, error) {
+func (r *Repository) GetAllUsers(ctx context.Context, viewerID uuid.UUID, limit, offset int) ([]*model.User, int, error) {
 	var total int
-	if err := r.db.QueryRow(ctx, `select count(*) from users where role = 'user'`).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `select count(*) from users where role = 'user' and deleted_at is null`).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count users: %w", err)
 	}
 
@@ -59,14 +59,17 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 		, u.speciality
 		, st.content
 		, u.role
+		, bu.user_id is not null as blocked_by_them
 	from users u
 	left join statuses st on st.id = u.status_id
+	left join blocked_users bu on bu.user_id = u.id and bu.blocked_user_id = $1
 	where u.role = 'user'
+		and u.deleted_at is null
 	order by u.last_name, u.first_name, u.id
-	limit $1 offset $2
+	limit $2 offset $3
 	`
 
-	rows, err := r.db.Query(ctx, query, limit, offset)
+	rows, err := r.db.Query(ctx, query, viewerID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to select users: %w", err)
 	}
@@ -75,6 +78,7 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 	users := make([]*model.User, 0)
 	for rows.Next() {
 		u := &model.User{}
+		var blockedByThem bool
 		if err := rows.Scan(
 			&u.ID,
 			&u.PhotoS3Key,
@@ -85,8 +89,12 @@ func (r *Repository) GetAllUsers(ctx context.Context, limit, offset int) ([]*mod
 			&u.Speciality,
 			&u.Status,
 			&u.Role,
+			&blockedByThem,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan users: %w", err)
+		}
+		if blockedByThem {
+			model.RedactForBlockedViewer(u)
 		}
 		users = append(users, u)
 	}
@@ -107,6 +115,7 @@ func (r *Repository) SearchUsers(ctx context.Context, viewerID uuid.UUID, p mode
 
 	conds := []string{
 		"u.role = 'user'",
+		"u.deleted_at is null",
 		"u.id <> " + viewer,
 	}
 
@@ -160,10 +169,12 @@ func (r *Repository) SearchUsers(ctx context.Context, viewerID uuid.UUID, p mode
 			when c.contact_id is not null then 1
 			else 2
 		end as rank
+		, bu.user_id is not null as blocked_by_them
 	from users u
 	left join statuses st on st.id = u.status_id
 	left join saved_users su on su.user_id = ` + viewer + ` and su.saved_user_id = u.id
-	left join contacts c on c.user_id = ` + viewer + ` and c.contact_id = u.id` + where + `
+	left join contacts c on c.user_id = ` + viewer + ` and c.contact_id = u.id
+	left join blocked_users bu on bu.user_id = u.id and bu.blocked_user_id = ` + viewer + where + `
 	order by rank, u.last_name, u.first_name, u.id
 	limit ` + limitPh + ` offset ` + offsetPh + `
 	`
@@ -178,6 +189,7 @@ func (r *Repository) SearchUsers(ctx context.Context, viewerID uuid.UUID, p mode
 	for rows.Next() {
 		u := &model.User{}
 		var rank int
+		var blockedByThem bool
 		if err := rows.Scan(
 			&u.ID,
 			&u.PhotoS3Key,
@@ -189,8 +201,13 @@ func (r *Repository) SearchUsers(ctx context.Context, viewerID uuid.UUID, p mode
 			&u.Status,
 			&u.Role,
 			&rank,
+			&blockedByThem,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan user search result: %w", err)
+		}
+		if blockedByThem {
+			model.RedactForBlockedViewer(u)
+			rank = 2
 		}
 		results = append(results, &model.UserSearchResult{User: u, Relation: relationForRank(rank)})
 	}
@@ -294,6 +311,7 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 		, u.speciality
 		, st.content
 		, u.role
+		, u.deleted_at
 	from users u
 	left join statuses st on st.id = u.status_id
 	where u.id = $1
@@ -310,6 +328,7 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 		&u.Speciality,
 		&u.Status,
 		&u.Role,
+		&u.DeletedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -318,4 +337,62 @@ func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 	return u, nil
+}
+
+func (r *Repository) IsUserDeleted(ctx context.Context, id uuid.UUID) (bool, error) {
+	var deleted bool
+	err := r.db.QueryRow(ctx, `
+		select deleted_at is not null from users where id = $1
+	`, id).Scan(&deleted)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check user deleted: %w", err)
+	}
+	return deleted, nil
+}
+
+func (r *Repository) SoftDeleteUser(ctx context.Context, id uuid.UUID) error {
+	tag, err := r.db.Exec(ctx, `
+		update users set deleted_at = now()
+		where id = $1 and deleted_at is null
+	`, id)
+	if err != nil {
+		return fmt.Errorf("failed to soft-delete user: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *Repository) ListUserOwnedPhotoKeys(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	query := `
+	select key from (
+		select photo_s3_key as key from users where id = $1 and photo_s3_key is not null
+		union all
+		select photo_s3_key from news where author_id = $1 and photo_s3_key is not null
+		union all
+		select photo_s3_key from events where author_id = $1 and photo_s3_key is not null
+	) keys
+	`
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list user photo keys: %w", err)
+	}
+	defer rows.Close()
+
+	keys := make([]string, 0)
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, fmt.Errorf("failed to scan photo key: %w", err)
+		}
+		keys = append(keys, key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("photo key rows error: %w", err)
+	}
+	return keys, nil
 }

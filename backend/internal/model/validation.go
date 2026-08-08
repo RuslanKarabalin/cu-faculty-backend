@@ -10,21 +10,23 @@ import (
 )
 
 const (
-	maxBioLen          = 255
-	maxSpecialityLen   = 63
-	maxShortTitleLen   = 63
-	maxTitleLen        = 127
-	maxContentLen      = 255
-	maxPlaceLen        = 63
-	maxSocialLinkLen   = 127
-	maxRegLinkLen      = 255
-	maxCompanyNameLen  = 63
-	maxPositionLen     = 63
-	maxEduLevelLen     = 31
-	maxSpecializionLen = 63
-	maxNoteLen         = 255
-	maxPublishDays     = 3650
-	minValidYear       = 1900
+	maxBioLen             = 255
+	maxSpecialityLen      = 63
+	maxShortTitleLen      = 63
+	maxTitleLen           = 127
+	maxContentLen         = 255
+	maxPlaceLen           = 63
+	maxSocialLinkLen      = 127
+	maxRegLinkLen         = 255
+	maxCompanyNameLen     = 63
+	maxPositionLen        = 63
+	maxEduLevelLen        = 31
+	maxSpecializionLen    = 63
+	maxNoteLen            = 255
+	maxComplaintReasonLen = 127
+	maxComplaintTextLen   = 1000
+	maxPublishDays        = 3650
+	minValidYear          = 1900
 )
 
 func maxValidYear() int { return time.Now().Year() + 10 }
@@ -207,5 +209,12 @@ func (r CreateContactRequest) Validate() error {
 func (r UpdateContactRequest) Validate() error {
 	var f fieldErrors
 	f.optionalMax("note", r.Note, maxNoteLen)
+	return f.result()
+}
+
+func (r ComplaintRequest) Validate() error {
+	var f fieldErrors
+	f.requiredMax("reason", r.Reason, maxComplaintReasonLen)
+	f.requiredMax("text", r.Text, maxComplaintTextLen)
 	return f.result()
 }

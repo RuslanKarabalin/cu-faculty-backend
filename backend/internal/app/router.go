@@ -20,6 +20,7 @@ func (a *App) registerRoutes() {
 	a.Fiber.Use(middleware.Auth(a.CuClient, publicPaths))
 
 	repo := repository.New(a.DB)
+	a.Fiber.Use(middleware.DenyDeletedAccount(repo, a.Logger))
 
 	userHandler := handler.NewUserHandler(
 		service.NewUserService(repo),
@@ -40,6 +41,12 @@ func (a *App) registerRoutes() {
 	postResponseHandler := handler.NewPostResponseHandler(service.NewPostResponseService(repo), a.Storage, a.Logger)
 	eventResponseHandler := handler.NewEventResponseHandler(service.NewEventResponseService(repo), a.Storage, a.Logger)
 	savedUserHandler := handler.NewSavedUserHandler(service.NewSavedUserService(repo), a.Storage, a.Logger)
+	blockedUserHandler := handler.NewBlockedUserHandler(service.NewBlockedUserService(repo), a.Storage, a.Logger)
+	complaintHandler := handler.NewComplaintHandler(
+		service.NewComplaintService(repo, a.Mailer, a.Config.FrontendBaseUrl),
+		a.Mailer != nil,
+		a.Logger,
+	)
 
 	a.EventSync = service.NewEventSyncService(repo, a.CuClient)
 	eventSyncHandler := handler.NewEventSyncHandler(a.EventSync, a.Logger)
@@ -54,16 +61,20 @@ func (a *App) registerRoutes() {
 	students.Get("/", userHandler.GetUsers)
 	students.Post("/search", userHandler.SearchUsers)
 	students.Get("/:id", userHandler.GetStudentByID)
-	students.Get("/:id/edu-places", eduPlaceHandler.GetUserEduPlaces)
-	students.Get("/:id/work-places", workPlaceHandler.GetUserWorkPlaces)
-	students.Get("/:id/socials", socialHandler.GetUserSocials)
-	students.Get("/:id/key-skills", userKeySkillHandler.GetUserKeySkills)
-	students.Get("/:id/soft-skills", userSoftSkillHandler.GetUserSoftSkills)
+
+	denyIfBlockedBy := middleware.DenyIfBlockedByParam("id", repo, a.Logger)
+	students.Get("/:id/edu-places", denyIfBlockedBy, eduPlaceHandler.GetUserEduPlaces)
+	students.Get("/:id/work-places", denyIfBlockedBy, workPlaceHandler.GetUserWorkPlaces)
+	students.Get("/:id/socials", denyIfBlockedBy, socialHandler.GetUserSocials)
+	students.Get("/:id/key-skills", denyIfBlockedBy, userKeySkillHandler.GetUserKeySkills)
+	students.Get("/:id/soft-skills", denyIfBlockedBy, userSoftSkillHandler.GetUserSoftSkills)
+	students.Post("/:id/complaints", denyIfBlockedBy, complaintHandler.ComplainAboutUser)
 
 	me := api.Group("/me")
 
 	me.Get("/", userHandler.GetMe)
 	me.Put("/", userHandler.UpdateMe)
+	me.Delete("/", userHandler.DeleteMe)
 	me.Delete("/photo", userHandler.DeleteMyPhoto)
 	me.Get("/completeness", userHandler.GetMyCompleteness)
 
@@ -105,6 +116,10 @@ func (a *App) registerRoutes() {
 	me.Post("/saved-users/:userId", savedUserHandler.AddMySavedUser)
 	me.Delete("/saved-users/:userId", savedUserHandler.DeleteMySavedUser)
 
+	me.Get("/blocked-users", blockedUserHandler.GetMyBlockedUsers)
+	me.Post("/blocked-users/:userId", blockedUserHandler.AddMyBlockedUser)
+	me.Delete("/blocked-users/:userId", blockedUserHandler.DeleteMyBlockedUser)
+
 	posts := api.Group("/posts")
 	posts.Get("/", postHandler.GetPosts)
 	posts.Post("/", postHandler.CreatePost)
@@ -114,6 +129,7 @@ func (a *App) registerRoutes() {
 	posts.Get("/:id/responses", postResponseHandler.GetResponders)
 	posts.Post("/:id/responses", postResponseHandler.RespondToPost)
 	posts.Delete("/:id/responses", postResponseHandler.DeleteMyResponse)
+	posts.Post("/:id/complaints", complaintHandler.ComplainAboutPost)
 
 	news := api.Group("/news")
 	news.Get("/", newsHandler.GetNews)

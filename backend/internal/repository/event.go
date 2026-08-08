@@ -140,7 +140,9 @@ func (r *Repository) GetEventByID(ctx context.Context, id uuid.UUID) (*model.Eve
 
 func (r *Repository) GetVisibleEventByID(ctx context.Context, id, viewerID uuid.UUID) (*model.Event, error) {
 	query := eventSelectColumns + `
-	where e.id = $1 and (e.is_draft = false or e.author_id = $2)
+	where e.id = $1
+		and (e.is_draft = false or e.author_id = $2)
+		and u.deleted_at is null
 	`
 
 	e := &model.Event{Author: &model.User{}}
@@ -156,12 +158,17 @@ func (r *Repository) GetVisibleEventByID(ctx context.Context, id, viewerID uuid.
 
 func (r *Repository) GetEvents(ctx context.Context, limit, offset int) ([]*model.Event, int, error) {
 	var total int
-	if err := r.db.QueryRow(ctx, `select count(*) from events where is_draft = false`).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `
+		select count(*) from events e
+		join users u on u.id = e.author_id
+		where e.is_draft = false and u.deleted_at is null
+	`).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count events: %w", err)
 	}
 
 	query := eventSelectColumns + `
 	where e.is_draft = false
+		and u.deleted_at is null
 	order by e.starts_at desc, e.id
 	limit $1 offset $2
 	`
